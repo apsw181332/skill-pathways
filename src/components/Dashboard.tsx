@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import type { User } from "@supabase/supabase-js";
 import {
   Home, BookOpen, Trophy, User, Flame, Star,
   ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award
