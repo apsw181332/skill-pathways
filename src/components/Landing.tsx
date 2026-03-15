@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Mascot from "@/components/Mascot";
 
 interface LandingProps {
   onGetStarted: () => void;
@@ -42,16 +43,30 @@ const Landing = ({ onGetStarted }: LandingProps) => {
               <br />
               of adulthood.
             </h1>
-            <p className="text-muted-foreground text-lg md:text-xl max-w-lg mx-auto mb-10 leading-relaxed">
+            <p className="text-muted-foreground text-lg md:text-xl max-w-lg mx-auto mb-8 leading-relaxed">
               From budgeting to home repairs — learn real-world skills through interactive,
               bite-sized lessons designed for how adults actually learn.
             </p>
           </motion.div>
 
+          {/* Mascot greeting */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2, ease: [0.2, 0, 0, 1] }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="flex justify-center mb-8"
+          >
+            <Mascot
+              message="Hey there! 👋 I'm Pebble, your learning buddy. Ready to level up?"
+              size="lg"
+              animation="wave"
+            />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3, ease: [0.2, 0, 0, 1] }}
             className="flex flex-col sm:flex-row items-center justify-center gap-3"
           >
             <Button size="lg" onClick={onGetStarted} className="gap-2 px-8 text-base">

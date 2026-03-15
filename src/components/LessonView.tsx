@@ -2,6 +2,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Mascot from "@/components/Mascot";
+import Confetti from "@/components/Confetti";
+import XpPopup from "@/components/XpPopup";
 
 interface LessonViewProps {
   onBack: () => void;
@@ -13,6 +16,7 @@ const STEPS = [
     title: "What is an emergency fund?",
     content:
       "An emergency fund is money set aside for unplanned expenses — a car repair, medical bill, or sudden job loss. It's the foundation of financial stability.",
+    mascotMsg: "Let's learn about one of the most important money skills! 💪",
   },
   {
     type: "quiz" as const,
@@ -22,6 +26,7 @@ const STEPS = [
     correct: 1,
     explanation:
       "Most financial experts recommend 3–6 months of living expenses. This gives you enough runway to handle most unexpected situations without going into debt.",
+    mascotMsg: "Time for a quiz! You've got this! 🤔",
   },
   {
     type: "drag" as const,
@@ -33,12 +38,14 @@ const STEPS = [
       { id: "c", text: "Build to 1 month of expenses", order: 3 },
       { id: "d", text: "Grow to 3–6 months", order: 4 },
     ],
+    mascotMsg: "Put these in order — think step by step! 🧩",
   },
   {
     type: "info" as const,
     title: "Where to keep it",
     content:
       "Keep your emergency fund in a high-yield savings account — separate from your checking account. This keeps it accessible but not too easy to spend. Look for accounts with 4%+ APY and no monthly fees.",
+    mascotMsg: "Pro tip incoming! This one's really useful. 📝",
   },
   {
     type: "quiz" as const,
@@ -53,7 +60,20 @@ const STEPS = [
     correct: 2,
     explanation:
       "Emergency funds are for genuine emergencies — not planned expenses or lifestyle purchases. That vacation deal, however tempting, should come from a separate savings goal.",
+    mascotMsg: "Last one! Let's finish strong! 🏁",
   },
+];
+
+const CORRECT_MESSAGES = [
+  "Nailed it! You're a natural! 🎉",
+  "Brilliant! That's exactly right! ⭐",
+  "You're on fire! Keep going! 🔥",
+];
+
+const WRONG_MESSAGES = [
+  "Not quite, but you're learning! That's what counts. 💪",
+  "Almost! Check the explanation — you'll get it next time! 🤓",
+  "Don't worry! Mistakes are how we learn best. 📚",
 ];
 
 const LessonView = ({ onBack }: LessonViewProps) => {
@@ -62,14 +82,36 @@ const LessonView = ({ onBack }: LessonViewProps) => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [orderedItems, setOrderedItems] = useState<string[]>([]);
   const [dragSubmitted, setDragSubmitted] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showXp, setShowXp] = useState(false);
+  const [xpAmount, setXpAmount] = useState(0);
+  const [totalXp, setTotalXp] = useState(0);
+  const [feedbackMascotMsg, setFeedbackMascotMsg] = useState<string | null>(null);
 
   const step = STEPS[currentStep];
   const progress = ((currentStep + 1) / STEPS.length) * 100;
+
+  const triggerXp = (amount: number) => {
+    setXpAmount(amount);
+    setShowXp(true);
+    setTotalXp((prev) => prev + amount);
+    setTimeout(() => setShowXp(false), 1500);
+  };
 
   const handleAnswer = (idx: number) => {
     if (showFeedback) return;
     setSelectedAnswer(idx);
     setShowFeedback(true);
+
+    if (step.type === "quiz") {
+      if (idx === step.correct) {
+        setFeedbackMascotMsg(CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]);
+        triggerXp(15);
+      } else {
+        setFeedbackMascotMsg(WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]);
+        triggerXp(5);
+      }
+    }
   };
 
   const handleOrderItem = (id: string) => {
@@ -81,6 +123,12 @@ const LessonView = ({ onBack }: LessonViewProps) => {
     }
   };
 
+  const handleSubmitOrder = () => {
+    setDragSubmitted(true);
+    setFeedbackMascotMsg("Great effort! Ordering steps is key to building good habits. 📋");
+    triggerXp(20);
+  };
+
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -88,8 +136,14 @@ const LessonView = ({ onBack }: LessonViewProps) => {
       setShowFeedback(false);
       setOrderedItems([]);
       setDragSubmitted(false);
+      setFeedbackMascotMsg(null);
     } else {
-      onBack();
+      // Lesson complete!
+      setShowConfetti(true);
+      setTimeout(() => {
+        setShowConfetti(false);
+        onBack();
+      }, 2500);
     }
   };
 
@@ -100,6 +154,9 @@ const LessonView = ({ onBack }: LessonViewProps) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Confetti active={showConfetti} />
+      <XpPopup amount={xpAmount} show={showXp} />
+
       {/* Top bar */}
       <header className="sticky top-0 z-40 bg-background border-b border-border">
         <div className="max-w-2xl mx-auto px-6 py-3 flex items-center gap-4">
@@ -113,13 +170,31 @@ const LessonView = ({ onBack }: LessonViewProps) => {
               transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
             />
           </div>
+          <span className="text-sm font-medium text-accent xp-counter">
+            {totalXp} XP
+          </span>
           <span className="text-sm text-muted-foreground xp-counter">
             {currentStep + 1}/{STEPS.length}
           </span>
         </div>
       </header>
 
-      <main className="flex-1 max-w-2xl mx-auto px-6 py-8 w-full">
+      <main className="flex-1 max-w-2xl mx-auto px-6 py-6 w-full">
+        {/* Mascot guidance */}
+        <motion.div
+          key={`mascot-${currentStep}-${feedbackMascotMsg}`}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-6"
+        >
+          <Mascot
+            message={feedbackMascotMsg || step.mascotMsg}
+            size="sm"
+            animation={feedbackMascotMsg ? (feedbackMascotMsg.includes("Nailed") || feedbackMascotMsg.includes("Brilliant") || feedbackMascotMsg.includes("fire") ? "celebrate" : "bounce") : "idle"}
+          />
+        </motion.div>
+
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -220,6 +295,8 @@ const LessonView = ({ onBack }: LessonViewProps) => {
                             Remove
                           </button>
                         )}
+                        {dragSubmitted && isCorrect && <CheckCircle2 className="w-4 h-4 text-primary ml-auto" />}
+                        {dragSubmitted && isWrong && <XCircle className="w-4 h-4 text-destructive ml-auto" />}
                       </motion.div>
                     );
                   })}
@@ -242,7 +319,7 @@ const LessonView = ({ onBack }: LessonViewProps) => {
                 </div>
 
                 {orderedItems.length === step.items.length && !dragSubmitted && (
-                  <Button className="mt-4" onClick={() => setDragSubmitted(true)}>
+                  <Button className="mt-4" onClick={handleSubmitOrder}>
                     Check order
                   </Button>
                 )}
@@ -273,7 +350,7 @@ const LessonView = ({ onBack }: LessonViewProps) => {
             className="w-full gap-2"
             size="lg"
           >
-            {currentStep === STEPS.length - 1 ? "Complete lesson" : "Continue"}
+            {currentStep === STEPS.length - 1 ? "🎉 Complete lesson" : "Continue"}
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
