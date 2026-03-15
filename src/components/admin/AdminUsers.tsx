@@ -42,10 +42,7 @@ const AdminUsers = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id ?? null);
-
+    const fetchUsers = async () => {
       const { data } = await supabase
         .from("profiles")
         .select("*")
@@ -54,7 +51,21 @@ const AdminUsers = () => {
       if (data) setUsers(data as UserProfile[]);
       setLoading(false);
     };
+
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id ?? null);
+      fetchUsers();
+    };
     init();
+
+    // Realtime sync
+    const channel = supabase
+      .channel("admin-users-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchUsers())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const handleDelete = async () => {
