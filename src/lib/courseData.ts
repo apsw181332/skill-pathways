@@ -225,6 +225,7 @@ export const COURSES: Course[] = [
             title: "Why Budget?",
             content: "A budget is your financial roadmap. It tells your money where to go instead of wondering where it went. The 50/30/20 rule is a great starting point: 50% needs, 30% wants, 20% savings.",
             image: financialBudgetingImg,
+            video: "https://www.youtube.com/embed/OZQQMYfaBT4",
             mascotMsg: "Let's master your money! 💰",
           },
           {
