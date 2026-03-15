@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Globe2, CreditCard, LogOut,
@@ -7,7 +7,8 @@ import {
 import { Button } from "@/components/ui/button";
 import AdminOverview from "./AdminOverview";
 import AdminUsers from "./AdminUsers";
-import AdminGlobe from "./AdminGlobe";
+const AdminGlobe = lazy(() => import("./AdminGlobe"));
+import AdminSubscriptions from "./AdminSubscriptions";
 import AdminSubscriptions from "./AdminSubscriptions";
 import mascotImg from "@/assets/mascot-penguin.png";
 
