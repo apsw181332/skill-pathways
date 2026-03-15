@@ -59,7 +59,7 @@ const GREETING_MESSAGES = [
 interface DashboardProps {
   config: UserConfig;
   onStartLesson: () => void;
-  user: User;
+  user: SupabaseUser;
   onSignOut: () => Promise<void>;
 }
 
