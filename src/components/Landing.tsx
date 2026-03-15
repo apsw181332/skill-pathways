@@ -83,7 +83,7 @@ const Landing = ({ onGetStarted }: LandingProps) => {
             className="mt-16 grid grid-cols-3 gap-8 max-w-md mx-auto"
           >
             {[
-              { value: "10", label: "Skill paths" },
+              { value: "32", label: "Skill paths" },
               { value: "200+", label: "Lessons" },
               { value: "5 min", label: "Per lesson" },
             ].map((stat) => (

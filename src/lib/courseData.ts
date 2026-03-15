@@ -1052,6 +1052,367 @@ export const COURSES: Course[] = [
       },
     ],
   },
+  {
+    id: "photography",
+    label: "Photography",
+    emoji: "📷",
+    description: "Composition, lighting, phone photography tips",
+    lessons: [
+      {
+        id: 1,
+        title: "Composition Basics",
+        description: "Frame stunning photos with simple rules",
+        steps: [
+          { type: "info", title: "The Rule of Thirds", content: "Imagine your frame divided into a 3×3 grid. Place your subject along the lines or at intersections — not dead center. This creates more dynamic, visually interesting photos.", mascotMsg: "Let's learn to see like a photographer! 📷" },
+          { type: "quiz", title: "Composition Quiz", question: "Where should you place the horizon line for a dramatic sky?", options: ["In the center", "Along the bottom third", "Along the top third", "It doesn't matter"], correct: 1, explanation: "Placing the horizon on the bottom third gives more room to the sky, emphasizing dramatic clouds or sunsets.", mascotMsg: "Think about what you want to emphasize! 🌅" },
+          { type: "info", title: "Leading Lines", content: "Roads, fences, rivers, and pathways naturally draw the viewer's eye through the image. Use these 'leading lines' to guide attention toward your main subject.", mascotMsg: "Lines are everywhere once you start looking! 🛤️" },
+          { type: "quiz", title: "Lighting Basics", question: "What time of day produces the warmest, most flattering natural light?", options: ["High noon", "Golden hour (sunrise/sunset)", "Overcast midday", "Midnight"], correct: 1, explanation: "Golden hour — the hour after sunrise and before sunset — produces warm, soft light that flatters almost every subject.", mascotMsg: "Chase that golden light! ✨" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "music",
+    label: "Music Basics",
+    emoji: "🎵",
+    description: "Reading music, rhythm, instruments, ear training",
+    lessons: [
+      {
+        id: 1,
+        title: "Understanding Rhythm",
+        description: "Feel the beat and keep time",
+        steps: [
+          { type: "info", title: "What is Rhythm?", content: "Rhythm is the pattern of sounds and silences in music. A time signature like 4/4 means 4 beats per measure. Clap along to your favorite song — you're already reading rhythm!", mascotMsg: "Feel the beat! 🥁" },
+          { type: "quiz", title: "Time Signatures", question: "What does a 3/4 time signature mean?", options: ["3 beats per measure", "4 beats per measure", "3 measures per song", "Play 3 notes then rest"], correct: 0, explanation: "3/4 time has 3 beats per measure — it's the waltz rhythm: ONE-two-three, ONE-two-three.", mascotMsg: "Think waltz! 💃" },
+          { type: "info", title: "Note Values", content: "A whole note lasts 4 beats, a half note lasts 2, a quarter note lasts 1, and an eighth note lasts half a beat. These building blocks create every rhythm you've ever heard.", mascotMsg: "Music is math you can dance to! 🎶" },
+          { type: "quiz", title: "Rhythm Practice", question: "How many quarter notes fit in one measure of 4/4 time?", options: ["2", "3", "4", "8"], correct: 2, explanation: "4/4 time = 4 quarter-note beats per measure. That's why it's called 'common time' — it's the most widely used time signature.", mascotMsg: "You're getting the rhythm! 🎵" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "gardening",
+    label: "Gardening",
+    emoji: "🌱",
+    description: "Growing plants, composting, indoor gardens",
+    lessons: [
+      {
+        id: 1,
+        title: "Starting Your First Garden",
+        description: "From seeds to harvest — beginner-friendly guide",
+        steps: [
+          { type: "info", title: "Choose Your Space", content: "No yard? No problem. Window boxes, balcony pots, or indoor herb gardens all work. Most vegetables need 6-8 hours of sunlight. Start small — 3-5 plants is plenty for beginners.", mascotMsg: "Everyone can garden! 🌻" },
+          { type: "quiz", title: "Beginner Plants", question: "Which plant is easiest for a complete beginner to grow?", options: ["Orchids", "Basil", "Bonsai trees", "Venus flytraps"], correct: 1, explanation: "Basil is forgiving, grows quickly, and is useful in cooking. It thrives in pots on a sunny windowsill — perfect for beginners!", mascotMsg: "Start simple and build confidence! 🌿" },
+          { type: "info", title: "Watering Basics", content: "The #1 beginner mistake is overwatering. Stick your finger 1 inch into the soil — if it's dry, water. If damp, wait. Most plants prefer deep, infrequent watering over daily sprinkles.", mascotMsg: "Less is often more with water! 💧" },
+          { type: "quiz", title: "Soil Health", question: "What does composting do for your garden?", options: ["Makes soil more acidic", "Adds nutrients and improves drainage", "Kills all bacteria in soil", "Replaces the need for sunlight"], correct: 1, explanation: "Compost is 'black gold' — it enriches soil with nutrients, improves water retention, and feeds beneficial microorganisms.", mascotMsg: "Compost is nature's recycling! 🍂" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "parenting",
+    label: "Parenting Essentials",
+    emoji: "👶",
+    description: "Child development, positive discipline, routines",
+    lessons: [
+      {
+        id: 1,
+        title: "Positive Discipline",
+        description: "Guide behavior without punishment",
+        steps: [
+          { type: "info", title: "What is Positive Discipline?", content: "Positive discipline focuses on teaching, not punishing. Instead of 'Don't run!' try 'Walking feet, please!' It sets clear boundaries while respecting the child's dignity and encouraging problem-solving.", mascotMsg: "Teaching, not punishing! 💛" },
+          { type: "quiz", title: "Discipline Strategies", question: "What's more effective than timeout for a toddler tantrum?", options: ["Yelling louder", "Naming their emotion: 'You're frustrated because...'", "Ignoring them completely", "Giving in to stop the crying"], correct: 1, explanation: "Naming emotions teaches emotional intelligence. Children calm faster when they feel understood. 'You're upset because you wanted the toy' validates their feelings.", mascotMsg: "Emotions are okay — behavior can be guided! 🧠" },
+          { type: "info", title: "Consistent Routines", content: "Children thrive on predictability. A consistent bedtime routine, meal times, and daily rhythm reduces anxiety and power struggles. Visual schedules work great for younger kids.", mascotMsg: "Routines = security for kids! 📋" },
+          { type: "quiz", title: "Age-Appropriate Expectations", question: "At what age can most children start simple chores like picking up toys?", options: ["6 months", "Around 2-3 years", "5 years", "Only as teenagers"], correct: 1, explanation: "Toddlers (2-3) can help with simple tasks like putting toys in a bin. It builds responsibility and gives them a sense of contribution to the family.", mascotMsg: "Little helpers become responsible adults! 🌟" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "travel",
+    label: "Smart Travel",
+    emoji: "✈️",
+    description: "Planning trips, budgeting, packing, safety abroad",
+    lessons: [
+      {
+        id: 1,
+        title: "Trip Planning 101",
+        description: "Plan like a pro without overspending",
+        steps: [
+          { type: "info", title: "Budget-First Planning", content: "Set your total budget first, then work backward: flights (40%), accommodation (30%), food & activities (30%). Use fare comparison sites, travel off-season, and book 6-8 weeks ahead for the best deals.", mascotMsg: "Smart planning = more trips! ✈️" },
+          { type: "quiz", title: "Travel Hacks", question: "When are flights usually cheapest to book?", options: ["The day before", "6-8 weeks before departure", "6 months in advance", "On holidays"], correct: 1, explanation: "The sweet spot is typically 6-8 weeks before domestic flights and 2-3 months for international. Tuesdays and Wednesdays tend to have lower prices.", mascotMsg: "Timing is everything! 💰" },
+          { type: "info", title: "Packing Smart", content: "Roll clothes instead of folding to save space. Pack a capsule wardrobe (mix-and-match pieces). Always carry essentials (meds, charger, ID) in your personal item. One week = one carry-on if you pack right.", mascotMsg: "Less luggage = less stress! 🧳" },
+          { type: "quiz", title: "Travel Safety", question: "What should you do with important documents while traveling?", options: ["Keep originals and copies together", "Store digital copies in cloud + keep originals in hotel safe", "Leave them at home", "Post photos of them on social media"], correct: 1, explanation: "Keep originals in a hotel safe and store digital copies (photos) in the cloud. This way you have backups if anything is lost or stolen.", mascotMsg: "Stay safe out there! 🛡️" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "pets",
+    label: "Pet Care",
+    emoji: "🐾",
+    description: "Dog & cat care, vet visits, training basics",
+    lessons: [
+      {
+        id: 1,
+        title: "Responsible Pet Ownership",
+        description: "What every pet parent needs to know",
+        steps: [
+          { type: "info", title: "Before You Adopt", content: "Pets are a 10-20 year commitment. Consider: Can you afford vet bills ($500-2,000/year)? Do you have time for walks and play? Does your living situation allow pets? Research the breed's needs before committing.", mascotMsg: "A pet is a lifetime friend — be ready! 🐕" },
+          { type: "quiz", title: "Pet Health", question: "How often should a healthy adult dog visit the vet?", options: ["Only when sick", "At least once a year", "Every month", "Every 5 years"], correct: 1, explanation: "Annual checkups catch problems early. Vaccinations, dental checks, and preventive care keep your pet healthy and can save thousands in emergency vet bills.", mascotMsg: "Prevention is better than cure! 🩺" },
+          { type: "info", title: "Basic Training", content: "Positive reinforcement (treats + praise) is the most effective training method. Keep sessions short (5-10 min), be consistent with commands, and never punish mistakes. Patience is your greatest tool.", mascotMsg: "Every pet can learn — with patience! 🎓" },
+          { type: "quiz", title: "Pet Safety", question: "Which common food is toxic to dogs?", options: ["Carrots", "Plain rice", "Chocolate", "Blueberries"], correct: 2, explanation: "Chocolate contains theobromine, which is toxic to dogs. Dark chocolate is most dangerous. Other toxic foods include grapes, onions, and xylitol (sweetener).", mascotMsg: "Know what's safe for your furry friend! ⚠️" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "mindfulness",
+    label: "Mindfulness & Meditation",
+    emoji: "🧘",
+    description: "Meditation, breathing techniques, stress relief",
+    lessons: [
+      {
+        id: 1,
+        title: "Getting Started with Meditation",
+        description: "Simple techniques anyone can learn",
+        steps: [
+          { type: "info", title: "What is Meditation?", content: "Meditation isn't about emptying your mind — it's about noticing your thoughts without judgment. Even 5 minutes daily reduces stress, improves focus, and enhances emotional regulation. Start small, be consistent.", mascotMsg: "Your calm journey starts here! 🧘" },
+          { type: "quiz", title: "Meditation Myths", question: "Which statement about meditation is TRUE?", options: ["You need to sit cross-legged", "5 minutes a day can make a difference", "You must clear your mind completely", "It only works in silence"], correct: 1, explanation: "Even 5 minutes of daily meditation shows measurable benefits for stress reduction and focus. You can meditate in any comfortable position, and thoughts are normal!", mascotMsg: "Small steps, big impact! 🌟" },
+          { type: "info", title: "Box Breathing", content: "Box breathing: Inhale for 4 seconds, hold for 4, exhale for 4, hold for 4. Repeat 4 times. Navy SEALs use this technique to stay calm under pressure. Try it before stressful situations.", mascotMsg: "Breathe your way to calm! 🌬️" },
+          { type: "quiz", title: "Daily Practice", question: "When is the best time to meditate?", options: ["Only at midnight", "Whatever time you'll actually do it consistently", "Only after exercise", "Only on weekends"], correct: 1, explanation: "The best time is whenever you can stick to it. Morning, lunch break, or evening — consistency matters more than timing.", mascotMsg: "Make it a habit! ✨" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "automotive",
+    label: "Car Basics",
+    emoji: "🚗",
+    description: "Maintenance, tires, roadside emergencies",
+    lessons: [
+      {
+        id: 1,
+        title: "Essential Car Maintenance",
+        description: "Keep your car running and avoid costly repairs",
+        steps: [
+          { type: "info", title: "Know Your Dashboard", content: "Warning lights are your car talking to you. Check engine (could be minor or serious), oil pressure (stop driving!), temperature (overheating), and battery. Learn what each light means in your owner's manual.", mascotMsg: "Your car speaks — learn its language! 🚗" },
+          { type: "quiz", title: "Maintenance Schedule", question: "How often should you change your engine oil?", options: ["Every month", "Every 5,000-7,500 miles (or as manual states)", "Once a year regardless", "Only when the light comes on"], correct: 1, explanation: "Modern cars typically need oil changes every 5,000-7,500 miles, but check your owner's manual. Regular oil changes are the single best thing for engine longevity.", mascotMsg: "Oil is your engine's lifeblood! 🛢️" },
+          { type: "info", title: "Tire Care", content: "Check tire pressure monthly (find the correct PSI on the driver's door sticker, not the tire). Rotate tires every 5,000-8,000 miles. The penny test: insert a penny head-first — if you see all of Lincoln's head, tires need replacing.", mascotMsg: "Good tires = safe driving! 🔧" },
+          { type: "quiz", title: "Roadside Emergency", question: "What should you do FIRST if you get a flat tire on the highway?", options: ["Slam on the brakes", "Gradually slow down and pull safely to the shoulder", "Keep driving to the next exit", "Jump out of the car"], correct: 1, explanation: "Gradually reduce speed, turn on hazards, and pull to a safe, flat spot on the shoulder. Never brake suddenly — it can cause a blowout to become a spinout.", mascotMsg: "Stay calm and stay safe! 🛣️" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sewing",
+    label: "Sewing & Mending",
+    emoji: "🧵",
+    description: "Buttons, hems, basic repairs, simple projects",
+    lessons: [
+      {
+        id: 1,
+        title: "Basic Clothing Repairs",
+        description: "Fix clothes instead of replacing them",
+        steps: [
+          { type: "info", title: "Your Sewing Kit", content: "All you need to start: needles, thread (black, white, navy), scissors, pins, and a seam ripper. A small kit costs under $10 and will save you hundreds in clothing replacements and alterations.", mascotMsg: "A stitch in time saves nine! 🧵" },
+          { type: "quiz", title: "Button Sewing", question: "What do you sew through the button holes to create a 'shank' (thread stem)?", options: ["A toothpick placed on top while sewing", "Nothing — sew flat against fabric", "A paperclip", "Hot glue"], correct: 0, explanation: "Place a toothpick on top of the button while sewing through the holes. Remove it after, then wrap thread around the stems. This creates space for the buttonhole fabric.", mascotMsg: "The toothpick trick is a game-changer! 🪡" },
+          { type: "info", title: "Fixing a Hem", content: "Use a blind hem stitch for invisible repairs: fold the hem up, catch just 1-2 threads of the outer fabric, then slide the needle through the folded hem. The stitches should be nearly invisible from outside.", mascotMsg: "Invisible fixes look professional! ✨" },
+          { type: "quiz", title: "Fabric Care", question: "What does a hand-wash-only label mean?", options: ["You must take it to a dry cleaner", "Wash gently in cool water with mild detergent", "It can go in the washing machine on delicate", "You should never wash it"], correct: 1, explanation: "Hand wash means gentle washing in cool/lukewarm water with mild detergent. Avoid wringing — press water out gently and lay flat to dry.", mascotMsg: "Treat your clothes right! 👕" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "languages",
+    label: "Language Learning",
+    emoji: "🗣️",
+    description: "Strategies, memory techniques, practice tips",
+    lessons: [
+      {
+        id: 1,
+        title: "How to Learn Any Language",
+        description: "Proven strategies for language acquisition",
+        steps: [
+          { type: "info", title: "The Science of Language Learning", content: "Adults can learn languages effectively! The key is consistent exposure. Aim for 30 minutes daily rather than 3-hour weekend sessions. Your brain builds neural pathways through regular repetition, not cramming.", mascotMsg: "You CAN learn a new language! 🗣️" },
+          { type: "quiz", title: "Learning Methods", question: "Which method is MOST effective for language learning?", options: ["Memorizing grammar rules first", "Immersive practice — listening, speaking, making mistakes", "Reading a dictionary", "Watching movies without subtitles from day one"], correct: 1, explanation: "Immersion and active use beats passive study. Speak from day one (even badly!), listen to native speakers, and embrace mistakes as learning opportunities.", mascotMsg: "Mistakes are your best teachers! 💪" },
+          { type: "info", title: "Spaced Repetition", content: "Review new words at increasing intervals: after 1 day, 3 days, 1 week, 2 weeks, 1 month. Apps like Anki automate this. You'll retain 90%+ of vocabulary vs. 20% from simple re-reading.", mascotMsg: "Smart review = lasting memory! 🧠" },
+          { type: "quiz", title: "Daily Practice", question: "What's the most important thing for language learning progress?", options: ["Natural talent", "Expensive courses", "Daily consistency, even 10 minutes", "Living abroad"], correct: 2, explanation: "Consistency trumps everything. Ten minutes every day builds stronger neural pathways than sporadic hour-long sessions. Make it a daily habit you enjoy.", mascotMsg: "Show up every day — that's the secret! 🌟" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "digital-tools",
+    label: "Productivity Tools",
+    emoji: "⚙️",
+    description: "Spreadsheets, docs, cloud storage, task managers",
+    lessons: [
+      {
+        id: 1,
+        title: "Spreadsheet Superpowers",
+        description: "Master the basics of spreadsheets for work and life",
+        steps: [
+          { type: "info", title: "Why Spreadsheets?", content: "Spreadsheets aren't just for accountants. Track budgets, plan meals, organize job applications, compare products, or manage projects. Google Sheets is free and works on any device.", mascotMsg: "Spreadsheets are life organizers! 📊" },
+          { type: "quiz", title: "Formulas 101", question: "What does the formula =SUM(A1:A10) do?", options: ["Counts cells A1 to A10", "Adds up all values from A1 to A10", "Averages values in A1 to A10", "Sorts A1 to A10"], correct: 1, explanation: "SUM adds all values in the specified range. It's the most-used formula. Other essentials: AVERAGE, COUNT, MAX, MIN, and IF.", mascotMsg: "Formulas are your superpower! ⚡" },
+          { type: "info", title: "Organizing with Filters", content: "Use filters to sort and find data quickly. Select your header row → Data → Create Filter. Now you can sort alphabetically, by number, or filter to show only specific values. Essential for large datasets.", mascotMsg: "Find what you need in seconds! 🔍" },
+          { type: "quiz", title: "Practical Uses", question: "Which is NOT a good use for a spreadsheet?", options: ["Tracking monthly expenses", "Writing a novel", "Comparing insurance quotes", "Planning a weekly meal schedule"], correct: 1, explanation: "Spreadsheets excel at structured data, comparisons, and calculations. For long-form writing, use a word processor or doc tool instead.", mascotMsg: "Right tool for the right job! 🛠️" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "negotiation",
+    label: "Negotiation Skills",
+    emoji: "🤝",
+    description: "Salary talks, buying, selling, conflict resolution",
+    lessons: [
+      {
+        id: 1,
+        title: "Negotiation Fundamentals",
+        description: "Get better outcomes in any negotiation",
+        steps: [
+          { type: "info", title: "Everything is Negotiable", content: "Rent, salaries, bills, car prices — more things are negotiable than you think. The key: do your research, know your worth, and be willing to walk away. The person who cares least has the most power.", mascotMsg: "Let's unlock your negotiation skills! 🤝" },
+          { type: "quiz", title: "Salary Negotiation", question: "When should you negotiate salary for a new job?", options: ["During the first interview", "After receiving a written offer", "Never — take what they offer", "Before applying"], correct: 1, explanation: "Wait for a written offer, then negotiate. You have the most leverage once they've decided they want you. Research market rates on Glassdoor/LinkedIn beforehand.", mascotMsg: "Know your worth! 💰" },
+          { type: "info", title: "The BATNA Concept", content: "BATNA = Best Alternative To a Negotiated Agreement. Before any negotiation, know your plan B. If you're buying a car, research other options. A strong BATNA gives you confidence to walk away from bad deals.", mascotMsg: "Always have a Plan B! 🎯" },
+          { type: "quiz", title: "Win-Win", question: "What makes a negotiation 'win-win'?", options: ["You get everything you want", "Both sides feel they gained value", "You trick the other side", "You split everything exactly 50/50"], correct: 1, explanation: "Win-win means both parties feel the outcome is fair and valuable. This builds long-term relationships and leads to better deals over time.", mascotMsg: "The best deals work for everyone! 🌟" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "mental-models",
+    label: "Critical Thinking",
+    emoji: "🧠",
+    description: "Logic, biases, decision-making frameworks",
+    lessons: [
+      {
+        id: 1,
+        title: "Cognitive Biases",
+        description: "Recognize the tricks your brain plays on you",
+        steps: [
+          { type: "info", title: "What Are Cognitive Biases?", content: "Cognitive biases are systematic errors in thinking. Your brain uses mental shortcuts (heuristics) that sometimes lead you astray. Recognizing them is the first step to making better decisions.", mascotMsg: "Know your brain's blind spots! 🧠" },
+          { type: "quiz", title: "Common Biases", question: "What is 'confirmation bias'?", options: ["Agreeing with everything", "Seeking info that supports what you already believe", "Confirming plans with friends", "Being overly confident"], correct: 1, explanation: "Confirmation bias makes us seek out information that confirms our existing beliefs while ignoring contradicting evidence. It affects everything from politics to personal decisions.", mascotMsg: "Challenge your own assumptions! 🔍" },
+          { type: "info", title: "The Sunk Cost Fallacy", content: "You've watched 2 hours of a terrible movie. Should you stay because you've 'invested' time? No! Past costs shouldn't influence future decisions. Judge choices on future value, not past investment.", mascotMsg: "Don't throw good money after bad! 💡" },
+          { type: "quiz", title: "Better Decisions", question: "What's the best way to fight your own biases?", options: ["Trust your gut always", "Actively seek opposing viewpoints", "Make faster decisions", "Ask people who agree with you"], correct: 1, explanation: "Deliberately seeking opposing viewpoints, considering 'what if I'm wrong?', and using frameworks for decisions helps counteract natural biases.", mascotMsg: "Great thinkers question themselves! ✨" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "networking",
+    label: "Professional Networking",
+    emoji: "🔗",
+    description: "Building connections, LinkedIn, mentorship",
+    lessons: [
+      {
+        id: 1,
+        title: "Building Your Network",
+        description: "Authentic connections that advance your career",
+        steps: [
+          { type: "info", title: "Networking Isn't Sleazy", content: "Forget the image of forced handshakes and business cards. Real networking is building genuine relationships. Focus on how you can help others first. Value flows both ways in good networks.", mascotMsg: "Authentic connections matter most! 🔗" },
+          { type: "quiz", title: "Networking Approach", question: "What's the best opening when meeting someone at a professional event?", options: ["'Can you help me get a job?'", "Ask about their work and listen with genuine interest", "'Let me tell you about myself...'", "Hand them your resume"], correct: 1, explanation: "People love talking about their work. Show genuine curiosity, ask thoughtful questions, and listen. The relationship builds naturally from there.", mascotMsg: "Be curious about people! 💬" },
+          { type: "info", title: "Following Up", content: "After meeting someone, connect on LinkedIn within 48 hours with a personalized note: 'Great meeting you at [event]. I enjoyed our chat about [specific topic].' Keep the relationship warm with occasional check-ins.", mascotMsg: "The follow-up is where the magic happens! 📧" },
+          { type: "quiz", title: "Online Presence", question: "What's the most important part of your LinkedIn profile?", options: ["A professional photo", "Your headline and summary", "Number of connections", "Endorsements from strangers"], correct: 1, explanation: "Your headline and summary are what people see first. Use them to tell your story and what value you bring — not just your job title.", mascotMsg: "Your online presence is your digital handshake! 🌐" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "moving",
+    label: "Moving & Relocation",
+    emoji: "📦",
+    description: "Planning moves, apartment hunting, settling in",
+    lessons: [
+      {
+        id: 1,
+        title: "Moving Like a Pro",
+        description: "Stress-free strategies for your next move",
+        steps: [
+          { type: "info", title: "The Moving Timeline", content: "Start 8 weeks before: declutter and donate. 6 weeks: get quotes from movers. 4 weeks: start packing non-essentials. 2 weeks: change your address. 1 week: pack an 'essentials box' (toiletries, chargers, snacks, sheets).", mascotMsg: "A good plan makes moving manageable! 📦" },
+          { type: "quiz", title: "Apartment Hunting", question: "What should you check BEFORE signing a lease?", options: ["Just the rent price", "Water pressure, outlets, cell signal, and neighborhood at night", "Only the square footage", "The building's Instagram page"], correct: 1, explanation: "Visit at different times of day. Test water pressure, count outlets, check phone signal, look for pests, and ask about utilities, parking, and maintenance response times.", mascotMsg: "Look beyond the listing photos! 🏠" },
+          { type: "info", title: "Declutter Before You Move", content: "Moving is the perfect time to downsize. If you haven't used something in a year, donate or sell it. Less stuff = cheaper move, easier unpacking, and a fresh start. Be ruthless!", mascotMsg: "Less stuff = more freedom! ✨" },
+          { type: "quiz", title: "Moving Day", question: "What should go in your 'Open First' box?", options: ["Winter coats", "Toilet paper, phone charger, snacks, sheets, and basic tools", "Old magazines", "Holiday decorations"], correct: 1, explanation: "Your first-night essentials: toilet paper, paper towels, trash bags, phone charger, snacks, water, sheets, pillow, and a basic tool kit. You'll thank yourself!", mascotMsg: "Pack smart, move easy! 🎯" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "taxes",
+    label: "Tax Filing",
+    emoji: "🧾",
+    description: "Filing taxes, deductions, deadlines, forms",
+    lessons: [
+      {
+        id: 1,
+        title: "Filing Your First Tax Return",
+        description: "Demystifying tax season step by step",
+        steps: [
+          { type: "info", title: "Taxes Aren't Scary", content: "If you earned income, you likely need to file. Gather your W-2s (from employers) and 1099s (freelance/interest income). Free filing options exist for incomes under $79,000 through IRS Free File.", mascotMsg: "Let's make tax season painless! 🧾" },
+          { type: "quiz", title: "Tax Basics", question: "What's the difference between a tax deduction and a tax credit?", options: ["They're the same thing", "A deduction reduces taxable income; a credit directly reduces tax owed", "Credits are for businesses only", "Deductions are illegal"], correct: 1, explanation: "A $1,000 deduction might save you $220 in taxes (at 22% bracket). A $1,000 credit saves you exactly $1,000. Credits are more valuable dollar-for-dollar!", mascotMsg: "Credits > deductions in value! 💡" },
+          { type: "info", title: "Common Deductions", content: "Standard deduction ($13,850 single / $27,700 married in 2023) vs. itemizing. Most people take the standard deduction. Student loan interest, educator expenses, and HSA contributions are 'above-the-line' deductions anyone can take.", mascotMsg: "Don't leave money on the table! 💰" },
+          { type: "quiz", title: "Deadlines", question: "When is the typical US federal tax filing deadline?", options: ["January 1", "April 15", "July 4", "December 31"], correct: 1, explanation: "April 15 is the standard deadline (may shift to the next business day if it falls on a weekend/holiday). You can file an extension for more time, but you still owe any taxes by April 15.", mascotMsg: "Mark your calendar! 📅" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "insurance",
+    label: "Insurance 101",
+    emoji: "🏥",
+    description: "Health, auto, renter's insurance explained",
+    lessons: [
+      {
+        id: 1,
+        title: "Understanding Insurance",
+        description: "What you need, what you don't, and how to choose",
+        steps: [
+          { type: "info", title: "Insurance Basics", content: "Insurance is paying a small amount regularly (premium) to protect against large, unexpected costs. Key terms: premium (monthly cost), deductible (what you pay before insurance kicks in), copay (fixed cost per visit).", mascotMsg: "Protection against life's surprises! 🛡️" },
+          { type: "quiz", title: "Health Insurance", question: "What does a 'deductible' mean?", options: ["Your monthly payment", "The amount you pay before insurance starts covering costs", "How much the insurance company profits", "A tax deduction"], correct: 1, explanation: "If your deductible is $1,500, you pay the first $1,500 of medical costs yourself. After that, insurance starts paying (usually sharing costs via copay/coinsurance).", mascotMsg: "Know your numbers! 📋" },
+          { type: "info", title: "Renter's Insurance", content: "For ~$15/month, renter's insurance covers your belongings if stolen, damaged by fire/water, and provides liability protection if someone is injured in your home. It's one of the best insurance values available.", mascotMsg: "Protect your stuff for pennies a day! 🏠" },
+          { type: "quiz", title: "Choosing Coverage", question: "Should you always choose the cheapest insurance plan?", options: ["Yes — save money wherever possible", "No — consider coverage, deductible, and network, not just premium", "Price is the only factor", "The most expensive is always best"], correct: 1, explanation: "A cheap premium with a $10,000 deductible could cost you more than a moderate premium with a $2,000 deductible. Balance monthly cost with what you'd pay in a worst-case scenario.", mascotMsg: "Cheap isn't always the best value! 💡" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "writing",
+    label: "Writing Skills",
+    emoji: "✍️",
+    description: "Clear writing, emails, reports, storytelling",
+    lessons: [
+      {
+        id: 1,
+        title: "Writing Clearly",
+        description: "Communicate effectively in any format",
+        steps: [
+          { type: "info", title: "Clarity Over Cleverness", content: "Good writing is clear writing. Use short sentences. Avoid jargon. Write at a level anyone can understand. If a simpler word works, use it. The goal is communication, not showing off your vocabulary.", mascotMsg: "Clear writing is powerful writing! ✍️" },
+          { type: "quiz", title: "Concise Writing", question: "Which sentence is better?", options: ["'Due to the fact that it was raining, we stayed inside'", "'Because it rained, we stayed inside'", "Both are equally good", "'The precipitation necessitated indoor relocation'"], correct: 1, explanation: "Cut filler phrases: 'due to the fact that' → 'because', 'in order to' → 'to', 'at this point in time' → 'now'. Fewer words = more impact.", mascotMsg: "Less is more! ✂️" },
+          { type: "info", title: "The Inverted Pyramid", content: "Start with the most important information. Journalists use this: lead with the conclusion, then supporting details, then background. Your reader may stop at any point — make sure they get the key message first.", mascotMsg: "Lead with the headline! 📰" },
+          { type: "quiz", title: "Proofreading", question: "What's the best way to proofread your own writing?", options: ["Read it immediately after writing", "Read it aloud after taking a break", "Trust spell-check completely", "Have someone else write it"], correct: 1, explanation: "Take a break (even 10 minutes), then read aloud. Your ears catch errors your eyes miss. Reading aloud also reveals awkward phrasing and run-on sentences.", mascotMsg: "Your ears are your best editor! 👂" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "voting",
+    label: "Civic Participation",
+    emoji: "🗳️",
+    description: "Voting, community involvement, knowing your rights",
+    lessons: [
+      {
+        id: 1,
+        title: "Your Civic Toolkit",
+        description: "Engage with your community and make your voice heard",
+        steps: [
+          { type: "info", title: "Why Your Vote Matters", content: "Local elections often decide by hundreds or even dozens of votes. Your city council, school board, and local judges shape your daily life more than national politics. Show up for local elections — your vote has outsized impact.", mascotMsg: "Democracy starts locally! 🗳️" },
+          { type: "quiz", title: "Voter Registration", question: "In most US states, what do you need to register to vote?", options: ["A college degree", "Valid ID and proof of address", "Property ownership", "A referral from a current voter"], correct: 1, explanation: "Requirements vary by state, but typically you need valid identification and proof of residency. Many states offer online registration. Check vote.org for your state's rules.", mascotMsg: "Registration is the first step! 📋" },
+          { type: "info", title: "Beyond Voting", content: "Civic participation goes beyond voting: attend town halls, contact your representatives, join community boards, volunteer locally, or run for local office yourself. Democracy works best with active participants.", mascotMsg: "Get involved in your community! 🏘️" },
+          { type: "quiz", title: "Know Your Rights", question: "Can your employer prevent you from voting?", options: ["Yes, work comes first", "No — most states require employers to provide time to vote", "Only if you're part-time", "Only during primaries"], correct: 1, explanation: "Most states have laws requiring employers to give employees time to vote. Check your state's specific laws — some require paid time off, others unpaid.", mascotMsg: "Know your rights and exercise them! ⚖️" },
+        ],
+      },
+    ],
+  },
 ];
 
 export function getCourseById(id: string): Course | undefined {
