@@ -13,24 +13,12 @@ interface Stats {
   avgStreak: number;
 }
 
-// Generate mock daily data for charts
-const generateDailyData = (days: number) => {
-  const data = [];
-  const now = new Date();
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      signups: Math.floor(Math.random() * 15) + 2,
-      lessons: Math.floor(Math.random() * 40) + 5,
-      activeUsers: Math.floor(Math.random() * 30) + 10,
-    });
-  }
-  return data;
-};
-
-const DAILY_DATA = generateDailyData(30);
+interface DailyDataPoint {
+  date: string;
+  signups: number;
+  lessons: number;
+  activeUsers: number;
+}
 
 const StatCard = ({ icon: Icon, label, value, trend, color }: {
   icon: any; label: string; value: string | number; trend?: string; color: string;
@@ -49,38 +37,111 @@ const StatCard = ({ icon: Icon, label, value, trend, color }: {
 
 const AdminOverview = () => {
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, activeToday: 0, totalLessons: 0, avgStreak: 0 });
+  const [dailyData, setDailyData] = useState<DailyDataPoint[]>([]);
+  const [trends, setTrends] = useState({ users: "", active: "", lessons: "" });
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchAll = async () => {
       const { data: profiles } = await supabase.from("profiles").select("*");
       const { data: progress } = await supabase.from("user_progress").select("*");
 
-      if (profiles) {
-        const today = new Date().toISOString().split("T")[0];
-        const activeToday = profiles.filter(p => p.last_activity_date === today).length;
-        const avgStreak = profiles.length > 0
-          ? Math.round(profiles.reduce((sum, p) => sum + (p.streak || 0), 0) / profiles.length)
-          : 0;
+      if (!profiles) return;
 
-        setStats({
-          totalUsers: profiles.length,
-          activeToday,
-          totalLessons: progress?.filter(p => p.completed).length || 0,
-          avgStreak,
-        });
+      const today = new Date().toISOString().split("T")[0];
+      const activeToday = profiles.filter(p => p.last_activity_date === today).length;
+      const avgStreak = profiles.length > 0
+        ? Math.round(profiles.reduce((sum, p) => sum + (p.streak || 0), 0) / profiles.length)
+        : 0;
+      const totalLessons = progress?.filter(p => p.completed).length || 0;
+
+      setStats({ totalUsers: profiles.length, activeToday, totalLessons, avgStreak });
+
+      // Build real daily data from created_at timestamps
+      const now = new Date();
+      const days = 30;
+      const dailyMap: Record<string, { signups: number; lessons: number; activeUsers: Set<string> }> = {};
+
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split("T")[0];
+        dailyMap[key] = { signups: 0, lessons: 0, activeUsers: new Set() };
       }
+
+      // Count signups per day
+      profiles.forEach((p) => {
+        const day = p.created_at.split("T")[0];
+        if (dailyMap[day]) dailyMap[day].signups++;
+      });
+
+      // Count lessons completed per day and active users
+      progress?.forEach((p) => {
+        if (p.completed && p.completed_at) {
+          const day = p.completed_at.split("T")[0];
+          if (dailyMap[day]) {
+            dailyMap[day].lessons++;
+            dailyMap[day].activeUsers.add(p.user_id);
+          }
+        }
+      });
+
+      // Also count users with last_activity_date as active
+      profiles.forEach((p) => {
+        if (p.last_activity_date) {
+          const day = p.last_activity_date;
+          if (dailyMap[day]) dailyMap[day].activeUsers.add(p.user_id);
+        }
+      });
+
+      const chartData: DailyDataPoint[] = Object.entries(dailyMap).map(([date, vals]) => ({
+        date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        signups: vals.signups,
+        lessons: vals.lessons,
+        activeUsers: vals.activeUsers.size,
+      }));
+
+      setDailyData(chartData);
+
+      // Calculate trends (last 7 days vs previous 7 days)
+      const last7 = chartData.slice(-7);
+      const prev7 = chartData.slice(-14, -7);
+      const sum = (arr: DailyDataPoint[], key: keyof DailyDataPoint) =>
+        arr.reduce((s, d) => s + (d[key] as number), 0);
+
+      const calcTrend = (key: keyof DailyDataPoint) => {
+        const recent = sum(last7, key);
+        const previous = sum(prev7, key);
+        if (previous === 0) return recent > 0 ? "+100%" : "—";
+        const pct = Math.round(((recent - previous) / previous) * 100);
+        return pct >= 0 ? `+${pct}%` : `${pct}%`;
+      };
+
+      setTrends({
+        users: calcTrend("signups"),
+        active: calcTrend("activeUsers"),
+        lessons: calcTrend("lessons"),
+      });
     };
 
-    fetchStats();
+    fetchAll();
+
+    // Realtime updates
+    const channel = supabase
+      .channel("admin-overview")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_progress" }, () => fetchAll())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   return (
     <div className="space-y-8">
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Total Users" value={stats.totalUsers} trend="+12%" color="bg-primary/10 text-primary" />
-        <StatCard icon={TrendingUp} label="Active Today" value={stats.activeToday} trend="+5%" color="bg-accent/20 text-accent-foreground" />
-        <StatCard icon={BookOpen} label="Lessons Completed" value={stats.totalLessons} trend="+23%" color="bg-primary/10 text-primary" />
+        <StatCard icon={Users} label="Total Users" value={stats.totalUsers} trend={trends.users} color="bg-primary/10 text-primary" />
+        <StatCard icon={TrendingUp} label="Active Today" value={stats.activeToday} trend={trends.active} color="bg-accent/20 text-accent-foreground" />
+        <StatCard icon={BookOpen} label="Lessons Completed" value={stats.totalLessons} trend={trends.lessons} color="bg-primary/10 text-primary" />
         <StatCard icon={Flame} label="Avg. Streak" value={`${stats.avgStreak} days`} color="bg-destructive/10 text-destructive" />
       </div>
 
@@ -89,7 +150,7 @@ const AdminOverview = () => {
         <div className="bg-card border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">User Signups (30 days)</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={DAILY_DATA}>
+            <AreaChart data={dailyData}>
               <defs>
                 <linearGradient id="signupGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(230, 58%, 48%)" stopOpacity={0.3} />
@@ -98,7 +159,7 @@ const AdminOverview = () => {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 12%, 87%)" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="hsl(225, 10%, 50%)" />
-              <YAxis tick={{ fontSize: 12 }} stroke="hsl(225, 10%, 50%)" />
+              <YAxis tick={{ fontSize: 12 }} stroke="hsl(225, 10%, 50%)" allowDecimals={false} />
               <Tooltip
                 contentStyle={{
                   background: "hsl(0, 0%, 100%)",
@@ -115,10 +176,10 @@ const AdminOverview = () => {
         <div className="bg-card border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Daily Lessons Completed</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={DAILY_DATA}>
+            <BarChart data={dailyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 12%, 87%)" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="hsl(225, 10%, 50%)" />
-              <YAxis tick={{ fontSize: 12 }} stroke="hsl(225, 10%, 50%)" />
+              <YAxis tick={{ fontSize: 12 }} stroke="hsl(225, 10%, 50%)" allowDecimals={false} />
               <Tooltip
                 contentStyle={{
                   background: "hsl(0, 0%, 100%)",
@@ -135,7 +196,7 @@ const AdminOverview = () => {
         <div className="bg-card border border-border rounded-lg p-6 lg:col-span-2">
           <h3 className="text-lg font-semibold text-foreground mb-4">Active Users Trend</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={DAILY_DATA}>
+            <AreaChart data={dailyData}>
               <defs>
                 <linearGradient id="activeGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(42, 70%, 62%)" stopOpacity={0.3} />
@@ -144,7 +205,7 @@ const AdminOverview = () => {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 12%, 87%)" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="hsl(225, 10%, 50%)" />
-              <YAxis tick={{ fontSize: 12 }} stroke="hsl(225, 10%, 50%)" />
+              <YAxis tick={{ fontSize: 12 }} stroke="hsl(225, 10%, 50%)" allowDecimals={false} />
               <Tooltip
                 contentStyle={{
                   background: "hsl(0, 0%, 100%)",

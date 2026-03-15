@@ -15,43 +15,25 @@ import { getLevelForXp, getXpProgress, LEVELS } from "@/lib/levels";
 import { supabase } from "@/integrations/supabase/client";
 
 const CATEGORIES = [
-  { id: "financial", label: "Financial Literacy", emoji: "💰", lessons: 8, completed: 2 },
-  { id: "home", label: "Home Maintenance", emoji: "🏠", lessons: 6, completed: 0 },
-  { id: "cooking", label: "Cooking & Nutrition", emoji: "🍳", lessons: 10, completed: 0 },
-  { id: "social", label: "Social Skills", emoji: "🤝", lessons: 5, completed: 0 },
-  { id: "career", label: "Career Growth", emoji: "📈", lessons: 7, completed: 0 },
-  { id: "health", label: "Health & Wellness", emoji: "🧘", lessons: 9, completed: 0 },
-  { id: "legal", label: "Legal Basics", emoji: "⚖️", lessons: 4, completed: 0 },
-  { id: "tech", label: "Digital Literacy", emoji: "💻", lessons: 6, completed: 0 },
+  { id: "financial", label: "Financial Literacy", emoji: "💰", lessons: 8 },
+  { id: "home", label: "Home Maintenance", emoji: "🏠", lessons: 6 },
+  { id: "cooking", label: "Cooking & Nutrition", emoji: "🍳", lessons: 10 },
+  { id: "social", label: "Social Skills", emoji: "🤝", lessons: 5 },
+  { id: "career", label: "Career Growth", emoji: "📈", lessons: 7 },
+  { id: "health", label: "Health & Wellness", emoji: "🧘", lessons: 9 },
+  { id: "legal", label: "Legal Basics", emoji: "⚖️", lessons: 4 },
+  { id: "tech", label: "Digital Literacy", emoji: "💻", lessons: 6 },
 ];
 
-const SAMPLE_LESSONS = [
-  { id: 1, title: "Understanding Your Paycheck", status: "completed" as const },
-  { id: 2, title: "Building a Budget That Works", status: "completed" as const },
-  { id: 3, title: "Emergency Funds 101", status: "current" as const },
-  { id: 4, title: "Credit Scores Decoded", status: "locked" as const },
-  { id: 5, title: "Intro to Investing", status: "locked" as const },
-];
-
-const LEADERBOARD = [
-  { rank: 1, name: "Alex M.", xp: 2450, streak: 14 },
-  { rank: 2, name: "Jordan K.", xp: 2100, streak: 11 },
-  { rank: 3, name: "Sam T.", xp: 1890, streak: 9 },
-  { rank: 4, name: "You", xp: 340, streak: 3, isUser: true },
-  { rank: 5, name: "Riley B.", xp: 310, streak: 2 },
-  { rank: 6, name: "Casey W.", xp: 280, streak: 5 },
-  { rank: 7, name: "Morgan D.", xp: 210, streak: 1 },
-];
-
-const BADGES = [
-  { id: "first-lesson", label: "First Steps", emoji: "🐣", desc: "Complete your first lesson", earned: true },
-  { id: "streak-3", label: "On Fire", emoji: "🔥", desc: "3-day streak", earned: true },
-  { id: "streak-7", label: "Unstoppable", emoji: "⚡", desc: "7-day streak", earned: false },
-  { id: "financial-master", label: "Money Wise", emoji: "💰", desc: "Complete Financial Literacy", earned: false },
-  { id: "quiz-ace", label: "Quiz Ace", emoji: "🎯", desc: "Get 10 quizzes correct in a row", earned: false },
-  { id: "explorer", label: "Explorer", emoji: "🗺️", desc: "Try 3 different categories", earned: false },
-  { id: "social-butterfly", label: "Social Butterfly", emoji: "🦋", desc: "Add 5 friends", earned: false },
-  { id: "level-5", label: "Advanced", emoji: "🔥", desc: "Reach Level 5", earned: false },
+const BADGE_DEFINITIONS = [
+  { id: "first-lesson", label: "First Steps", emoji: "🐣", desc: "Complete your first lesson" },
+  { id: "streak-3", label: "On Fire", emoji: "🔥", desc: "3-day streak" },
+  { id: "streak-7", label: "Unstoppable", emoji: "⚡", desc: "7-day streak" },
+  { id: "financial-master", label: "Money Wise", emoji: "💰", desc: "Complete Financial Literacy" },
+  { id: "quiz-ace", label: "Quiz Ace", emoji: "🎯", desc: "Get 10 quizzes correct in a row" },
+  { id: "explorer", label: "Explorer", emoji: "🗺️", desc: "Try 3 different categories" },
+  { id: "social-butterfly", label: "Social Butterfly", emoji: "🦋", desc: "Add 5 friends" },
+  { id: "level-5", label: "Advanced", emoji: "🔥", desc: "Reach Level 5" },
 ];
 
 const GREETING_MESSAGES = [
@@ -68,23 +50,47 @@ interface DashboardProps {
   onSignOut: () => Promise<void>;
 }
 
-interface FriendRequest {
+interface FriendData {
   id: string;
   user_id: string;
   friend_id: string;
   status: string;
-  display_name?: string;
+}
+
+interface ProfileData {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  xp: number;
+  streak: number;
+  level: number;
+}
+
+interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  xp: number;
+  streak: number;
+  userId: string;
+  isUser: boolean;
 }
 
 const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState<"home" | "learn" | "leaderboard" | "friends" | "profile">("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [friendSearch, setFriendSearch] = useState("");
-  const [friends, setFriends] = useState<FriendRequest[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
+  const [friends, setFriends] = useState<FriendData[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<FriendData[]>([]);
+  const [friendProfiles, setFriendProfiles] = useState<Record<string, ProfileData>>({});
+  const [pendingProfiles, setPendingProfiles] = useState<Record<string, ProfileData>>({});
 
-  const xp = 340;
-  const streak = 3;
+  // Real user data from DB
+  const [xp, setXp] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
+  const [categoryProgress, setCategoryProgress] = useState<Record<string, number>>({});
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [currentLesson, setCurrentLesson] = useState<{ categoryId: string; lessonId: number; title: string } | null>(null);
+
   const levelInfo = getXpProgress(xp);
 
   const filteredCategories = CATEGORIES.filter(
@@ -93,6 +99,99 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
 
   const greetingMsg = GREETING_MESSAGES[Math.floor(Date.now() / 60000) % GREETING_MESSAGES.length];
 
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("xp, streak")
+        .eq("user_id", user.id)
+        .single();
+      if (data) {
+        setXp(data.xp);
+        setStreak(data.streak);
+      }
+    };
+
+    const fetchAchievements = async () => {
+      const { data } = await supabase
+        .from("achievements")
+        .select("badge_id")
+        .eq("user_id", user.id);
+      if (data) setEarnedBadges(data.map((a) => a.badge_id));
+    };
+
+    const fetchProgress = async () => {
+      const { data } = await supabase
+        .from("user_progress")
+        .select("category_id, lesson_id, completed")
+        .eq("user_id", user.id);
+      if (data) {
+        const progress: Record<string, number> = {};
+        let nextLesson: { categoryId: string; lessonId: number; title: string } | null = null;
+        data.forEach((p) => {
+          if (p.completed) {
+            progress[p.category_id] = (progress[p.category_id] || 0) + 1;
+          }
+        });
+        setCategoryProgress(progress);
+
+        // Find the next uncompleted lesson
+        for (const cat of CATEGORIES) {
+          const completed = progress[cat.id] || 0;
+          if (completed < cat.lessons) {
+            nextLesson = { categoryId: cat.id, lessonId: completed + 1, title: `${cat.label} · Lesson ${completed + 1}` };
+            break;
+          }
+        }
+        setCurrentLesson(nextLesson);
+      }
+    };
+
+    const fetchLeaderboard = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, xp, streak")
+        .order("xp", { ascending: false })
+        .limit(50);
+      if (data) {
+        const entries: LeaderboardEntry[] = data.map((p, i) => ({
+          rank: i + 1,
+          name: p.display_name || "Anonymous",
+          xp: p.xp,
+          streak: p.streak,
+          userId: p.user_id,
+          isUser: p.user_id === user.id,
+        }));
+        setLeaderboard(entries);
+      }
+    };
+
+    fetchProfile();
+    fetchAchievements();
+    fetchProgress();
+    fetchLeaderboard();
+  }, [user.id]);
+
+  // Realtime subscription for profile changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("my-profile")
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "profiles",
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        const p = payload.new as any;
+        setXp(p.xp);
+        setStreak(p.streak);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user.id]);
+
+  // Fetch friends with display names
   useEffect(() => {
     const fetchFriends = async () => {
       const { data: sent } = await supabase
@@ -113,8 +212,39 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
         .eq("friend_id", user.id)
         .eq("status", "pending");
 
-      setFriends([...(sent || []), ...(received || [])]);
+      const allFriends = [...(sent || []), ...(received || [])];
+      setFriends(allFriends);
       setPendingRequests(pending || []);
+
+      // Get profile display names for friends
+      const friendUserIds = allFriends.map((f) =>
+        f.user_id === user.id ? f.friend_id : f.user_id
+      );
+      if (friendUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name, xp, streak, level, id")
+          .in("user_id", friendUserIds);
+        if (profiles) {
+          const map: Record<string, ProfileData> = {};
+          profiles.forEach((p) => { map[p.user_id] = p; });
+          setFriendProfiles(map);
+        }
+      }
+
+      // Get names for pending requests
+      const pendingUserIds = (pending || []).map((p) => p.user_id);
+      if (pendingUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name, xp, streak, level, id")
+          .in("user_id", pendingUserIds);
+        if (profiles) {
+          const map: Record<string, ProfileData> = {};
+          profiles.forEach((p) => { map[p.user_id] = p; });
+          setPendingProfiles(map);
+        }
+      }
     };
     fetchFriends();
   }, [user.id]);
@@ -210,10 +340,16 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
           <span className="text-sm font-medium text-primary">Continue learning</span>
           <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
-        <h2 className="text-lg font-semibold text-foreground mb-1">Emergency Funds 101</h2>
-        <p className="text-sm text-muted-foreground mb-4">Financial Literacy · Lesson 3 of 8</p>
+        <h2 className="text-lg font-semibold text-foreground mb-1">
+          {currentLesson?.title || "Start your first lesson!"}
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          {currentLesson
+            ? `${CATEGORIES.find(c => c.id === currentLesson.categoryId)?.emoji} ${currentLesson.title}`
+            : "Pick a category and begin learning"}
+        </p>
         <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
-          <div className="progress-fill" style={{ width: "25%" }} />
+          <div className="progress-fill" style={{ width: currentLesson ? "25%" : "0%" }} />
         </div>
         <p className="text-xs text-primary mt-2 font-medium">+15 XP per question</p>
       </motion.button>
@@ -229,62 +365,78 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
           </motion.div>
           <h2 className="text-xl font-semibold text-foreground mb-4">All skill paths</h2>
           <div className="space-y-3">
-            {filteredCategories.map((cat, i) => (
-              <motion.button
-                key={cat.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.05, ease: [0.2, 0, 0, 1] }}
-                onClick={() => setSelectedCategory(cat.id)}
-                className="lesson-card w-full text-left flex items-center gap-4 group"
-              >
-                <span className="text-2xl">{cat.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <span className="font-medium text-foreground">{cat.label}</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden">
-                      <div className="progress-fill h-full" style={{ width: `${(cat.completed / cat.lessons) * 100}%` }} />
+            {filteredCategories.map((cat, i) => {
+              const completed = categoryProgress[cat.id] || 0;
+              return (
+                <motion.button
+                  key={cat.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.05, ease: [0.2, 0, 0, 1] }}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className="lesson-card w-full text-left flex items-center gap-4 group"
+                >
+                  <span className="text-2xl">{cat.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium text-foreground">{cat.label}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden">
+                        <div className="progress-fill h-full" style={{ width: `${(completed / cat.lessons) * 100}%` }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground xp-counter">{completed}/{cat.lessons}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground xp-counter">{cat.completed}/{cat.lessons}</span>
                   </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-              </motion.button>
-            ))}
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                </motion.button>
+              );
+            })}
           </div>
         </>
       ) : (
         <>
           <button onClick={() => setSelectedCategory(null)} className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 flex items-center gap-1">← Back to paths</button>
           <Mascot message="Pick a lesson and let's dive in! Each one earns you XP. 🎮" size="sm" animation="bounce" className="mb-6" />
-          <h1 className="text-2xl font-semibold text-foreground mb-2">
-            {CATEGORIES.find((c) => c.id === selectedCategory)?.emoji}{" "}
-            {CATEGORIES.find((c) => c.id === selectedCategory)?.label}
-          </h1>
-          <p className="text-muted-foreground mb-8">Complete lessons in order to unlock the next.</p>
-          <div className="space-y-3">
-            {SAMPLE_LESSONS.map((lesson, i) => (
-              <motion.div key={lesson.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.05, ease: [0.2, 0, 0, 1] }}>
-                <button
-                  onClick={lesson.status === "current" ? onStartLesson : undefined}
-                  disabled={lesson.status === "locked"}
-                  className={`lesson-card w-full text-left flex items-center gap-4 ${lesson.status === "current" ? "border-primary" : ""} ${lesson.status === "locked" ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <div className="shrink-0">
-                    {lesson.status === "completed" && <CheckCircle2 className="w-5 h-5 text-primary" />}
-                    {lesson.status === "current" && <Circle className="w-5 h-5 text-primary" />}
-                    {lesson.status === "locked" && <Lock className="w-5 h-5 text-muted-foreground" />}
-                  </div>
-                  <div className="flex-1">
-                    <span className="font-medium text-foreground">{lesson.title}</span>
-                    <p className="text-sm text-muted-foreground">
-                      {lesson.status === "completed" ? "Completed ✓ · +50 XP" : lesson.status === "current" ? "Up next · ~15 XP per question" : "Locked"}
-                    </p>
-                  </div>
-                </button>
-              </motion.div>
-            ))}
-          </div>
+          {(() => {
+            const cat = CATEGORIES.find((c) => c.id === selectedCategory);
+            const completed = categoryProgress[selectedCategory] || 0;
+            if (!cat) return null;
+            const lessons = Array.from({ length: cat.lessons }, (_, i) => ({
+              id: i + 1,
+              title: `${cat.label} · Lesson ${i + 1}`,
+              status: i < completed ? "completed" as const : i === completed ? "current" as const : "locked" as const,
+            }));
+            return (
+              <>
+                <h1 className="text-2xl font-semibold text-foreground mb-2">
+                  {cat.emoji} {cat.label}
+                </h1>
+                <p className="text-muted-foreground mb-8">Complete lessons in order to unlock the next.</p>
+                <div className="space-y-3">
+                  {lessons.map((lesson, i) => (
+                    <motion.div key={lesson.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.05, ease: [0.2, 0, 0, 1] }}>
+                      <button
+                        onClick={lesson.status === "current" ? onStartLesson : undefined}
+                        disabled={lesson.status === "locked"}
+                        className={`lesson-card w-full text-left flex items-center gap-4 ${lesson.status === "current" ? "border-primary" : ""} ${lesson.status === "locked" ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
+                        <div className="shrink-0">
+                          {lesson.status === "completed" && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                          {lesson.status === "current" && <Circle className="w-5 h-5 text-primary" />}
+                          {lesson.status === "locked" && <Lock className="w-5 h-5 text-muted-foreground" />}
+                        </div>
+                        <div className="flex-1">
+                          <span className="font-medium text-foreground">{lesson.title}</span>
+                          <p className="text-sm text-muted-foreground">
+                            {lesson.status === "completed" ? "Completed ✓ · +50 XP" : lesson.status === "current" ? "Up next · ~15 XP per question" : "Locked"}
+                          </p>
+                        </div>
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </>
       )}
     </>
@@ -296,43 +448,53 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
         <Mascot message="Climb the ranks! Every XP counts. Can you reach #1? 🏆" size="sm" animation="celebrate" />
       </motion.div>
       <h2 className="text-xl font-semibold text-foreground mb-4">Global Leaderboard</h2>
-      <div className="space-y-3">
-        {LEADERBOARD.map((entry, i) => {
-          const isTop3 = entry.rank <= 3;
-          const rankIcons = [null, Crown, Medal, Award];
-          const RankIcon = rankIcons[entry.rank] || null;
-          const lvl = getLevelForXp(entry.xp);
-          return (
-            <motion.div
-              key={entry.rank}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
-              className={`lesson-card flex items-center gap-4 py-4 ${(entry as any).isUser ? "border-primary bg-primary/5" : ""} ${isTop3 ? "border-accent/50" : ""}`}
-            >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                entry.rank === 1 ? "bg-accent/20 text-accent-foreground" :
-                entry.rank === 2 ? "bg-secondary text-foreground" :
-                entry.rank === 3 ? "bg-secondary text-foreground" :
-                "bg-secondary text-muted-foreground"
-              }`}>
-                {RankIcon ? <RankIcon className="w-4 h-4" /> : `#${entry.rank}`}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className={`font-medium ${(entry as any).isUser ? "text-primary" : "text-foreground"}`}>{entry.name}</span>
-                  <span className="text-xs text-muted-foreground">{lvl.emoji} Lv.{lvl.level}</span>
+      {leaderboard.length === 0 ? (
+        <div className="lesson-card text-center py-8">
+          <Trophy className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-foreground font-medium mb-1">No rankings yet</p>
+          <p className="text-sm text-muted-foreground">Complete lessons to earn XP and appear on the leaderboard!</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {leaderboard.map((entry, i) => {
+            const isTop3 = entry.rank <= 3;
+            const rankIcons = [null, Crown, Medal, Award];
+            const RankIcon = rankIcons[entry.rank] || null;
+            const lvl = getLevelForXp(entry.xp);
+            return (
+              <motion.div
+                key={entry.userId}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+                className={`lesson-card flex items-center gap-4 py-4 ${entry.isUser ? "border-primary bg-primary/5" : ""} ${isTop3 ? "border-accent/50" : ""}`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                  entry.rank === 1 ? "bg-accent/20 text-accent-foreground" :
+                  entry.rank === 2 ? "bg-secondary text-foreground" :
+                  entry.rank === 3 ? "bg-secondary text-foreground" :
+                  "bg-secondary text-muted-foreground"
+                }`}>
+                  {RankIcon ? <RankIcon className="w-4 h-4" /> : `#${entry.rank}`}
                 </div>
-                <div className="flex items-center gap-3 mt-0.5">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1"><Star className="w-3 h-3" /> {entry.xp} XP</span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="w-3 h-3" /> {entry.streak} days</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`font-medium ${entry.isUser ? "text-primary" : "text-foreground"}`}>
+                      {entry.isUser ? "You" : entry.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{lvl.emoji} Lv.{lvl.level}</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1"><Star className="w-3 h-3" /> {entry.xp} XP</span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="w-3 h-3" /> {entry.streak} days</span>
+                  </div>
                 </div>
-              </div>
-              {isTop3 && <span className="text-lg">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span>}
-            </motion.div>
-          );
-        })}
-      </div>
+                {isTop3 && <span className="text-lg">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span>}
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 
@@ -349,20 +511,25 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
         <div className="mb-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Pending Requests ({pendingRequests.length})</h3>
           <div className="space-y-2">
-            {pendingRequests.map((req) => (
-              <div key={req.id} className="lesson-card flex items-center gap-3 py-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <UserIcon className="w-4 h-4 text-primary" />
+            {pendingRequests.map((req) => {
+              const profile = pendingProfiles[req.user_id];
+              return (
+                <div key={req.id} className="lesson-card flex items-center gap-3 py-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <UserIcon className="w-4 h-4 text-primary" />
+                  </div>
+                  <span className="flex-1 font-medium text-foreground text-sm">
+                    {profile?.display_name || "Anonymous"}
+                  </span>
+                  <button onClick={() => handleAcceptFriend(req.id)} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleRejectFriend(req.id)} className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <span className="flex-1 font-medium text-foreground text-sm">{req.user_id.slice(0, 8)}...</span>
-                <button onClick={() => handleAcceptFriend(req.id)} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors">
-                  <Check className="w-4 h-4" />
-                </button>
-                <button onClick={() => handleRejectFriend(req.id)} className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20 transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -370,17 +537,28 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
       {/* Friends list */}
       {friends.length > 0 ? (
         <div className="space-y-3">
-          {friends.map((friend) => (
-            <div key={friend.id} className="lesson-card flex items-center gap-3 py-3">
-              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
-                <UserIcon className="w-5 h-5 text-accent-foreground" />
+          {friends.map((friend) => {
+            const friendUserId = friend.user_id === user.id ? friend.friend_id : friend.user_id;
+            const profile = friendProfiles[friendUserId];
+            const lvl = profile ? getLevelForXp(profile.xp) : null;
+            return (
+              <div key={friend.id} className="lesson-card flex items-center gap-3 py-3">
+                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+                  <UserIcon className="w-5 h-5 text-accent-foreground" />
+                </div>
+                <div className="flex-1">
+                  <span className="font-medium text-foreground">
+                    {profile?.display_name || "Anonymous"}
+                  </span>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    {lvl && <span className="text-xs text-muted-foreground">{lvl.emoji} Lv.{lvl.level}</span>}
+                    {profile && <span className="text-xs text-muted-foreground">{profile.xp} XP</span>}
+                    {profile && <span className="text-xs text-muted-foreground">🔥 {profile.streak}</span>}
+                  </div>
+                </div>
               </div>
-              <div className="flex-1">
-                <span className="font-medium text-foreground">{friend.user_id === user.id ? friend.friend_id.slice(0, 8) : friend.user_id.slice(0, 8)}...</span>
-                <p className="text-xs text-muted-foreground">Friend</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="lesson-card text-center py-8">
@@ -437,7 +615,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
             <div className="text-xs text-muted-foreground">Friends</div>
           </div>
           <div className="text-center">
-            <div className="text-lg font-semibold text-foreground xp-counter">2</div>
+            <div className="text-lg font-semibold text-foreground xp-counter">{earnedBadges.length}</div>
             <div className="text-xs text-muted-foreground">Badges</div>
           </div>
         </div>
@@ -466,20 +644,23 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
       {/* Badges */}
       <h3 className="text-lg font-semibold text-foreground mb-3">Badges</h3>
       <div className="grid grid-cols-2 gap-3">
-        {BADGES.map((badge, i) => (
-          <motion.div
-            key={badge.id}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 + i * 0.05 }}
-            className={`lesson-card text-center py-4 ${!badge.earned ? "opacity-40 grayscale" : ""}`}
-          >
-            <span className="text-3xl">{badge.emoji}</span>
-            <p className="font-medium text-foreground text-sm mt-2">{badge.label}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{badge.desc}</p>
-            {badge.earned && <span className="inline-block mt-2 text-xs text-primary font-medium">Earned ✓</span>}
-          </motion.div>
-        ))}
+        {BADGE_DEFINITIONS.map((badge, i) => {
+          const earned = earnedBadges.includes(badge.id);
+          return (
+            <motion.div
+              key={badge.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 + i * 0.05 }}
+              className={`lesson-card text-center py-4 ${!earned ? "opacity-40 grayscale" : ""}`}
+            >
+              <span className="text-3xl">{badge.emoji}</span>
+              <p className="font-medium text-foreground text-sm mt-2">{badge.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{badge.desc}</p>
+              {earned && <span className="inline-block mt-2 text-xs text-primary font-medium">Earned ✓</span>}
+            </motion.div>
+          );
+        })}
       </div>
 
       <Button variant="ghost" onClick={onSignOut} className="w-full mt-6 text-muted-foreground hover:text-destructive gap-2">
