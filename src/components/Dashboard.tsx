@@ -1,14 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
   Home, BookOpen, Trophy, User as UserIcon, Flame, Star,
-  ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award, LogOut
+  ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award, LogOut,
+  Users, UserPlus, Check, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { UserConfig } from "@/components/Onboarding";
 import Mascot from "@/components/Mascot";
 import mascotImg from "@/assets/mascot-penguin.png";
+import { getLevelForXp, getXpProgress, LEVELS } from "@/lib/levels";
+import { supabase } from "@/integrations/supabase/client";
 
 const CATEGORIES = [
   { id: "financial", label: "Financial Literacy", emoji: "💰", lessons: 8, completed: 2 },
@@ -46,6 +50,8 @@ const BADGES = [
   { id: "financial-master", label: "Money Wise", emoji: "💰", desc: "Complete Financial Literacy", earned: false },
   { id: "quiz-ace", label: "Quiz Ace", emoji: "🎯", desc: "Get 10 quizzes correct in a row", earned: false },
   { id: "explorer", label: "Explorer", emoji: "🗺️", desc: "Try 3 different categories", earned: false },
+  { id: "social-butterfly", label: "Social Butterfly", emoji: "🦋", desc: "Add 5 friends", earned: false },
+  { id: "level-5", label: "Advanced", emoji: "🔥", desc: "Reach Level 5", earned: false },
 ];
 
 const GREETING_MESSAGES = [
@@ -62,11 +68,24 @@ interface DashboardProps {
   onSignOut: () => Promise<void>;
 }
 
+interface FriendRequest {
+  id: string;
+  user_id: string;
+  friend_id: string;
+  status: string;
+  display_name?: string;
+}
+
 const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) => {
-  const [activeTab, setActiveTab] = useState<"home" | "learn" | "leaderboard" | "profile">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "learn" | "leaderboard" | "friends" | "profile">("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [friendSearch, setFriendSearch] = useState("");
+  const [friends, setFriends] = useState<FriendRequest[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
+
   const xp = 340;
   const streak = 3;
+  const levelInfo = getXpProgress(xp);
 
   const filteredCategories = CATEGORIES.filter(
     (c) => config.interests.length === 0 || config.interests.includes(c.id)
@@ -74,9 +93,44 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
 
   const greetingMsg = GREETING_MESSAGES[Math.floor(Date.now() / 60000) % GREETING_MESSAGES.length];
 
+  useEffect(() => {
+    const fetchFriends = async () => {
+      const { data: sent } = await supabase
+        .from("friendships")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "accepted");
+
+      const { data: received } = await supabase
+        .from("friendships")
+        .select("*")
+        .eq("friend_id", user.id)
+        .eq("status", "accepted");
+
+      const { data: pending } = await supabase
+        .from("friendships")
+        .select("*")
+        .eq("friend_id", user.id)
+        .eq("status", "pending");
+
+      setFriends([...(sent || []), ...(received || [])]);
+      setPendingRequests(pending || []);
+    };
+    fetchFriends();
+  }, [user.id]);
+
+  const handleAcceptFriend = async (requestId: string) => {
+    await supabase.from("friendships").update({ status: "accepted" }).eq("id", requestId);
+    setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+  };
+
+  const handleRejectFriend = async (requestId: string) => {
+    await supabase.from("friendships").update({ status: "rejected" }).eq("id", requestId);
+    setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+  };
+
   const renderHome = () => (
     <>
-      {/* Mascot greeting */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -84,6 +138,37 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
         className="mb-6"
       >
         <Mascot message={greetingMsg} size="sm" animation="wave" />
+      </motion.div>
+
+      {/* Level progress */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.03 }}
+        className="lesson-card mb-4"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{levelInfo.current.emoji}</span>
+            <div>
+              <span className="font-semibold text-foreground">Level {levelInfo.current.level}</span>
+              <span className="text-sm text-muted-foreground ml-2">{levelInfo.current.name}</span>
+            </div>
+          </div>
+          {levelInfo.next && (
+            <span className="text-xs text-muted-foreground">
+              {xp}/{levelInfo.next.minXp} XP to Lv.{levelInfo.next.level}
+            </span>
+          )}
+        </div>
+        <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+          <motion.div
+            className="progress-fill h-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${levelInfo.progress}%` }}
+            transition={{ duration: 0.8, ease: [0.2, 0, 0, 1] }}
+          />
+        </div>
       </motion.div>
 
       {/* Streak & XP cards */}
@@ -139,18 +224,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
     <>
       {!selectedCategory ? (
         <>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <Mascot
-              message="Pick a path and start learning! Each lesson earns XP. 🎮"
-              size="sm"
-              animation="bounce"
-            />
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+            <Mascot message="Pick a path and start learning! Each lesson earns XP. 🎮" size="sm" animation="bounce" />
           </motion.div>
-
           <h2 className="text-xl font-semibold text-foreground mb-4">All skill paths</h2>
           <div className="space-y-3">
             {filteredCategories.map((cat, i) => (
@@ -167,14 +243,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
                   <span className="font-medium text-foreground">{cat.label}</span>
                   <div className="flex items-center gap-2 mt-1">
                     <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden">
-                      <div
-                        className="progress-fill h-full"
-                        style={{ width: `${(cat.completed / cat.lessons) * 100}%` }}
-                      />
+                      <div className="progress-fill h-full" style={{ width: `${(cat.completed / cat.lessons) * 100}%` }} />
                     </div>
-                    <span className="text-xs text-muted-foreground xp-counter">
-                      {cat.completed}/{cat.lessons}
-                    </span>
+                    <span className="text-xs text-muted-foreground xp-counter">{cat.completed}/{cat.lessons}</span>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
@@ -184,40 +255,20 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
         </>
       ) : (
         <>
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 flex items-center gap-1"
-          >
-            ← Back to paths
-          </button>
-
-          <Mascot
-            message="Pick a lesson and let's dive in! Each one earns you XP. 🎮"
-            size="sm"
-            animation="bounce"
-            className="mb-6"
-          />
-
+          <button onClick={() => setSelectedCategory(null)} className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 flex items-center gap-1">← Back to paths</button>
+          <Mascot message="Pick a lesson and let's dive in! Each one earns you XP. 🎮" size="sm" animation="bounce" className="mb-6" />
           <h1 className="text-2xl font-semibold text-foreground mb-2">
             {CATEGORIES.find((c) => c.id === selectedCategory)?.emoji}{" "}
             {CATEGORIES.find((c) => c.id === selectedCategory)?.label}
           </h1>
           <p className="text-muted-foreground mb-8">Complete lessons in order to unlock the next.</p>
-
           <div className="space-y-3">
             {SAMPLE_LESSONS.map((lesson, i) => (
-              <motion.div
-                key={lesson.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.05, ease: [0.2, 0, 0, 1] }}
-              >
+              <motion.div key={lesson.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.05, ease: [0.2, 0, 0, 1] }}>
                 <button
                   onClick={lesson.status === "current" ? onStartLesson : undefined}
                   disabled={lesson.status === "locked"}
-                  className={`lesson-card w-full text-left flex items-center gap-4 ${
-                    lesson.status === "current" ? "border-primary" : ""
-                  } ${lesson.status === "locked" ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`lesson-card w-full text-left flex items-center gap-4 ${lesson.status === "current" ? "border-primary" : ""} ${lesson.status === "locked" ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <div className="shrink-0">
                     {lesson.status === "completed" && <CheckCircle2 className="w-5 h-5 text-primary" />}
@@ -241,35 +292,23 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
 
   const renderLeaderboard = () => (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-      >
-        <Mascot
-          message="Climb the ranks! Every XP counts. Can you reach #1? 🏆"
-          size="sm"
-          animation="celebrate"
-        />
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <Mascot message="Climb the ranks! Every XP counts. Can you reach #1? 🏆" size="sm" animation="celebrate" />
       </motion.div>
-
       <h2 className="text-xl font-semibold text-foreground mb-4">Global Leaderboard</h2>
-
       <div className="space-y-3">
         {LEADERBOARD.map((entry, i) => {
           const isTop3 = entry.rank <= 3;
           const rankIcons = [null, Crown, Medal, Award];
           const RankIcon = rankIcons[entry.rank] || null;
-
+          const lvl = getLevelForXp(entry.xp);
           return (
             <motion.div
               key={entry.rank}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: i * 0.05 }}
-              className={`lesson-card flex items-center gap-4 py-4 ${
-                (entry as any).isUser ? "border-primary bg-primary/5" : ""
-              } ${isTop3 ? "border-accent/50" : ""}`}
+              className={`lesson-card flex items-center gap-4 py-4 ${(entry as any).isUser ? "border-primary bg-primary/5" : ""} ${isTop3 ? "border-accent/50" : ""}`}
             >
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
                 entry.rank === 1 ? "bg-accent/20 text-accent-foreground" :
@@ -280,23 +319,16 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
                 {RankIcon ? <RankIcon className="w-4 h-4" /> : `#${entry.rank}`}
               </div>
               <div className="flex-1">
-                <span className={`font-medium ${(entry as any).isUser ? "text-primary" : "text-foreground"}`}>
-                  {entry.name}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`font-medium ${(entry as any).isUser ? "text-primary" : "text-foreground"}`}>{entry.name}</span>
+                  <span className="text-xs text-muted-foreground">{lvl.emoji} Lv.{lvl.level}</span>
+                </div>
                 <div className="flex items-center gap-3 mt-0.5">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Star className="w-3 h-3" /> {entry.xp} XP
-                  </span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Flame className="w-3 h-3" /> {entry.streak} days
-                  </span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1"><Star className="w-3 h-3" /> {entry.xp} XP</span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="w-3 h-3" /> {entry.streak} days</span>
                 </div>
               </div>
-              {isTop3 && (
-                <span className="text-lg">
-                  {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}
-                </span>
-              )}
+              {isTop3 && <span className="text-lg">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span>}
             </motion.div>
           );
         })}
@@ -304,32 +336,93 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
     </>
   );
 
+  const renderFriends = () => (
+    <>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <Mascot message="Learning is better with friends! Add people and compete together! 🤝" size="sm" animation="bounce" />
+      </motion.div>
+
+      <h2 className="text-xl font-semibold text-foreground mb-4">Friends</h2>
+
+      {/* Pending requests */}
+      {pendingRequests.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Pending Requests ({pendingRequests.length})</h3>
+          <div className="space-y-2">
+            {pendingRequests.map((req) => (
+              <div key={req.id} className="lesson-card flex items-center gap-3 py-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <UserIcon className="w-4 h-4 text-primary" />
+                </div>
+                <span className="flex-1 font-medium text-foreground text-sm">{req.user_id.slice(0, 8)}...</span>
+                <button onClick={() => handleAcceptFriend(req.id)} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors">
+                  <Check className="w-4 h-4" />
+                </button>
+                <button onClick={() => handleRejectFriend(req.id)} className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Friends list */}
+      {friends.length > 0 ? (
+        <div className="space-y-3">
+          {friends.map((friend) => (
+            <div key={friend.id} className="lesson-card flex items-center gap-3 py-3">
+              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+                <UserIcon className="w-5 h-5 text-accent-foreground" />
+              </div>
+              <div className="flex-1">
+                <span className="font-medium text-foreground">{friend.user_id === user.id ? friend.friend_id.slice(0, 8) : friend.user_id.slice(0, 8)}...</span>
+                <p className="text-xs text-muted-foreground">Friend</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="lesson-card text-center py-8">
+          <Users className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-foreground font-medium mb-1">No friends yet</p>
+          <p className="text-sm text-muted-foreground">Share your invite code to add friends and compete together!</p>
+        </div>
+      )}
+
+      {/* Invite code */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lesson-card mt-6 text-center">
+        <UserPlus className="w-8 h-8 text-primary mx-auto mb-2" />
+        <h3 className="font-semibold text-foreground mb-1">Your Invite Code</h3>
+        <div className="bg-secondary rounded-lg px-4 py-2 font-mono text-sm text-foreground inline-block">
+          {user.id.slice(0, 8).toUpperCase()}
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">Share this code with friends to connect!</p>
+      </motion.div>
+    </>
+  );
+
   const renderProfile = () => (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-      >
-        <Mascot
-          message="Look at all you've accomplished! Keep collecting badges! 🏅"
-          size="sm"
-          animation="idle"
-        />
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <Mascot message="Look at all you've accomplished! Keep collecting badges! 🏅" size="sm" animation="idle" />
       </motion.div>
 
       {/* Profile header */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="lesson-card text-center mb-6"
-      >
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lesson-card text-center mb-6">
         <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
           <img src={mascotImg} alt="Profile" className="w-14 h-14 object-contain" />
         </div>
         <h2 className="text-xl font-semibold text-foreground">{user.user_metadata?.display_name || user.email?.split("@")[0] || "Learner"}</h2>
         <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
+
+        {/* Level badge */}
+        <div className="inline-flex items-center gap-2 mt-3 bg-secondary rounded-full px-4 py-1.5">
+          <span className="text-lg">{levelInfo.current.emoji}</span>
+          <span className="font-semibold text-foreground">Level {levelInfo.current.level}</span>
+          <span className="text-sm text-muted-foreground">{levelInfo.current.name}</span>
+        </div>
+
         <div className="flex justify-center gap-6 mt-4">
           <div className="text-center">
             <div className="text-lg font-semibold text-foreground xp-counter">{xp}</div>
@@ -340,11 +433,35 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
             <div className="text-xs text-muted-foreground">Day Streak</div>
           </div>
           <div className="text-center">
+            <div className="text-lg font-semibold text-foreground xp-counter">{friends.length}</div>
+            <div className="text-xs text-muted-foreground">Friends</div>
+          </div>
+          <div className="text-center">
             <div className="text-lg font-semibold text-foreground xp-counter">2</div>
             <div className="text-xs text-muted-foreground">Badges</div>
           </div>
         </div>
       </motion.div>
+
+      {/* Level progression */}
+      <h3 className="text-lg font-semibold text-foreground mb-3">Level Progression</h3>
+      <div className="lesson-card mb-6">
+        <div className="space-y-2">
+          {LEVELS.map((lvl) => {
+            const isReached = xp >= lvl.minXp;
+            return (
+              <div key={lvl.level} className={`flex items-center gap-3 py-1.5 ${!isReached ? "opacity-40" : ""}`}>
+                <span className="text-lg">{lvl.emoji}</span>
+                <span className={`text-sm font-medium ${isReached ? "text-foreground" : "text-muted-foreground"}`}>
+                  Lv.{lvl.level} {lvl.name}
+                </span>
+                <span className="text-xs text-muted-foreground ml-auto">{lvl.minXp} XP</span>
+                {isReached && <CheckCircle2 className="w-4 h-4 text-primary" />}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Badges */}
       <h3 className="text-lg font-semibold text-foreground mb-3">Badges</h3>
@@ -355,26 +472,17 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 + i * 0.05 }}
-            className={`lesson-card text-center py-4 ${
-              !badge.earned ? "opacity-40 grayscale" : ""
-            }`}
+            className={`lesson-card text-center py-4 ${!badge.earned ? "opacity-40 grayscale" : ""}`}
           >
             <span className="text-3xl">{badge.emoji}</span>
             <p className="font-medium text-foreground text-sm mt-2">{badge.label}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{badge.desc}</p>
-            {badge.earned && (
-              <span className="inline-block mt-2 text-xs text-primary font-medium">Earned ✓</span>
-            )}
+            {badge.earned && <span className="inline-block mt-2 text-xs text-primary font-medium">Earned ✓</span>}
           </motion.div>
         ))}
       </div>
 
-      {/* Sign out */}
-      <Button
-        variant="ghost"
-        onClick={onSignOut}
-        className="w-full mt-6 text-muted-foreground hover:text-destructive gap-2"
-      >
+      <Button variant="ghost" onClick={onSignOut} className="w-full mt-6 text-muted-foreground hover:text-destructive gap-2">
         <LogOut className="w-4 h-4" />
         Sign out
       </Button>
@@ -383,7 +491,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Top bar */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border">
         <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -391,6 +498,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
             <span className="font-semibold text-lg text-foreground tracking-tight">Pathways</span>
           </div>
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1 text-xs font-medium bg-secondary rounded-full px-2 py-1">
+              <span>{levelInfo.current.emoji}</span>
+              <span className="text-foreground">Lv.{levelInfo.current.level}</span>
+            </div>
             <div className="flex items-center gap-1.5 text-sm">
               <Flame className="w-4 h-4 text-destructive" />
               <span className="font-medium xp-counter text-foreground">{streak}</span>
@@ -407,28 +518,24 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
         {activeTab === "home" && renderHome()}
         {activeTab === "learn" && renderLearn()}
         {activeTab === "leaderboard" && renderLeaderboard()}
+        {activeTab === "friends" && renderFriends()}
         {activeTab === "profile" && renderProfile()}
       </main>
 
-      {/* Bottom thumb bar */}
       <div className="thumb-bar">
         {[
           { id: "home" as const, icon: Home, label: "Home" },
           { id: "learn" as const, icon: BookOpen, label: "Learn" },
           { id: "leaderboard" as const, icon: Trophy, label: "Rank" },
+          { id: "friends" as const, icon: Users, label: "Friends" },
           { id: "profile" as const, icon: UserIcon, label: "Profile" },
         ].map((tab) => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setSelectedCategory(null);
-              }}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 transition-colors ${
-                activeTab === tab.id ? "text-primary" : "text-muted-foreground"
-              }`}
+              onClick={() => { setActiveTab(tab.id); setSelectedCategory(null); }}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 transition-colors ${activeTab === tab.id ? "text-primary" : "text-muted-foreground"}`}
               aria-label={tab.label}
             >
               <Icon className="w-5 h-5" />

@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import Landing from "@/components/Landing";
 import AuthPage from "@/components/AuthPage";
 import Onboarding, { type UserConfig } from "@/components/Onboarding";
 import Dashboard from "@/components/Dashboard";
 import LessonView from "@/components/LessonView";
+import AdminDashboard from "@/components/admin/AdminDashboard";
 
 type AppState = "landing" | "auth" | "onboarding" | "dashboard" | "lesson";
 
 const Index = () => {
   const { user, isReady, signUp, signIn, signOut, resetPassword } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
   const [state, setState] = useState<AppState>("landing");
   const [config, setConfig] = useState<UserConfig>({
     interests: [],
@@ -18,8 +21,6 @@ const Index = () => {
     accessibility: [],
   });
 
-  // Once auth is ready and user is logged in, go to dashboard
-  // (unless they're in onboarding or lesson)
   const effectiveState = (() => {
     if (!isReady) return "landing";
     if (user) {
@@ -32,7 +33,6 @@ const Index = () => {
 
   const handleOnboardingComplete = async (userConfig: UserConfig) => {
     setConfig(userConfig);
-    // Save preferences to profile
     if (user) {
       await supabase.from("profiles").update({
         interests: userConfig.interests,
@@ -44,9 +44,18 @@ const Index = () => {
   };
 
   const handleAuth = () => {
-    // After successful auth, check if user needs onboarding
     setState("onboarding");
   };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setState("landing");
+  };
+
+  // If admin is logged in, show admin dashboard
+  if (isReady && user && !adminLoading && isAdmin) {
+    return <AdminDashboard onSignOut={handleSignOut} />;
+  }
 
   switch (effectiveState) {
     case "landing":
@@ -68,10 +77,7 @@ const Index = () => {
           config={config}
           onStartLesson={() => setState("lesson")}
           user={user!}
-          onSignOut={async () => {
-            await signOut();
-            setState("landing");
-          }}
+          onSignOut={handleSignOut}
         />
       );
     case "lesson":
