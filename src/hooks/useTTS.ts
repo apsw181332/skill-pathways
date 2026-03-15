@@ -14,6 +14,13 @@ export function useTTS(enabled: boolean) {
       audioRef.current = null;
     }
 
+    // Create Audio element immediately in user gesture context
+    const audio = new Audio();
+    audio.volume = 0.8;
+    audioRef.current = audio;
+    // Unlock for iOS Safari
+    audio.play().catch(() => {});
+
     // Truncate very long text
     const truncated = text.slice(0, 500);
 
@@ -46,9 +53,7 @@ export function useTTS(enabled: boolean) {
       }
     }
 
-    const audio = new Audio(audioUrl);
-    audio.volume = 0.8;
-    audioRef.current = audio;
+    audio.src = audioUrl;
     await audio.play().catch(() => {});
   }, [enabled]);
 
