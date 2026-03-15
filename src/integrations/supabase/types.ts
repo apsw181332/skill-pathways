@@ -154,6 +154,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           enrolled_courses: string[]
+          gems: number
           id: string
           interests: string[] | null
           last_activity_date: string | null
@@ -165,6 +166,7 @@ export type Database = {
           sound_enabled: boolean
           streak: number
           theme_color: string
+          title: string | null
           tts_enabled: boolean
           tutorial_completed: boolean
           updated_at: string
@@ -178,6 +180,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           enrolled_courses?: string[]
+          gems?: number
           id?: string
           interests?: string[] | null
           last_activity_date?: string | null
@@ -189,6 +192,7 @@ export type Database = {
           sound_enabled?: boolean
           streak?: number
           theme_color?: string
+          title?: string | null
           tts_enabled?: boolean
           tutorial_completed?: boolean
           updated_at?: string
@@ -202,6 +206,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           enrolled_courses?: string[]
+          gems?: number
           id?: string
           interests?: string[] | null
           last_activity_date?: string | null
@@ -213,6 +218,7 @@ export type Database = {
           sound_enabled?: boolean
           streak?: number
           theme_color?: string
+          title?: string | null
           tts_enabled?: boolean
           tutorial_completed?: boolean
           updated_at?: string
