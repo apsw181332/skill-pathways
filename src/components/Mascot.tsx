@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { motion } from "framer-motion";
 import mascotImg from "@/assets/mascot-penguin.png";
 
