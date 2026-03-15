@@ -6,6 +6,7 @@ import Mascot from "@/components/Mascot";
 import Confetti from "@/components/Confetti";
 import XpPopup from "@/components/XpPopup";
 import { supabase } from "@/integrations/supabase/client";
+import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 
 interface LessonViewProps {
   onBack: () => void;
@@ -111,15 +112,18 @@ const LessonView = ({ onBack, userId, categoryId = "financial", lessonId = 1 }: 
       if (idx === step.correct) {
         setFeedbackMascotMsg(CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]);
         triggerXp(15);
+        playCorrectSound();
       } else {
         setFeedbackMascotMsg(WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]);
         triggerXp(5);
+        playWrongSound();
       }
     }
   };
 
   const handleOrderItem = (id: string) => {
     if (dragSubmitted) return;
+    playClickSound();
     if (orderedItems.includes(id)) {
       setOrderedItems(orderedItems.filter((i) => i !== id));
     } else {
@@ -131,6 +135,7 @@ const LessonView = ({ onBack, userId, categoryId = "financial", lessonId = 1 }: 
     setDragSubmitted(true);
     setFeedbackMascotMsg("Great effort! Ordering steps is key to building good habits. 📋");
     triggerXp(20);
+    playCorrectSound();
   };
 
   const saveLessonProgress = async (earnedXp: number) => {
@@ -194,6 +199,7 @@ const LessonView = ({ onBack, userId, categoryId = "financial", lessonId = 1 }: 
   };
 
   const handleNext = () => {
+    playClickSound();
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
       setSelectedAnswer(null);
@@ -203,9 +209,9 @@ const LessonView = ({ onBack, userId, categoryId = "financial", lessonId = 1 }: 
       setFeedbackMascotMsg(null);
     } else {
       // Lesson complete — save to DB
-      const finalXp = totalXp + (step.type === "info" ? 0 : 0); // totalXp already accumulated
       saveLessonProgress(totalXp);
       setShowConfetti(true);
+      playSuccessSound();
       setTimeout(() => {
         setShowConfetti(false);
         onBack();
