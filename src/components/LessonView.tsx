@@ -6,6 +6,7 @@ import Mascot from "@/components/Mascot";
 import Confetti from "@/components/Confetti";
 import XpPopup from "@/components/XpPopup";
 import { supabase } from "@/integrations/supabase/client";
+import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 
 interface LessonViewProps {
   onBack: () => void;
