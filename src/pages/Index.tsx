@@ -81,7 +81,7 @@ const Index = () => {
         />
       );
     case "lesson":
-      return <LessonView onBack={() => setState("dashboard")} />;
+      return <LessonView onBack={() => setState("dashboard")} userId={user?.id} />;
   }
 };
 
