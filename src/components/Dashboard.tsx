@@ -15,13 +15,13 @@ import { getLevelForXp, getXpProgress, LEVELS } from "@/lib/levels";
 import { supabase } from "@/integrations/supabase/client";
 
 const CATEGORIES = [
-  { id: "financial", label: "Financial Literacy", emoji: "💰", lessons: 8 },
-  { id: "home", label: "Home Maintenance", emoji: "🏠", lessons: 6 },
+  { id: "everyday", label: "Everyday Skills", emoji: "👟", lessons: 8 },
+  { id: "financial", label: "Money & Taxes", emoji: "💰", lessons: 8 },
+  { id: "home", label: "Home & DIY", emoji: "🏠", lessons: 6 },
   { id: "cooking", label: "Cooking & Nutrition", emoji: "🍳", lessons: 10 },
-  { id: "social", label: "Social Skills", emoji: "🤝", lessons: 5 },
-  { id: "career", label: "Career Growth", emoji: "📈", lessons: 7 },
+  { id: "social", label: "People Skills", emoji: "🤝", lessons: 5 },
+  { id: "career", label: "Career & Work", emoji: "📈", lessons: 7 },
   { id: "health", label: "Health & Wellness", emoji: "🧘", lessons: 9 },
-  { id: "legal", label: "Legal Basics", emoji: "⚖️", lessons: 4 },
   { id: "tech", label: "Digital Literacy", emoji: "💻", lessons: 6 },
 ];
 
