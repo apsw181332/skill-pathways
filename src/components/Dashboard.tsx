@@ -4,12 +4,16 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
   Home, BookOpen, Trophy, User as UserIcon, Flame, Star,
   ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award, LogOut,
-  Users, UserPlus, Check, X, Search, Settings as SettingsIcon, Plus, Minus
+  Users, UserPlus, Check, X, Search, Settings as SettingsIcon, Plus, Minus,
+  Diamond, Heart, ShoppingBag, Target
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { UserConfig } from "@/components/Onboarding";
 import Mascot from "@/components/Mascot";
+import GemShop from "@/components/GemShop";
+import Missions from "@/components/Missions";
+import type { MissionStats } from "@/components/Missions";
 import mascotImg from "@/assets/mascot-penguin.png";
 import { getLevelForXp, getXpProgress, LEVELS } from "@/lib/levels";
 import { COURSES } from "@/lib/courseData";
@@ -30,7 +34,6 @@ const BADGE_DEFINITIONS = [
 function getGreeting(streak: number): string {
   const hour = new Date().getHours();
   const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-
   if (streak === 0) {
     const msgs = [
       `${timeGreeting}! Ready to start learning something new? 🚀`,
@@ -39,12 +42,8 @@ function getGreeting(streak: number): string {
     ];
     return msgs[Math.floor(Date.now() / 60000) % msgs.length];
   }
-  if (streak >= 7) {
-    return `${timeGreeting}! ${streak}-day streak — you're absolutely unstoppable! 🔥⚡`;
-  }
-  if (streak >= 3) {
-    return `${timeGreeting}! ${streak} days in a row — keep that streak alive! 🔥`;
-  }
+  if (streak >= 7) return `${timeGreeting}! ${streak}-day streak — you're absolutely unstoppable! 🔥⚡`;
+  if (streak >= 3) return `${timeGreeting}! ${streak} days in a row — keep that streak alive! 🔥`;
   return `${timeGreeting}! Day ${streak} — let's keep the momentum going! 🎯`;
 }
 
@@ -57,14 +56,17 @@ interface DashboardProps {
   enrolledCourses: string[];
   onEnroll: (courseId: string) => Promise<boolean>;
   onUnenroll: (courseId: string) => Promise<void>;
+  gems: number;
+  extraLives: number;
+  onPurchase: (itemId: string, cost: number) => Promise<boolean>;
 }
 
 interface FriendData { id: string; user_id: string; friend_id: string; status: string; }
 interface ProfileData { id: string; user_id: string; display_name: string | null; xp: number; streak: number; level: number; }
 interface LeaderboardEntry { rank: number; name: string; xp: number; streak: number; userId: string; isUser: boolean; }
 
-const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll }: DashboardProps) => {
-  const [activeTab, setActiveTab] = useState<"home" | "learn" | "leaderboard" | "friends" | "profile">("home");
+const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase }: DashboardProps) => {
+  const [activeTab, setActiveTab] = useState<"home" | "learn" | "missions" | "shop" | "profile">("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState<FriendData[]>([]);
@@ -76,6 +78,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
   const [categoryProgress, setCategoryProgress] = useState<Record<string, number>>({});
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [claimedMissions, setClaimedMissions] = useState<string[]>([]);
+  const [ownedTitles, setOwnedTitles] = useState<string[]>([]);
+  const [totalLessonsCompleted, setTotalLessonsCompleted] = useState(0);
   const { toast } = useToast();
 
   const levelInfo = getXpProgress(xp);
@@ -88,7 +93,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     return matchesSearch;
   });
 
-  // Fetch data
   useEffect(() => {
     const fetchAll = async () => {
       const [profileRes, achieveRes, progressRes, lbRes] = await Promise.all([
@@ -101,8 +105,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       if (achieveRes.data) setEarnedBadges(achieveRes.data.map(a => a.badge_id));
       if (progressRes.data) {
         const progress: Record<string, number> = {};
-        progressRes.data.forEach(p => { if (p.completed) progress[p.category_id] = (progress[p.category_id] || 0) + 1; });
+        let total = 0;
+        progressRes.data.forEach(p => { if (p.completed) { progress[p.category_id] = (progress[p.category_id] || 0) + 1; total++; } });
         setCategoryProgress(progress);
+        setTotalLessonsCompleted(total);
       }
       if (lbRes.data) {
         setLeaderboard(lbRes.data.map((p, i) => ({
@@ -113,7 +119,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     fetchAll();
   }, [user.id]);
 
-  // Realtime
   useEffect(() => {
     const channel = supabase.channel("my-profile")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
@@ -122,7 +127,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     return () => { supabase.removeChannel(channel); };
   }, [user.id]);
 
-  // Friends
   useEffect(() => {
     const fetchFriends = async () => {
       const [sent, received, pending] = await Promise.all([
@@ -133,10 +137,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       const allFriends = [...(sent.data || []), ...(received.data || [])];
       setFriends(allFriends);
       setPendingRequests(pending.data || []);
-
       const friendIds = allFriends.map(f => f.user_id === user.id ? f.friend_id : f.user_id);
       const pendingIds = (pending.data || []).map(p => p.user_id);
-
       if (friendIds.length > 0) {
         const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level, id").in("user_id", friendIds);
         if (data) { const map: Record<string, ProfileData> = {}; data.forEach(p => map[p.user_id] = p); setFriendProfiles(map); }
@@ -149,6 +151,14 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     fetchFriends();
   }, [user.id]);
 
+  // Load claimed missions from localStorage (simple persistence)
+  useEffect(() => {
+    const stored = localStorage.getItem(`missions_${user.id}`);
+    if (stored) setClaimedMissions(JSON.parse(stored));
+    const titles = localStorage.getItem(`titles_${user.id}`);
+    if (titles) setOwnedTitles(JSON.parse(titles));
+  }, [user.id]);
+
   const handleAcceptFriend = async (id: string) => { await supabase.from("friendships").update({ status: "accepted" }).eq("id", id); setPendingRequests(prev => prev.filter(r => r.id !== id)); };
   const handleRejectFriend = async (id: string) => { await supabase.from("friendships").update({ status: "rejected" }).eq("id", id); setPendingRequests(prev => prev.filter(r => r.id !== id)); };
 
@@ -157,6 +167,28 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     if (!success) {
       toast({ title: "Course limit reached", description: "You can only study 3 courses at a time. Unenroll from one first.", variant: "destructive" });
     }
+  };
+
+  const handleClaimMission = async (missionId: string, reward: number) => {
+    const newClaimed = [...claimedMissions, missionId];
+    setClaimedMissions(newClaimed);
+    localStorage.setItem(`missions_${user.id}`, JSON.stringify(newClaimed));
+    // Add gems
+    const { data: profile } = await supabase.from("profiles").select("gems").eq("user_id", user.id).single();
+    if (profile) {
+      await supabase.from("profiles").update({ gems: (profile as any).gems + reward } as any).eq("user_id", user.id);
+    }
+    toast({ title: `💎 +${reward} Gems!`, description: "Mission completed!" });
+  };
+
+  const handlePurchase = async (itemId: string, cost: number) => {
+    const success = await onPurchase(itemId, cost);
+    if (success && itemId.startsWith("title-")) {
+      const newTitles = [...ownedTitles, itemId];
+      setOwnedTitles(newTitles);
+      localStorage.setItem(`titles_${user.id}`, JSON.stringify(newTitles));
+    }
+    return success;
   };
 
   const getNextLesson = () => {
@@ -172,6 +204,15 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   };
 
   const nextLesson = getNextLesson();
+
+  const missionStats: MissionStats = {
+    lessonsCompleted: totalLessonsCompleted,
+    totalXp: xp,
+    streak,
+    quizzesCorrect: 0,
+    coursesEnrolled: enrolledCourses.length,
+    friendsCount: friends.length,
+  };
 
   const renderHome = () => (
     <>
@@ -197,26 +238,31 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       </motion.div>
 
       {/* Stats */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="grid grid-cols-2 gap-3 mb-6">
-        <div className="lesson-card flex items-center gap-3 py-4">
-          <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
-            <Flame className="w-5 h-5 text-destructive" />
-          </div>
-          <div>
-            <div className="text-xl font-semibold text-foreground xp-counter">{streak} days</div>
-            <div className="text-xs text-muted-foreground">{streak > 0 ? "Current streak" : "Start a streak!"}</div>
-          </div>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="grid grid-cols-3 gap-3 mb-6">
+        <div className="lesson-card flex flex-col items-center py-4">
+          <Flame className="w-5 h-5 text-destructive mb-1" />
+          <div className="text-lg font-semibold text-foreground xp-counter">{streak}</div>
+          <div className="text-xs text-muted-foreground">Streak</div>
         </div>
-        <div className="lesson-card flex items-center gap-3 py-4">
-          <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
-            <Star className="w-5 h-5 text-accent" />
-          </div>
-          <div>
-            <div className="text-xl font-semibold text-foreground xp-counter">{xp} XP</div>
-            <div className="text-xs text-muted-foreground">Total earned</div>
-          </div>
+        <div className="lesson-card flex flex-col items-center py-4">
+          <Star className="w-5 h-5 text-accent mb-1" />
+          <div className="text-lg font-semibold text-foreground xp-counter">{xp}</div>
+          <div className="text-xs text-muted-foreground">XP</div>
+        </div>
+        <div className="lesson-card flex flex-col items-center py-4">
+          <Diamond className="w-5 h-5 text-cyan-500 mb-1" />
+          <div className="text-lg font-semibold text-foreground xp-counter">{gems}</div>
+          <div className="text-xs text-muted-foreground">Gems</div>
         </div>
       </motion.div>
+
+      {/* Extra lives indicator */}
+      {extraLives > 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 flex items-center gap-3 py-3 border-destructive/30">
+          <Heart className="w-5 h-5 text-destructive" fill="currentColor" />
+          <span className="text-sm text-foreground font-medium">{extraLives} extra {extraLives === 1 ? "life" : "lives"} available</span>
+        </motion.div>
+      )}
 
       {/* Enrolled courses */}
       {enrolledCourses.length > 0 && (
@@ -229,13 +275,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
               const completed = categoryProgress[courseId] || 0;
               const total = course.lessons.length;
               return (
-                <motion.button
-                  key={courseId}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                <motion.button key={courseId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                   onClick={() => { setActiveTab("learn"); setSelectedCategory(courseId); }}
-                  className="lesson-card w-full text-left flex items-center gap-4 group"
-                >
+                  className="lesson-card w-full text-left flex items-center gap-4 group">
                   <span className="text-2xl">{course.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-foreground">{course.label}</span>
@@ -256,19 +298,18 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
       {/* Continue learning */}
       {nextLesson && (
-        <motion.button
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+        <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           onClick={() => onStartLesson(nextLesson.categoryId, nextLesson.lessonId)}
-          className="lesson-card w-full text-left mb-6 group border-primary"
-        >
+          className="lesson-card w-full text-left mb-6 group border-primary">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-primary">Continue learning</span>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
           </div>
           <h2 className="text-lg font-semibold text-foreground">{nextLesson.emoji} {nextLesson.title}</h2>
-          <p className="text-xs text-primary mt-2 font-medium">+15 XP per question</p>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-xs text-primary font-medium">+15 XP per question</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><Heart className="w-3 h-3 text-destructive" /> 3 lives</span>
+          </div>
         </motion.button>
       )}
 
@@ -290,31 +331,18 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <Mascot message="Explore all courses! Enroll in up to 3 at a time. 🎮" size="sm" animation="bounce" />
           </motion.div>
-
-          {/* Search */}
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search courses..."
-              className="pl-10"
-            />
+            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search courses..." className="pl-10" />
           </div>
-
           <h2 className="text-xl font-semibold text-foreground mb-4">All Courses ({filteredCourses.length})</h2>
           <div className="space-y-3">
             {filteredCourses.map((course, i) => {
               const completed = categoryProgress[course.id] || 0;
               const isEnrolled = enrolledCourses.includes(course.id);
               return (
-                <motion.div
-                  key={course.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className={`lesson-card flex items-center gap-4 ${isEnrolled ? "border-primary/50" : ""}`}
-                >
+                <motion.div key={course.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+                  className={`lesson-card flex items-center gap-4 ${isEnrolled ? "border-primary/50" : ""}`}>
                   <button onClick={() => setSelectedCategory(course.id)} className="flex items-center gap-4 flex-1 text-left">
                     <span className="text-2xl">{course.emoji}</span>
                     <div className="flex-1 min-w-0">
@@ -332,13 +360,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); isEnrolled ? onUnenroll(course.id) : handleEnroll(course.id); }}
+                  <button onClick={(e) => { e.stopPropagation(); isEnrolled ? onUnenroll(course.id) : handleEnroll(course.id); }}
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                       isEnrolled ? "bg-destructive/10 text-destructive hover:bg-destructive/20" : "bg-primary/10 text-primary hover:bg-primary/20"
-                    }`}
-                    title={isEnrolled ? "Unenroll" : "Enroll"}
-                  >
+                    }`} title={isEnrolled ? "Unenroll" : "Enroll"}>
                     {isEnrolled ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </button>
                 </motion.div>
@@ -366,19 +391,15 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                   )}
                 </div>
                 <p className="text-muted-foreground mb-6">{course.description}</p>
-                {course.image && (
-                  <img src={course.image} alt={course.label} className="w-full h-40 object-cover rounded-xl mb-6" />
-                )}
+                {course.image && <img src={course.image} alt={course.label} className="w-full h-40 object-cover rounded-xl mb-6" />}
                 <div className="space-y-3">
                   {course.lessons.map((lesson, i) => {
                     const status = i < completed ? "completed" : i === completed ? "current" : "locked";
                     return (
                       <motion.div key={lesson.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                        <button
-                          onClick={status === "current" && isEnrolled ? () => onStartLesson(course.id, lesson.id) : undefined}
+                        <button onClick={status === "current" && isEnrolled ? () => onStartLesson(course.id, lesson.id) : undefined}
                           disabled={status === "locked" || !isEnrolled}
-                          className={`lesson-card w-full text-left flex items-center gap-4 ${status === "current" && isEnrolled ? "border-primary" : ""} ${status === "locked" || !isEnrolled ? "opacity-50 cursor-not-allowed" : ""}`}
-                        >
+                          className={`lesson-card w-full text-left flex items-center gap-4 ${status === "current" && isEnrolled ? "border-primary" : ""} ${status === "locked" || !isEnrolled ? "opacity-50 cursor-not-allowed" : ""}`}>
                           <div className="shrink-0">
                             {status === "completed" && <CheckCircle2 className="w-5 h-5 text-primary" />}
                             {status === "current" && <Circle className="w-5 h-5 text-primary" />}
@@ -388,122 +409,22 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                             <span className="font-medium text-foreground">{lesson.title}</span>
                             <p className="text-sm text-muted-foreground">{lesson.description}</p>
                           </div>
+                          {status === "current" && isEnrolled && (
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              {[0,1,2].map(j => <Heart key={j} className="w-3 h-3 text-destructive" fill="currentColor" />)}
+                            </div>
+                          )}
                         </button>
                       </motion.div>
                     );
                   })}
                 </div>
-                {!isEnrolled && (
-                  <p className="text-sm text-muted-foreground mt-4 text-center">Enroll in this course to start learning!</p>
-                )}
+                {!isEnrolled && <p className="text-sm text-muted-foreground mt-4 text-center">Enroll in this course to start learning!</p>}
               </>
             );
           })()}
         </>
       )}
-    </>
-  );
-
-  const renderLeaderboard = () => (
-    <>
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <Mascot message="Climb the ranks! Every XP counts. 🏆" size="sm" animation="celebrate" />
-      </motion.div>
-      <h2 className="text-xl font-semibold text-foreground mb-4">Global Leaderboard</h2>
-      {leaderboard.length === 0 ? (
-        <div className="lesson-card text-center py-8">
-          <Trophy className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-foreground font-medium mb-1">No rankings yet</p>
-          <p className="text-sm text-muted-foreground">Complete lessons to earn XP!</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {leaderboard.map((entry, i) => {
-            const isTop3 = entry.rank <= 3;
-            const rankIcons = [null, Crown, Medal, Award];
-            const RankIcon = rankIcons[entry.rank] || null;
-            const lvl = getLevelForXp(entry.xp);
-            return (
-              <motion.div key={entry.userId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className={`lesson-card flex items-center gap-4 py-4 ${entry.isUser ? "border-primary bg-primary/5" : ""} ${isTop3 ? "border-accent/50" : ""}`}>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                  entry.rank === 1 ? "bg-accent/20 text-accent-foreground" : "bg-secondary text-muted-foreground"
-                }`}>{RankIcon ? <RankIcon className="w-4 h-4" /> : `#${entry.rank}`}</div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className={`font-medium ${entry.isUser ? "text-primary" : "text-foreground"}`}>{entry.isUser ? "You" : entry.name}</span>
-                    <span className="text-xs text-muted-foreground">{lvl.emoji} Lv.{lvl.level}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1"><Star className="w-3 h-3" /> {entry.xp} XP</span>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1"><Flame className="w-3 h-3" /> {entry.streak}d</span>
-                  </div>
-                </div>
-                {isTop3 && <span className="text-lg">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span>}
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
-    </>
-  );
-
-  const renderFriends = () => (
-    <>
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <Mascot message="Learning is better with friends! 🤝" size="sm" animation="bounce" />
-      </motion.div>
-      <h2 className="text-xl font-semibold text-foreground mb-4">Friends</h2>
-      {pendingRequests.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Pending ({pendingRequests.length})</h3>
-          <div className="space-y-2">
-            {pendingRequests.map(req => {
-              const profile = pendingProfiles[req.user_id];
-              return (
-                <div key={req.id} className="lesson-card flex items-center gap-3 py-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><UserIcon className="w-4 h-4 text-primary" /></div>
-                  <span className="flex-1 font-medium text-foreground text-sm">{profile?.display_name || "Anonymous"}</span>
-                  <button onClick={() => handleAcceptFriend(req.id)} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20"><Check className="w-4 h-4" /></button>
-                  <button onClick={() => handleRejectFriend(req.id)} className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20"><X className="w-4 h-4" /></button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      {friends.length > 0 ? (
-        <div className="space-y-3">
-          {friends.map(friend => {
-            const fId = friend.user_id === user.id ? friend.friend_id : friend.user_id;
-            const profile = friendProfiles[fId];
-            const lvl = profile ? getLevelForXp(profile.xp) : null;
-            return (
-              <div key={friend.id} className="lesson-card flex items-center gap-3 py-3">
-                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center"><UserIcon className="w-5 h-5 text-accent-foreground" /></div>
-                <div className="flex-1">
-                  <span className="font-medium text-foreground">{profile?.display_name || "Anonymous"}</span>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    {lvl && <span className="text-xs text-muted-foreground">{lvl.emoji} Lv.{lvl.level}</span>}
-                    {profile && <span className="text-xs text-muted-foreground">{profile.xp} XP</span>}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="lesson-card text-center py-8">
-          <Users className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-foreground font-medium mb-1">No friends yet</p>
-          <p className="text-sm text-muted-foreground">Share your invite code!</p>
-        </div>
-      )}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lesson-card mt-6 text-center">
-        <UserPlus className="w-8 h-8 text-primary mx-auto mb-2" />
-        <h3 className="font-semibold text-foreground mb-1">Your Invite Code</h3>
-        <div className="bg-secondary rounded-lg px-4 py-2 font-mono text-sm text-foreground inline-block">{user.id.slice(0, 8).toUpperCase()}</div>
-      </motion.div>
     </>
   );
 
@@ -522,12 +443,75 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           <span className="text-lg">{levelInfo.current.emoji}</span>
           <span className="font-semibold text-foreground">Level {levelInfo.current.level}</span>
         </div>
-        <div className="flex justify-center gap-6 mt-4">
+        <div className="flex justify-center gap-4 mt-4">
           <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{xp}</div><div className="text-xs text-muted-foreground">XP</div></div>
           <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{streak}</div><div className="text-xs text-muted-foreground">Streak</div></div>
+          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{gems}</div><div className="text-xs text-muted-foreground">Gems</div></div>
           <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{earnedBadges.length}</div><div className="text-xs text-muted-foreground">Badges</div></div>
         </div>
       </motion.div>
+
+      {/* Leaderboard preview */}
+      <h3 className="text-lg font-semibold text-foreground mb-3">Leaderboard</h3>
+      {leaderboard.length > 0 ? (
+        <div className="space-y-2 mb-6">
+          {leaderboard.slice(0, 5).map((entry, i) => {
+            const rankEmojis = ["", "🥇", "🥈", "🥉"];
+            const lvl = getLevelForXp(entry.xp);
+            return (
+              <div key={entry.userId} className={`lesson-card flex items-center gap-3 py-3 ${entry.isUser ? "border-primary bg-primary/5" : ""}`}>
+                <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-xs font-bold text-foreground">
+                  {rankEmojis[entry.rank] || `#${entry.rank}`}
+                </div>
+                <div className="flex-1">
+                  <span className={`font-medium text-sm ${entry.isUser ? "text-primary" : "text-foreground"}`}>{entry.isUser ? "You" : entry.name}</span>
+                  <span className="text-xs text-muted-foreground ml-2">{lvl.emoji} {entry.xp} XP</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {/* Friends */}
+      <h3 className="text-lg font-semibold text-foreground mb-3">Friends ({friends.length})</h3>
+      {pendingRequests.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs text-muted-foreground mb-2">Pending requests</p>
+          {pendingRequests.map(req => {
+            const profile = pendingProfiles[req.user_id];
+            return (
+              <div key={req.id} className="lesson-card flex items-center gap-3 py-3 mb-2">
+                <UserIcon className="w-4 h-4 text-primary" />
+                <span className="flex-1 font-medium text-foreground text-sm">{profile?.display_name || "Anonymous"}</span>
+                <button onClick={() => handleAcceptFriend(req.id)} className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><Check className="w-3 h-3" /></button>
+                <button onClick={() => handleRejectFriend(req.id)} className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive"><X className="w-3 h-3" /></button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {friends.length > 0 ? (
+        <div className="space-y-2 mb-6">
+          {friends.map(friend => {
+            const fId = friend.user_id === user.id ? friend.friend_id : friend.user_id;
+            const profile = friendProfiles[fId];
+            return (
+              <div key={friend.id} className="lesson-card flex items-center gap-3 py-3">
+                <UserIcon className="w-4 h-4 text-accent" />
+                <span className="font-medium text-foreground text-sm">{profile?.display_name || "Anonymous"}</span>
+                {profile && <span className="text-xs text-muted-foreground ml-auto">{profile.xp} XP</span>}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="lesson-card text-center py-6 mb-6">
+          <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">No friends yet — share your invite code!</p>
+          <div className="bg-secondary rounded-lg px-4 py-2 font-mono text-sm text-foreground inline-block mt-2">{user.id.slice(0, 8).toUpperCase()}</div>
+        </div>
+      )}
 
       <h3 className="text-lg font-semibold text-foreground mb-3">Badges</h3>
       <div className="grid grid-cols-2 gap-3 mb-6">
@@ -562,19 +546,23 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
             <img src={mascotImg} alt="Pebble" className="w-7 h-7 object-contain" />
             <span className="font-semibold text-lg text-foreground tracking-tight">Pathways</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-1 text-xs font-medium bg-secondary rounded-full px-2 py-1">
               <span>{levelInfo.current.emoji}</span>
               <span className="text-foreground">Lv.{levelInfo.current.level}</span>
             </div>
             {streak > 0 && (
-              <div className="flex items-center gap-1.5 text-sm">
-                <Flame className="w-4 h-4 text-destructive" />
+              <div className="flex items-center gap-1 text-xs">
+                <Flame className="w-3.5 h-3.5 text-destructive" />
                 <span className="font-medium xp-counter text-foreground">{streak}</span>
               </div>
             )}
-            <div className="flex items-center gap-1.5 text-sm">
-              <Star className="w-4 h-4 text-accent" />
+            <div className="flex items-center gap-1 text-xs">
+              <Diamond className="w-3.5 h-3.5 text-cyan-500" />
+              <span className="font-medium xp-counter text-foreground">{gems}</span>
+            </div>
+            <div className="flex items-center gap-1 text-xs">
+              <Star className="w-3.5 h-3.5 text-accent" />
               <span className="font-medium xp-counter text-foreground">{xp}</span>
             </div>
           </div>
@@ -584,8 +572,12 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       <main className="max-w-2xl mx-auto px-6 pt-6">
         {activeTab === "home" && renderHome()}
         {activeTab === "learn" && renderLearn()}
-        {activeTab === "leaderboard" && renderLeaderboard()}
-        {activeTab === "friends" && renderFriends()}
+        {activeTab === "missions" && (
+          <Missions stats={missionStats} claimedMissions={claimedMissions} onClaim={handleClaimMission} />
+        )}
+        {activeTab === "shop" && (
+          <GemShop gems={gems} extraLives={extraLives} ownedTitles={ownedTitles} onPurchase={handlePurchase} />
+        )}
         {activeTab === "profile" && renderProfile()}
       </main>
 
@@ -593,8 +585,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         {[
           { id: "home" as const, icon: Home, label: "Home" },
           { id: "learn" as const, icon: BookOpen, label: "Learn" },
-          { id: "leaderboard" as const, icon: Trophy, label: "Rank" },
-          { id: "friends" as const, icon: Users, label: "Friends" },
+          { id: "missions" as const, icon: Target, label: "Missions" },
+          { id: "shop" as const, icon: ShoppingBag, label: "Shop" },
           { id: "profile" as const, icon: UserIcon, label: "Profile" },
         ].map(tab => {
           const Icon = tab.icon;
