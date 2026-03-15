@@ -368,6 +368,16 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
           </motion.div>
         ))}
       </div>
+
+      {/* Sign out */}
+      <Button
+        variant="ghost"
+        onClick={onSignOut}
+        className="w-full mt-6 text-muted-foreground hover:text-destructive gap-2"
+      >
+        <LogOut className="w-4 h-4" />
+        Sign out
+      </Button>
     </>
   );
 
