@@ -9,7 +9,6 @@ import AdminOverview from "./AdminOverview";
 import AdminUsers from "./AdminUsers";
 const AdminGlobe = lazy(() => import("./AdminGlobe"));
 import AdminSubscriptions from "./AdminSubscriptions";
-import AdminSubscriptions from "./AdminSubscriptions";
 import mascotImg from "@/assets/mascot-penguin.png";
 
 interface AdminDashboardProps {
