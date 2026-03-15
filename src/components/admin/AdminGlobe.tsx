@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo, Suspense } from "react";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
+import * as THREE from "three";
+import * as topojson from "topojson-client";
 import { supabase } from "@/integrations/supabase/client";
 
 interface UserMarker {
@@ -23,16 +27,167 @@ const SAMPLE_MARKERS: UserMarker[] = [
   { id: "12", lat: -1.2, lng: 36.8, name: "Nairobi" },
 ];
 
-function latLngToPercent(lat: number, lng: number): { x: number; y: number } {
-  const x = ((lng + 180) / 360) * 100;
-  const y = ((90 - lat) / 180) * 100;
-  return { x, y };
+// Convert lat/lng to 3D position on sphere
+function latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
+  const phi = (90 - lat) * (Math.PI / 180);
+  const theta = (lng + 180) * (Math.PI / 180);
+  const x = -(radius * Math.sin(phi) * Math.cos(theta));
+  const z = radius * Math.sin(phi) * Math.sin(theta);
+  const y = radius * Math.cos(phi);
+  return new THREE.Vector3(x, y, z);
+}
+
+// Build line segments from GeoJSON coordinates for country borders
+function buildCountryLines(topoData: any, radius: number): THREE.BufferGeometry {
+  const countries = topojson.feature(topoData, topoData.objects.countries) as any;
+  const points: number[] = [];
+
+  const processRing = (coords: number[][]) => {
+    for (let i = 0; i < coords.length - 1; i++) {
+      const [lng1, lat1] = coords[i];
+      const [lng2, lat2] = coords[i + 1];
+      const v1 = latLngToVector3(lat1, lng1, radius);
+      const v2 = latLngToVector3(lat2, lng2, radius);
+      points.push(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+    }
+  };
+
+  for (const feature of countries.features) {
+    if (feature.geometry.type === "Polygon") {
+      feature.geometry.coordinates.forEach(processRing);
+    } else if (feature.geometry.type === "MultiPolygon") {
+      feature.geometry.coordinates.forEach((polygon: number[][][]) => {
+        polygon.forEach(processRing);
+      });
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
+  return geometry;
+}
+
+// The rotating globe mesh
+function Globe({ markers }: { markers: UserMarker[] }) {
+  const globeRef = useRef<THREE.Group>(null);
+  const [topoData, setTopoData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/countries-110m.json")
+      .then((r) => r.json())
+      .then(setTopoData);
+  }, []);
+
+  // Slow auto-rotation
+  useFrame((_, delta) => {
+    if (globeRef.current) {
+      globeRef.current.rotation.y += delta * 0.08;
+    }
+  });
+
+  const RADIUS = 2;
+
+  const countryGeometry = useMemo(() => {
+    if (!topoData) return null;
+    return buildCountryLines(topoData, RADIUS + 0.005);
+  }, [topoData]);
+
+  const markerPositions = useMemo(
+    () => markers.map((m) => ({ ...m, pos: latLngToVector3(m.lat, m.lng, RADIUS + 0.03) })),
+    [markers]
+  );
+
+  // Grid lines (latitude / longitude)
+  const gridLines = useMemo(() => {
+    const lines: THREE.Vector3[][] = [];
+    // Latitude lines
+    for (let lat = -60; lat <= 60; lat += 30) {
+      const ring: THREE.Vector3[] = [];
+      for (let lng = -180; lng <= 180; lng += 3) {
+        ring.push(latLngToVector3(lat, lng, RADIUS + 0.002));
+      }
+      lines.push(ring);
+    }
+    // Longitude lines
+    for (let lng = -180; lng < 180; lng += 30) {
+      const ring: THREE.Vector3[] = [];
+      for (let lat = -90; lat <= 90; lat += 3) {
+        ring.push(latLngToVector3(lat, lng, RADIUS + 0.002));
+      }
+      lines.push(ring);
+    }
+    return lines;
+  }, []);
+
+  return (
+    <group ref={globeRef}>
+      {/* Globe sphere */}
+      <mesh>
+        <sphereGeometry args={[RADIUS, 64, 64]} />
+        <meshStandardMaterial
+          color="#0a1628"
+          transparent
+          opacity={0.95}
+          roughness={0.8}
+          metalness={0.2}
+        />
+      </mesh>
+
+      {/* Atmosphere glow */}
+      <mesh>
+        <sphereGeometry args={[RADIUS * 1.02, 64, 64]} />
+        <meshStandardMaterial
+          color="#1a3a5c"
+          transparent
+          opacity={0.08}
+          side={THREE.BackSide}
+        />
+      </mesh>
+
+      {/* Grid lines */}
+      {gridLines.map((line, i) => (
+        <line key={`grid-${i}`}>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              count={line.length}
+              array={new Float32Array(line.flatMap((v) => [v.x, v.y, v.z]))}
+              itemSize={3}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial color="#1e3a5f" transparent opacity={0.15} />
+        </line>
+      ))}
+
+      {/* Country borders */}
+      {countryGeometry && (
+        <lineSegments geometry={countryGeometry}>
+          <lineBasicMaterial color="#3b82f6" transparent opacity={0.5} />
+        </lineSegments>
+      )}
+
+      {/* User marker dots */}
+      {markerPositions.map((m) => (
+        <group key={m.id} position={[m.pos.x, m.pos.y, m.pos.z]}>
+          {/* Glow */}
+          <mesh>
+            <sphereGeometry args={[0.045, 16, 16]} />
+            <meshBasicMaterial color="#f59e0b" transparent opacity={0.3} />
+          </mesh>
+          {/* Dot */}
+          <mesh>
+            <sphereGeometry args={[0.025, 16, 16]} />
+            <meshBasicMaterial color="#f59e0b" />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
 }
 
 const AdminGlobe = () => {
   const [markers, setMarkers] = useState<UserMarker[]>(SAMPLE_MARKERS);
   const [userCount, setUserCount] = useState(0);
-  const [hoveredMarker, setHoveredMarker] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -52,13 +207,15 @@ const AdminGlobe = () => {
         setMarkers([...SAMPLE_MARKERS, ...real]);
       }
 
-      const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+      const { count } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
       setUserCount(count || 0);
     };
     fetchLocations();
   }, []);
 
-  const countries = new Set(markers.map(m => m.name)).size;
+  const regions = new Set(markers.map((m) => m.name)).size;
 
   return (
     <div className="space-y-6">
@@ -72,54 +229,39 @@ const AdminGlobe = () => {
           <div className="text-sm text-muted-foreground">Mapped Locations</div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-semibold text-foreground">{countries}</div>
+          <div className="text-2xl font-semibold text-foreground">{regions}</div>
           <div className="text-sm text-muted-foreground">Regions</div>
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden relative" style={{ height: "500px" }}>
-        {/* World map using Mercator-style dot grid */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/10">
-          {/* Grid lines */}
-          <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {Array.from({ length: 7 }, (_, i) => (
-              <line key={`h${i}`} x1="0" y1={((i + 1) * 100) / 8} x2="100" y2={((i + 1) * 100) / 8} stroke="currentColor" strokeWidth="0.15" className="text-primary" />
-            ))}
-            {Array.from({ length: 11 }, (_, i) => (
-              <line key={`v${i}`} x1={((i + 1) * 100) / 12} y1="0" x2={((i + 1) * 100) / 12} y2="100" stroke="currentColor" strokeWidth="0.15" className="text-primary" />
-            ))}
-          </svg>
-
-          {/* User dots */}
-          {markers.map((marker) => {
-            const pos = latLngToPercent(marker.lat, marker.lng);
-            const isHovered = hoveredMarker === marker.id;
-            return (
-              <div
-                key={marker.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                onMouseEnter={() => setHoveredMarker(marker.id)}
-                onMouseLeave={() => setHoveredMarker(null)}
-              >
-                {/* Pulse ring */}
-                <div className="absolute inset-0 w-4 h-4 -ml-1 -mt-1 rounded-full bg-accent/30 animate-ping" style={{ animationDuration: '3s' }} />
-                {/* Dot */}
-                <div className={`w-2.5 h-2.5 rounded-full bg-accent shadow-lg shadow-accent/30 transition-transform ${isHovered ? 'scale-[2]' : ''}`} />
-                {/* Tooltip */}
-                {isHovered && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover border border-border rounded text-xs text-popover-foreground whitespace-nowrap shadow-lg z-10">
-                    {marker.name}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      <div
+        className="bg-card border border-border rounded-lg overflow-hidden relative"
+        style={{ height: "500px" }}
+      >
+        <Canvas
+          camera={{ position: [0, 0, 5], fov: 45 }}
+          style={{ background: "radial-gradient(ellipse at center, #0f172a 0%, #020617 100%)" }}
+          gl={{ antialias: true }}
+        >
+          <ambientLight intensity={0.4} />
+          <directionalLight position={[5, 3, 5]} intensity={0.8} />
+          <pointLight position={[-5, -3, -5]} intensity={0.3} color="#3b82f6" />
+          <Suspense fallback={null}>
+            <Globe markers={markers} />
+          </Suspense>
+          <OrbitControls
+            enableZoom={true}
+            enablePan={false}
+            minDistance={3}
+            maxDistance={8}
+            autoRotate={false}
+            rotateSpeed={0.5}
+          />
+        </Canvas>
       </div>
 
       <p className="text-sm text-muted-foreground text-center">
-        🌍 Hover over dots to see location names • Golden dots represent user locations
+        🌍 Drag to rotate • Scroll to zoom • Golden dots represent user locations
       </p>
     </div>
   );
