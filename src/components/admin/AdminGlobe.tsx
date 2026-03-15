@@ -6,22 +6,9 @@ interface UserMarker {
   lat: number;
   lng: number;
   name: string;
+  xp: number;
+  level: number;
 }
-
-const SAMPLE_MARKERS: UserMarker[] = [
-  { id: "1", lat: 40.7, lng: -74.0, name: "New York" },
-  { id: "2", lat: 51.5, lng: -0.1, name: "London" },
-  { id: "3", lat: 35.6, lng: 139.7, name: "Tokyo" },
-  { id: "4", lat: -33.8, lng: 151.2, name: "Sydney" },
-  { id: "5", lat: 48.8, lng: 2.3, name: "Paris" },
-  { id: "6", lat: -23.5, lng: -46.6, name: "São Paulo" },
-  { id: "7", lat: 19.4, lng: -99.1, name: "Mexico City" },
-  { id: "8", lat: 55.7, lng: 37.6, name: "Moscow" },
-  { id: "9", lat: 28.6, lng: 77.2, name: "Delhi" },
-  { id: "10", lat: 1.3, lng: 103.8, name: "Singapore" },
-  { id: "11", lat: 37.5, lng: 127.0, name: "Seoul" },
-  { id: "12", lat: -1.2, lng: 36.8, name: "Nairobi" },
-];
 
 // Simplified continent outlines as [lat, lng] polylines
 const CONTINENTS: number[][][] = [
@@ -47,7 +34,6 @@ function project3D(lat: number, lng: number, rotY: number, rotX: number, R: numb
   const x3 = R * Math.sin(phi) * Math.cos(theta);
   const y3 = R * Math.cos(phi);
   const z3 = R * Math.sin(phi) * Math.sin(theta);
-  // Apply vertical rotation
   const cosX = Math.cos(rotX * DEG);
   const sinX = Math.sin(rotX * DEG);
   const y3r = y3 * cosX - z3 * sinX;
@@ -56,7 +42,7 @@ function project3D(lat: number, lng: number, rotY: number, rotX: number, R: numb
 }
 
 const AdminGlobe = () => {
-  const [markers, setMarkers] = useState<UserMarker[]>(SAMPLE_MARKERS);
+  const [markers, setMarkers] = useState<UserMarker[]>([]);
   const [userCount, setUserCount] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rotationRef = useRef(0);
@@ -64,27 +50,46 @@ const AdminGlobe = () => {
   const lastMouseX = useRef(0);
   const rotXRef = useRef(-10);
   const hoveredMarker = useRef<string | null>(null);
-  const tooltipRef = useRef<{ x: number; y: number; name: string } | null>(null);
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string } | null>(null);
+  const tooltipRef = useRef<{ x: number; y: number; name: string; xp: number; level: number } | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string; xp: number; level: number } | null>(null);
+  const markersRef = useRef<UserMarker[]>([]);
+
+  const fetchUsers = useCallback(async () => {
+    const { data: allProfiles, count } = await supabase
+      .from("profiles")
+      .select("id, display_name, latitude, longitude, xp, level, country", { count: "exact" });
+
+    setUserCount(count || 0);
+
+    if (allProfiles) {
+      const mapped = allProfiles
+        .filter((u) => u.latitude != null && u.longitude != null)
+        .map((u) => ({
+          id: u.id,
+          lat: u.latitude!,
+          lng: u.longitude!,
+          name: u.display_name || u.country || "User",
+          xp: u.xp || 0,
+          level: u.level || 1,
+        }));
+      setMarkers(mapped);
+      markersRef.current = mapped;
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchLocations = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, display_name, latitude, longitude")
-        .not("latitude", "is", null)
-        .not("longitude", "is", null);
-      if (data && data.length > 0) {
-        const real = data.map((u) => ({
-          id: u.id, lat: u.latitude!, lng: u.longitude!, name: u.display_name || "User",
-        }));
-        setMarkers([...SAMPLE_MARKERS, ...real]);
-      }
-      const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-      setUserCount(count || 0);
-    };
-    fetchLocations();
-  }, []);
+    fetchUsers();
+
+    // Realtime sync
+    const channel = supabase
+      .channel("admin-globe-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        fetchUsers();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchUsers]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -105,7 +110,6 @@ const AdminGlobe = () => {
     const rotY = rotationRef.current;
     const rotX = rotXRef.current;
 
-    // Background
     ctx.clearRect(0, 0, w, h);
 
     // Globe glow
@@ -169,26 +173,37 @@ const AdminGlobe = () => {
       ctx.stroke();
     }
 
-    // Marker dots
-    let newTooltip: { x: number; y: number; name: string } | null = null;
-    for (const m of markers) {
+    // User marker dots
+    const currentMarkers = markersRef.current;
+    let newTooltip: typeof tooltipRef.current = null;
+    const time = Date.now() / 1000;
+
+    for (const m of currentMarkers) {
       const p = project3D(m.lat, m.lng, rotY, rotX, R, cx, cy);
       if (!p.visible) continue;
 
-      // Glow
+      // Pulsing glow
+      const pulse = 1 + 0.3 * Math.sin(time * 2 + m.lat);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(245,158,11,0.25)";
+      ctx.arc(p.x, p.y, 8 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(245,158,11,0.15)";
       ctx.fill();
 
-      // Dot
+      // Outer ring
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(245,158,11,0.3)";
+      ctx.fill();
+
+      // Inner dot - size based on level
+      const dotSize = Math.min(2 + m.level * 0.3, 5);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, dotSize, 0, Math.PI * 2);
       ctx.fillStyle = "#f59e0b";
       ctx.fill();
 
       if (hoveredMarker.current === m.id) {
-        newTooltip = { x: p.x, y: p.y - 16, name: m.name };
+        newTooltip = { x: p.x, y: p.y - 20, name: m.name, xp: m.xp, level: m.level };
       }
     }
     tooltipRef.current = newTooltip;
@@ -199,6 +214,24 @@ const AdminGlobe = () => {
     ctx.strokeStyle = "rgba(59,130,246,0.2)";
     ctx.lineWidth = 1;
     ctx.stroke();
+
+    // Stars background (behind globe already cleared, so draw outside)
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    for (let i = 0; i < 60; i++) {
+      const sx = ((i * 137.5) % w);
+      const sy = ((i * 73.1 + 50) % h);
+      const dist = Math.sqrt((sx - cx) ** 2 + (sy - cy) ** 2);
+      if (dist > R + 10) {
+        ctx.beginPath();
+        ctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }, []);
+
+  // Keep markersRef in sync
+  useEffect(() => {
+    markersRef.current = markers;
   }, [markers]);
 
   // Animation loop
@@ -230,7 +263,6 @@ const AdminGlobe = () => {
       lastMouseX.current = e.clientX;
     }
 
-    // Hit-test markers for tooltip
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
@@ -239,11 +271,11 @@ const AdminGlobe = () => {
     const R = Math.min(canvas.clientWidth, canvas.clientHeight) * 0.38;
 
     let found: string | null = null;
-    for (const m of markers) {
+    for (const m of markersRef.current) {
       const p = project3D(m.lat, m.lng, rotationRef.current, rotXRef.current, R, cx, cy);
       if (!p.visible) continue;
       const dist = Math.sqrt((p.x - mx) ** 2 + (p.y - my) ** 2);
-      if (dist < 10) { found = m.id; break; }
+      if (dist < 12) { found = m.id; break; }
     }
     hoveredMarker.current = found;
     if (tooltipRef.current) setTooltip({ ...tooltipRef.current });
@@ -252,7 +284,7 @@ const AdminGlobe = () => {
   const handleMouseUp = () => { isDragging.current = false; };
   const handleMouseLeave = () => { isDragging.current = false; hoveredMarker.current = null; setTooltip(null); };
 
-  const regions = new Set(markers.map((m) => m.name)).size;
+  const countriesRepresented = new Set(markers.map((m) => m.name)).size;
 
   return (
     <div className="space-y-6">
@@ -263,11 +295,11 @@ const AdminGlobe = () => {
         </div>
         <div className="bg-card border border-border rounded-lg p-4 text-center">
           <div className="text-2xl font-semibold text-foreground">{markers.length}</div>
-          <div className="text-sm text-muted-foreground">Mapped Locations</div>
+          <div className="text-sm text-muted-foreground">Located Users</div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-semibold text-foreground">{regions}</div>
-          <div className="text-sm text-muted-foreground">Regions</div>
+          <div className="text-2xl font-semibold text-foreground">{countriesRepresented}</div>
+          <div className="text-sm text-muted-foreground">Unique Locations</div>
         </div>
       </div>
 
@@ -283,16 +315,17 @@ const AdminGlobe = () => {
         />
         {tooltip && (
           <div
-            className="absolute px-2 py-1 bg-popover border border-border rounded text-xs text-popover-foreground whitespace-nowrap shadow-lg pointer-events-none z-10"
+            className="absolute px-3 py-2 bg-popover border border-border rounded-lg text-xs text-popover-foreground whitespace-nowrap shadow-lg pointer-events-none z-10"
             style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}
           >
-            {tooltip.name}
+            <div className="font-semibold">{tooltip.name}</div>
+            <div className="text-muted-foreground">Level {tooltip.level} • {tooltip.xp} XP</div>
           </div>
         )}
       </div>
 
       <p className="text-sm text-muted-foreground text-center">
-        🌍 Drag to rotate • Hover dots for locations • Golden dots = users
+        🌍 Drag to rotate • Hover dots for user details • Real-time synced
       </p>
     </div>
   );
