@@ -32,6 +32,10 @@ export function useAuth() {
       },
     });
     if (error) throw error;
+    // Supabase returns a user with no identities when the email is already registered
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      throw new Error("This email is already used for an account. Please sign in instead.");
+    }
     return data;
   };
 
