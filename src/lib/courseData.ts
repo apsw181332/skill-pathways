@@ -594,6 +594,7 @@ export const COURSES: Course[] = [
             title: "Setting Up Your Kitchen",
             content: "You don't need expensive equipment! Start with: a good chef's knife, cutting board, one large pot, one skillet, measuring cups, and a wooden spoon. These cover 90% of home cooking needs.",
             image: cookingNutritionImg,
+            video: "https://www.youtube.com/embed/zxSXuoAeJS4",
             mascotMsg: "Every chef starts somewhere! Let's begin! 🍳",
           },
           {
