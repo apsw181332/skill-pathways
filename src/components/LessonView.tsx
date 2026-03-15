@@ -189,6 +189,17 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
             {step.type === "info" && (
               <div className="lesson-card">
                 {step.image && <img src={step.image} alt={step.title} className="w-full h-48 object-cover rounded-lg mb-4" />}
+                {step.video && (
+                  <div className="w-full aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
+                    <iframe
+                      src={step.video}
+                      title={step.title}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                )}
                 <p className="text-foreground leading-relaxed text-lg">{step.content}</p>
               </div>
             )}
