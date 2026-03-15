@@ -805,6 +805,7 @@ export const COURSES: Course[] = [
             type: "info",
             title: "The Eisenhower Matrix",
             content: "Organize tasks into 4 quadrants: Urgent+Important (do now), Important+Not Urgent (schedule), Urgent+Not Important (delegate), Not Urgent+Not Important (eliminate). Most people spend too much time in quadrant 3.",
+            video: "https://www.youtube.com/embed/aQ_xKuXo0D0",
             mascotMsg: "Work smarter, not harder! ⏰",
           },
           {
