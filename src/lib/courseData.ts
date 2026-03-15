@@ -10,6 +10,7 @@ export interface LessonStep {
   title: string;
   content?: string;
   image?: string;
+  video?: string; // YouTube embed URL e.g. "https://www.youtube.com/embed/VIDEO_ID"
   question?: string;
   options?: string[];
   correct?: number;
