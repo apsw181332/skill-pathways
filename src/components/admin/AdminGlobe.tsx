@@ -1,57 +1,68 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { MapPin, Tag, Globe2 } from "lucide-react";
 
 interface UserMarker {
   id: string;
   lat: number;
   lng: number;
-  name: string;
+  displayName: string;
+  country: string;
+  continent: string;
   xp: number;
   level: number;
 }
 
-// Simplified continent outlines as [lat, lng] polylines
-const CONTINENTS: number[][][] = [
+type LabelMode = "off" | "name" | "country" | "continent";
+
+function getContinent(lat: number, lng: number): string {
+  // Rough continent detection from coordinates
+  if (lat > 10 && lng >= -170 && lng <= -30) return "North America";
+  if (lat <= 10 && lat >= -60 && lng >= -90 && lng <= -30) return "South America";
+  if (lat > 35 && lng >= -15 && lng <= 40) return "Europe";
+  if (lat <= 35 && lat >= -40 && lng >= -20 && lng <= 55) return "Africa";
+  if (lat > 0 && lng > 40 && lng <= 180) return "Asia";
+  if (lat <= 0 && lat >= -50 && lng >= 100 && lng <= 180) return "Oceania";
+  if (lat > 60 && lng > 40) return "Asia";
+  if (lat < -60) return "Antarctica";
+  return "Other";
+}
+
+// Simplified continent outlines as [lat, lng] polylines for 2D map
+const CONTINENT_OUTLINES: number[][][] = [
   // North America
-  [[-10,60],[-5,70],[10,70],[30,65],[50,60],[60,55],[65,45],[55,30],[50,25],[45,10],[35,5],[30,-10],[25,-15],[15,-10],[10,-20],[5,-30],[-5,-50],[-10,-55],[-15,-65],[-20,-70],[-15,-75],[-10,-80],[-5,-85],[0,-90],[5,-95],[10,-100],[20,-105],[30,-100],[35,-95],[40,-90],[45,-85],[50,-80],[55,-75],[60,-70],[65,-75],[70,-80],[72,-90],[70,-100],[68,-110],[65,-120],[60,-130],[55,-135],[50,-130],[55,-125],[60,-120],[62,-110],[60,-100],[58,-95],[55,-90],[55,-85],[60,-80],[65,-78],[70,-75],[72,-65],[70,-60],[65,-55],[60,-50],[55,-55],[50,-58],[48,-60],[45,-62],[40,-65],[35,-70],[30,-75],[25,-80],[30,-80],[28,-82]].map(([lat,lng]) => [lat, lng]),
+  [[70,-140],[65,-170],[60,-165],[55,-160],[50,-130],[55,-135],[60,-140],[65,-140],[70,-155],[72,-160],[70,-140]],
+  [[70,-140],[72,-130],[70,-100],[68,-90],[65,-75],[60,-65],[55,-58],[50,-58],[48,-55],[45,-60],[42,-65],[38,-75],[30,-80],[25,-80],[20,-90],[15,-90],[10,-85],[8,-78],[10,-75],[15,-85],[20,-105],[25,-110],[30,-115],[32,-117],[38,-122],[45,-125],[50,-125],[55,-130],[58,-135],[60,-140],[65,-140],[70,-140]],
+  // Central America
+  [[20,-105],[18,-100],[16,-92],[14,-88],[10,-84],[8,-78]],
   // South America
-  [[10,-70],[5,-75],[0,-80],[-5,-80],[-10,-78],[-15,-75],[-20,-70],[-25,-65],[-30,-60],[-35,-57],[-40,-63],[-45,-65],[-50,-70],[-55,-68],[-50,-60],[-45,-55],[-40,-50],[-35,-45],[-30,-40],[-25,-35],[-20,-35],[-15,-40],[-10,-37],[-5,-35],[0,-50],[5,-60],[10,-65],[10,-70]].map(([lat,lng]) => [lat, lng]),
+  [[10,-70],[12,-72],[10,-75],[5,-75],[0,-80],[-5,-80],[-8,-78],[-10,-75],[-12,-77],[-15,-75],[-18,-70],[-22,-65],[-28,-58],[-33,-55],[-38,-58],[-42,-63],[-46,-68],[-50,-70],[-52,-72],[-55,-68],[-52,-60],[-48,-55],[-43,-50],[-38,-45],[-33,-42],[-28,-38],[-22,-40],[-18,-38],[-12,-37],[-8,-35],[-4,-35],[0,-50],[2,-52],[5,-55],[8,-60],[10,-63],[10,-70]],
   // Europe
-  [[35,-10],[38,-5],[40,0],[43,5],[45,10],[44,15],[40,20],[38,25],[35,25],[37,28],[40,30],[42,28],[45,25],[48,20],[50,15],[52,10],[54,8],[56,10],[58,12],[60,15],[63,10],[65,15],[68,20],[70,25],[70,30],[68,35],[65,30],[62,25],[58,28],[55,25],[52,22],[50,20],[48,18],[45,15],[43,12],[40,5],[38,0],[36,-5],[35,-10]].map(([lat,lng]) => [lat, lng]),
+  [[70,30],[68,20],[65,12],[63,5],[60,5],[58,8],[57,10],[56,8],[55,12],[54,10],[53,6],[52,5],[51,2],[50,0],[48,-5],[44,-8],[37,-8],[36,-6],[37,-2],[38,0],[40,0],[42,3],[43,5],[44,8],[44,12],[42,15],[40,18],[38,22],[37,24],[35,25],[36,28],[38,27],[40,25],[42,20],[45,14],[46,15],[46,17],[48,17],[49,18],[50,20],[52,21],[54,18],[55,15],[57,18],[58,20],[60,18],[62,16],[63,18],[65,15],[67,16],[69,18],[70,28],[70,30]],
   // Africa
-  [[35,-10],[33,-5],[32,0],[30,10],[32,30],[30,32],[25,35],[20,38],[15,42],[10,45],[5,42],[0,42],[-5,40],[-10,40],[-15,35],[-20,35],[-25,33],[-30,30],[-33,28],[-35,20],[-34,18],[-30,17],[-25,15],[-20,12],[-15,12],[-10,14],[-5,10],[0,10],[5,5],[5,0],[10,-5],[15,-15],[20,-17],[25,-15],[30,-10],[33,-8],[35,-10]].map(([lat,lng]) => [lat, lng]),
+  [[35,10],[37,-2],[36,-6],[33,-8],[28,-13],[22,-17],[18,-16],[15,-17],[12,-15],[5,-5],[5,0],[5,10],[3,10],[0,10],[-5,12],[-8,14],[-12,14],[-15,12],[-18,12],[-22,15],[-25,15],[-28,18],[-30,20],[-34,18],[-34,20],[-33,25],[-30,30],[-25,33],[-20,35],[-15,40],[-10,40],[-5,42],[0,42],[5,44],[10,45],[12,44],[15,42],[20,38],[25,35],[30,32],[32,32],[33,35],[35,12],[35,10]],
   // Asia
-  [[42,28],[45,35],[40,45],[35,50],[30,50],[25,55],[20,60],[15,75],[10,78],[5,80],[0,105],[-5,110],[-8,115],[0,120],[5,115],[10,110],[15,108],[20,110],[22,108],[25,105],[30,105],[35,110],[40,115],[42,120],[45,130],[48,135],[50,140],[52,142],[55,138],[58,135],[60,140],[62,150],[65,170],[68,175],[70,170],[72,140],[70,130],[68,110],[65,90],[62,75],[60,60],[58,55],[55,50],[52,45],[48,40],[45,35],[42,28]].map(([lat,lng]) => [lat, lng]),
+  [[70,30],[70,40],[68,50],[65,60],[60,60],[58,55],[55,55],[52,50],[48,48],[45,40],[42,28],[40,30],[38,35],[35,35],[30,35],[28,35],[25,45],[22,55],[20,60],[15,75],[10,78],[8,80],[2,104],[-2,106],[-6,106],[-8,110],[-8,115],[0,118],[2,110],[5,105],[8,105],[10,108],[15,108],[20,110],[22,108],[25,120],[30,122],[35,130],[38,135],[40,130],[42,132],[45,142],[48,145],[50,143],[52,140],[55,138],[58,140],[60,160],[62,170],[65,180],[68,180],[70,175],[72,145],[72,130],[70,100],[68,80],[70,60],[70,40],[70,30]],
   // Australia
-  [[-12,130],[-15,125],[-20,118],[-25,114],[-30,115],[-33,118],[-35,120],[-37,140],[-38,145],[-38,148],[-35,150],[-30,153],[-25,152],[-20,148],[-16,146],[-14,142],[-12,136],[-12,130]].map(([lat,lng]) => [lat, lng]),
+  [[-12,130],[-15,125],[-20,118],[-25,114],[-28,114],[-30,115],[-33,116],[-34,118],[-35,120],[-36,137],[-38,144],[-38,148],[-36,150],[-33,152],[-28,153],[-24,150],[-20,149],[-18,146],[-15,145],[-13,142],[-12,136],[-12,130]],
 ];
 
-const DEG = Math.PI / 180;
-
-function project3D(lat: number, lng: number, rotY: number, rotX: number, R: number, cx: number, cy: number) {
-  const phi = (90 - lat) * DEG;
-  const theta = (lng + rotY) * DEG;
-  const x3 = R * Math.sin(phi) * Math.cos(theta);
-  const y3 = R * Math.cos(phi);
-  const z3 = R * Math.sin(phi) * Math.sin(theta);
-  const cosX = Math.cos(rotX * DEG);
-  const sinX = Math.sin(rotX * DEG);
-  const y3r = y3 * cosX - z3 * sinX;
-  const z3r = y3 * sinX + z3 * cosX;
-  return { x: cx + x3, y: cy - y3r, z: z3r, visible: z3r > 0 };
+// Equirectangular projection: lng -> x, lat -> y
+function project2D(lat: number, lng: number, w: number, h: number, padX: number, padY: number) {
+  const mapW = w - padX * 2;
+  const mapH = h - padY * 2;
+  const x = padX + ((lng + 180) / 360) * mapW;
+  const y = padY + ((90 - lat) / 180) * mapH;
+  return { x, y };
 }
 
 const AdminGlobe = () => {
   const [markers, setMarkers] = useState<UserMarker[]>([]);
   const [userCount, setUserCount] = useState(0);
+  const [labelMode, setLabelMode] = useState<LabelMode>("off");
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rotationRef = useRef(0);
-  const isDragging = useRef(false);
-  const lastMouseX = useRef(0);
-  const rotXRef = useRef(-10);
-  const hoveredMarker = useRef<string | null>(null);
-  const tooltipRef = useRef<{ x: number; y: number; name: string; xp: number; level: number } | null>(null);
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string; xp: number; level: number } | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; marker: UserMarker } | null>(null);
   const markersRef = useRef<UserMarker[]>([]);
 
   const fetchUsers = useCallback(async () => {
@@ -68,7 +79,9 @@ const AdminGlobe = () => {
           id: u.id,
           lat: u.latitude!,
           lng: u.longitude!,
-          name: u.display_name || u.country || "User",
+          displayName: u.display_name || "User",
+          country: u.country || "Unknown",
+          continent: getContinent(u.latitude!, u.longitude!),
           xp: u.xp || 0,
           level: u.level || 1,
         }));
@@ -79,17 +92,16 @@ const AdminGlobe = () => {
 
   useEffect(() => {
     fetchUsers();
-
-    // Realtime sync
     const channel = supabase
       .channel("admin-globe-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
-        fetchUsers();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchUsers())
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [fetchUsers]);
+
+  useEffect(() => {
+    markersRef.current = markers;
+  }, [markers]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -104,143 +116,134 @@ const AdminGlobe = () => {
     canvas.height = h * dpr;
     ctx.scale(dpr, dpr);
 
-    const cx = w / 2;
-    const cy = h / 2;
-    const R = Math.min(w, h) * 0.38;
-    const rotY = rotationRef.current;
-    const rotX = rotXRef.current;
+    const padX = 20;
+    const padY = 20;
 
-    ctx.clearRect(0, 0, w, h);
-
-    // Globe glow
-    const glow = ctx.createRadialGradient(cx, cy, R * 0.8, cx, cy, R * 1.3);
-    glow.addColorStop(0, "rgba(59,130,246,0.08)");
-    glow.addColorStop(1, "rgba(59,130,246,0)");
-    ctx.fillStyle = glow;
+    // Background
+    ctx.fillStyle = "#0a1628";
     ctx.fillRect(0, 0, w, h);
 
-    // Globe sphere
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    const sphereGrad = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R);
-    sphereGrad.addColorStop(0, "#1e293b");
-    sphereGrad.addColorStop(1, "#0a1628");
-    ctx.fillStyle = sphereGrad;
-    ctx.fill();
+    // Subtle gradient overlay
+    const bg = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.6);
+    bg.addColorStop(0, "rgba(30, 41, 59, 0.4)");
+    bg.addColorStop(1, "rgba(10, 22, 40, 0)");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
 
-    // Grid lines (latitude)
-    ctx.strokeStyle = "rgba(59,130,246,0.1)";
+    // Grid lines
+    ctx.strokeStyle = "rgba(59,130,246,0.08)";
     ctx.lineWidth = 0.5;
+    // Latitude lines
     for (let lat = -60; lat <= 60; lat += 30) {
+      const p1 = project2D(lat, -180, w, h, padX, padY);
+      const p2 = project2D(lat, 180, w, h, padX, padY);
       ctx.beginPath();
-      let started = false;
-      for (let lng = -180; lng <= 180; lng += 3) {
-        const p = project3D(lat, lng, rotY, rotX, R, cx, cy);
-        if (p.visible) {
-          if (!started) { ctx.moveTo(p.x, p.y); started = true; }
-          else ctx.lineTo(p.x, p.y);
-        } else { started = false; }
-      }
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
       ctx.stroke();
     }
-    // Grid lines (longitude)
-    for (let lng = -180; lng < 180; lng += 30) {
+    // Longitude lines
+    for (let lng = -180; lng <= 180; lng += 30) {
+      const p1 = project2D(90, lng, w, h, padX, padY);
+      const p2 = project2D(-90, lng, w, h, padX, padY);
       ctx.beginPath();
-      let started = false;
-      for (let lat = -90; lat <= 90; lat += 3) {
-        const p = project3D(lat, lng, rotY, rotX, R, cx, cy);
-        if (p.visible) {
-          if (!started) { ctx.moveTo(p.x, p.y); started = true; }
-          else ctx.lineTo(p.x, p.y);
-        } else { started = false; }
-      }
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
       ctx.stroke();
     }
 
-    // Continents
-    ctx.strokeStyle = "rgba(59,130,246,0.55)";
+    // Equator
+    ctx.strokeStyle = "rgba(59,130,246,0.15)";
+    ctx.lineWidth = 1;
+    const eq1 = project2D(0, -180, w, h, padX, padY);
+    const eq2 = project2D(0, 180, w, h, padX, padY);
+    ctx.beginPath();
+    ctx.moveTo(eq1.x, eq1.y);
+    ctx.lineTo(eq2.x, eq2.y);
+    ctx.stroke();
+
+    // Draw continent outlines
+    ctx.strokeStyle = "rgba(59,130,246,0.45)";
     ctx.lineWidth = 1.2;
-    for (const continent of CONTINENTS) {
+    for (const outline of CONTINENT_OUTLINES) {
       ctx.beginPath();
-      let started = false;
-      for (const [lat, lng] of continent) {
-        const p = project3D(lat, lng, rotY, rotX, R, cx, cy);
-        if (p.visible) {
-          if (!started) { ctx.moveTo(p.x, p.y); started = true; }
-          else ctx.lineTo(p.x, p.y);
-        } else { started = false; }
+      for (let i = 0; i < outline.length; i++) {
+        const [lat, lng] = outline[i];
+        const p = project2D(lat, lng, w, h, padX, padY);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
       }
       ctx.stroke();
     }
 
-    // User marker dots
+    // Fill continents lightly
+    ctx.fillStyle = "rgba(59,130,246,0.06)";
+    for (const outline of CONTINENT_OUTLINES) {
+      ctx.beginPath();
+      for (let i = 0; i < outline.length; i++) {
+        const [lat, lng] = outline[i];
+        const p = project2D(lat, lng, w, h, padX, padY);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // User dots
     const currentMarkers = markersRef.current;
-    let newTooltip: typeof tooltipRef.current = null;
     const time = Date.now() / 1000;
+    const mode = labelMode;
 
     for (const m of currentMarkers) {
-      const p = project3D(m.lat, m.lng, rotY, rotX, R, cx, cy);
-      if (!p.visible) continue;
+      const p = project2D(m.lat, m.lng, w, h, padX, padY);
 
       // Pulsing glow
-      const pulse = 1 + 0.3 * Math.sin(time * 2 + m.lat);
+      const pulse = 1 + 0.25 * Math.sin(time * 2 + m.lat * 0.1);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 8 * pulse, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(245,158,11,0.15)";
+      ctx.arc(p.x, p.y, 10 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(245,158,11,0.12)";
       ctx.fill();
 
       // Outer ring
       ctx.beginPath();
       ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(245,158,11,0.3)";
+      ctx.fillStyle = "rgba(245,158,11,0.35)";
       ctx.fill();
 
-      // Inner dot - size based on level
-      const dotSize = Math.min(2 + m.level * 0.3, 5);
+      // Inner dot
+      const dotSize = Math.min(2.5 + m.level * 0.25, 4.5);
       ctx.beginPath();
       ctx.arc(p.x, p.y, dotSize, 0, Math.PI * 2);
       ctx.fillStyle = "#f59e0b";
       ctx.fill();
 
-      if (hoveredMarker.current === m.id) {
-        newTooltip = { x: p.x, y: p.y - 20, name: m.name, xp: m.xp, level: m.level };
+      // Labels
+      if (mode !== "off") {
+        let label = "";
+        if (mode === "name") label = m.displayName;
+        else if (mode === "country") label = m.country;
+        else if (mode === "continent") label = m.continent;
+
+        if (label) {
+          ctx.font = "10px system-ui, sans-serif";
+          ctx.fillStyle = "rgba(255,255,255,0.75)";
+          ctx.textAlign = "center";
+          ctx.fillText(label, p.x, p.y - 10);
+        }
       }
     }
-    tooltipRef.current = newTooltip;
 
-    // Globe rim
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(59,130,246,0.2)";
+    // Map border
+    ctx.strokeStyle = "rgba(59,130,246,0.15)";
     ctx.lineWidth = 1;
-    ctx.stroke();
+    ctx.strokeRect(padX, padY, w - padX * 2, h - padY * 2);
+  }, [labelMode]);
 
-    // Stars background (behind globe already cleared, so draw outside)
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    for (let i = 0; i < 60; i++) {
-      const sx = ((i * 137.5) % w);
-      const sy = ((i * 73.1 + 50) % h);
-      const dist = Math.sqrt((sx - cx) ** 2 + (sy - cy) ** 2);
-      if (dist > R + 10) {
-        ctx.beginPath();
-        ctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  }, []);
-
-  // Keep markersRef in sync
-  useEffect(() => {
-    markersRef.current = markers;
-  }, [markers]);
-
-  // Animation loop
+  // Animation for pulsing dots
   useEffect(() => {
     let animId: number;
     const animate = () => {
-      if (!isDragging.current) {
-        rotationRef.current += 0.15;
-      }
       draw();
       animId = requestAnimationFrame(animate);
     };
@@ -248,47 +251,44 @@ const AdminGlobe = () => {
     return () => cancelAnimationFrame(animId);
   }, [draw]);
 
-  // Mouse interactions
-  const handleMouseDown = (e: React.MouseEvent) => {
-    isDragging.current = true;
-    lastMouseX.current = e.clientX;
-  };
+  // Mouse hover for tooltips
   const handleMouseMove = (e: React.MouseEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    if (isDragging.current) {
-      const dx = e.clientX - lastMouseX.current;
-      rotationRef.current += dx * 0.5;
-      lastMouseX.current = e.clientX;
-    }
-
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
-    const cx = canvas.clientWidth / 2;
-    const cy = canvas.clientHeight / 2;
-    const R = Math.min(canvas.clientWidth, canvas.clientHeight) * 0.38;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
 
-    let found: string | null = null;
+    let found: UserMarker | null = null;
     for (const m of markersRef.current) {
-      const p = project3D(m.lat, m.lng, rotationRef.current, rotXRef.current, R, cx, cy);
-      if (!p.visible) continue;
+      const p = project2D(m.lat, m.lng, w, h, 20, 20);
       const dist = Math.sqrt((p.x - mx) ** 2 + (p.y - my) ** 2);
-      if (dist < 12) { found = m.id; break; }
+      if (dist < 14) { found = m; break; }
     }
-    hoveredMarker.current = found;
-    if (tooltipRef.current) setTooltip({ ...tooltipRef.current });
-    else setTooltip(null);
-  };
-  const handleMouseUp = () => { isDragging.current = false; };
-  const handleMouseLeave = () => { isDragging.current = false; hoveredMarker.current = null; setTooltip(null); };
 
-  const countriesRepresented = new Set(markers.map((m) => m.name)).size;
+    if (found) {
+      const p = project2D(found.lat, found.lng, w, h, 20, 20);
+      setTooltip({ x: p.x, y: p.y - 24, marker: found });
+    } else {
+      setTooltip(null);
+    }
+  };
+
+  const countriesRepresented = new Set(markers.map((m) => m.country)).size;
+  const continentsRepresented = new Set(markers.map((m) => m.continent)).size;
+
+  const labelModes: { mode: LabelMode; label: string; icon: typeof MapPin }[] = [
+    { mode: "off", label: "Dots Only", icon: MapPin },
+    { mode: "name", label: "Name", icon: Tag },
+    { mode: "country", label: "Country", icon: Globe2 },
+    { mode: "continent", label: "Continent", icon: Globe2 },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-card border border-border rounded-lg p-4 text-center">
           <div className="text-2xl font-semibold text-foreground">{userCount}</div>
           <div className="text-sm text-muted-foreground">Total Users</div>
@@ -299,33 +299,53 @@ const AdminGlobe = () => {
         </div>
         <div className="bg-card border border-border rounded-lg p-4 text-center">
           <div className="text-2xl font-semibold text-foreground">{countriesRepresented}</div>
-          <div className="text-sm text-muted-foreground">Unique Locations</div>
+          <div className="text-sm text-muted-foreground">Countries</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-4 text-center">
+          <div className="text-2xl font-semibold text-foreground">{continentsRepresented}</div>
+          <div className="text-sm text-muted-foreground">Continents</div>
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden relative" style={{ height: "500px" }}>
+      {/* Label toggle */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-sm text-muted-foreground mr-1">Show labels:</span>
+        {labelModes.map(({ mode, label }) => (
+          <Button
+            key={mode}
+            size="sm"
+            variant={labelMode === mode ? "default" : "outline"}
+            onClick={() => setLabelMode(mode)}
+            className="text-xs h-8"
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      <div className="bg-card border border-border rounded-lg overflow-hidden relative" style={{ height: "450px" }}>
         <canvas
           ref={canvasRef}
-          className="w-full h-full cursor-grab active:cursor-grabbing"
-          style={{ background: "radial-gradient(ellipse at center, #0f172a, #020617)" }}
-          onMouseDown={handleMouseDown}
+          className="w-full h-full"
           onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
+          onMouseLeave={() => setTooltip(null)}
         />
         {tooltip && (
           <div
             className="absolute px-3 py-2 bg-popover border border-border rounded-lg text-xs text-popover-foreground whitespace-nowrap shadow-lg pointer-events-none z-10"
             style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}
           >
-            <div className="font-semibold">{tooltip.name}</div>
-            <div className="text-muted-foreground">Level {tooltip.level} • {tooltip.xp} XP</div>
+            <div className="font-semibold">{tooltip.marker.displayName}</div>
+            <div className="text-muted-foreground">
+              {tooltip.marker.country} • {tooltip.marker.continent}
+            </div>
+            <div className="text-muted-foreground">Level {tooltip.marker.level} • {tooltip.marker.xp} XP</div>
           </div>
         )}
       </div>
 
       <p className="text-sm text-muted-foreground text-center">
-        🌍 Drag to rotate • Hover dots for user details • Real-time synced
+        🌍 Hover dots for user details • Toggle labels above • Real-time synced from database
       </p>
     </div>
   );
