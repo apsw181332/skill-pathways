@@ -328,8 +328,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
         <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
           <img src={mascotImg} alt="Profile" className="w-14 h-14 object-contain" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground">Learner</h2>
-        <p className="text-sm text-muted-foreground mt-1">Joined recently</p>
+        <h2 className="text-xl font-semibold text-foreground">{user.user_metadata?.display_name || user.email?.split("@")[0] || "Learner"}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
         <div className="flex justify-center gap-6 mt-4">
           <div className="text-center">
             <div className="text-lg font-semibold text-foreground xp-counter">{xp}</div>
