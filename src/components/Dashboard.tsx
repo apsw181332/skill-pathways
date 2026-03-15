@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import type { User } from "@supabase/supabase-js";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
-  Home, BookOpen, Trophy, User, Flame, Star,
-  ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award
+  Home, BookOpen, Trophy, User as UserIcon, Flame, Star,
+  ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award, LogOut
+} from "lucide-react";
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { UserConfig } from "@/components/Onboarding";
