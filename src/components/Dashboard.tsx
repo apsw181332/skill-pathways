@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
-  Home, BookOpen, Trophy, User, Flame, Star,
-  ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award
+  Home, BookOpen, Trophy, User as UserIcon, Flame, Star,
+  ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { UserConfig } from "@/components/Onboarding";
@@ -57,9 +58,11 @@ const GREETING_MESSAGES = [
 interface DashboardProps {
   config: UserConfig;
   onStartLesson: () => void;
+  user: SupabaseUser;
+  onSignOut: () => Promise<void>;
 }
 
-const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
+const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState<"home" | "learn" | "leaderboard" | "profile">("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const xp = 340;
@@ -325,8 +328,8 @@ const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
         <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
           <img src={mascotImg} alt="Profile" className="w-14 h-14 object-contain" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground">Learner</h2>
-        <p className="text-sm text-muted-foreground mt-1">Joined recently</p>
+        <h2 className="text-xl font-semibold text-foreground">{user.user_metadata?.display_name || user.email?.split("@")[0] || "Learner"}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
         <div className="flex justify-center gap-6 mt-4">
           <div className="text-center">
             <div className="text-lg font-semibold text-foreground xp-counter">{xp}</div>
@@ -365,6 +368,16 @@ const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
           </motion.div>
         ))}
       </div>
+
+      {/* Sign out */}
+      <Button
+        variant="ghost"
+        onClick={onSignOut}
+        className="w-full mt-6 text-muted-foreground hover:text-destructive gap-2"
+      >
+        <LogOut className="w-4 h-4" />
+        Sign out
+      </Button>
     </>
   );
 
@@ -403,7 +416,7 @@ const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
           { id: "home" as const, icon: Home, label: "Home" },
           { id: "learn" as const, icon: BookOpen, label: "Learn" },
           { id: "leaderboard" as const, icon: Trophy, label: "Rank" },
-          { id: "profile" as const, icon: User, label: "Profile" },
+          { id: "profile" as const, icon: UserIcon, label: "Profile" },
         ].map((tab) => {
           const Icon = tab.icon;
           return (
