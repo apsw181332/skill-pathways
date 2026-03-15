@@ -34,11 +34,11 @@ const animationMap = {
   },
 };
 
-const Mascot = ({ message, size = "md", animation = "idle", className = "" }: MascotProps) => {
+const Mascot = forwardRef<HTMLDivElement, MascotProps>(({ message, size = "md", animation = "idle", className = "" }, ref) => {
   const anim = animationMap[animation];
 
   return (
-    <div className={`flex items-end gap-3 ${className}`}>
+    <div ref={ref} className={`flex items-end gap-3 ${className}`}>
       <motion.div
         className={`${sizeMap[size]} shrink-0`}
         animate={anim.animate}
@@ -62,6 +62,8 @@ const Mascot = ({ message, size = "md", animation = "idle", className = "" }: Ma
       </motion.div>
     </div>
   );
-};
+});
+
+Mascot.displayName = "Mascot";
 
 export default Mascot;
