@@ -1,14 +1,34 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import Landing from "@/components/Landing";
+import Onboarding, { type UserConfig } from "@/components/Onboarding";
+import Dashboard from "@/components/Dashboard";
+import LessonView from "@/components/LessonView";
+
+type AppState = "landing" | "onboarding" | "dashboard" | "lesson";
 
 const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  const [state, setState] = useState<AppState>("landing");
+  const [config, setConfig] = useState<UserConfig>({
+    interests: [],
+    learningStyle: "",
+    accessibility: [],
+  });
+
+  const handleOnboardingComplete = (userConfig: UserConfig) => {
+    setConfig(userConfig);
+    setState("dashboard");
+  };
+
+  switch (state) {
+    case "landing":
+      return <Landing onGetStarted={() => setState("onboarding")} />;
+    case "onboarding":
+      return <Onboarding onComplete={handleOnboardingComplete} />;
+    case "dashboard":
+      return <Dashboard config={config} onStartLesson={() => setState("lesson")} />;
+    case "lesson":
+      return <LessonView onBack={() => setState("dashboard")} />;
+  }
 };
 
 export default Index;
