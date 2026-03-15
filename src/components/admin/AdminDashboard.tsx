@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Globe2, CreditCard, LogOut,
@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import AdminOverview from "./AdminOverview";
 import AdminUsers from "./AdminUsers";
-const AdminGlobe = lazy(() => import("./AdminGlobe"));
+import AdminGlobe from "./AdminGlobe";
 import AdminSubscriptions from "./AdminSubscriptions";
 import mascotImg from "@/assets/mascot-penguin.png";
 
@@ -89,7 +89,7 @@ const AdminDashboard = ({ onSignOut }: AdminDashboardProps) => {
           >
             {activeTab === "overview" && <AdminOverview />}
             {activeTab === "users" && <AdminUsers />}
-            {activeTab === "globe" && <Suspense fallback={<div className="text-center py-12 text-muted-foreground">Loading globe...</div>}><AdminGlobe /></Suspense>}
+            {activeTab === "globe" && <AdminGlobe />}
             {activeTab === "subscriptions" && <AdminSubscriptions />}
           </motion.div>
         </div>
