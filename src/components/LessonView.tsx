@@ -112,9 +112,11 @@ const LessonView = ({ onBack, userId, categoryId = "financial", lessonId = 1 }: 
       if (idx === step.correct) {
         setFeedbackMascotMsg(CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]);
         triggerXp(15);
+        playCorrectSound();
       } else {
         setFeedbackMascotMsg(WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]);
         triggerXp(5);
+        playWrongSound();
       }
     }
   };
