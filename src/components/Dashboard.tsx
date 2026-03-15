@@ -5,7 +5,6 @@ import {
   Home, BookOpen, Trophy, User as UserIcon, Flame, Star,
   ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award, LogOut
 } from "lucide-react";
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { UserConfig } from "@/components/Onboarding";
 import Mascot from "@/components/Mascot";
