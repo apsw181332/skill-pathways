@@ -1,0 +1,3 @@
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS gems integer NOT NULL DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS title text DEFAULT NULL;

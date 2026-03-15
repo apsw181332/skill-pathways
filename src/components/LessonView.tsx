@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap, Heart, Diamond } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Mascot from "@/components/Mascot";
 import Confetti from "@/components/Confetti";
 import XpPopup from "@/components/XpPopup";
+import TreasureChest from "@/components/TreasureChest";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, type LessonStep } from "@/lib/courseData";
@@ -15,6 +16,8 @@ interface LessonViewProps {
   categoryId: string;
   lessonId: number;
   soundEnabled: boolean;
+  extraLives: number;
+  onUseExtraLife: () => void;
 }
 
 const CORRECT_MESSAGES = [
@@ -44,6 +47,11 @@ const COMPLETION_MSGS = [
   "Another lesson conquered! You're unstoppable! 🚀",
   "Knowledge is power, and you just leveled up! ⚡",
 ];
+const GAME_OVER_MSGS = [
+  "Don't give up! Every mistake is a lesson learned. 💪",
+  "You'll get it next time! Practice makes perfect. 🎯",
+  "Pebble believes in you — try again! 🐧",
+];
 
 function shuffle<T>(arr: T[]): T[] {
   const s = [...arr];
@@ -61,7 +69,7 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: LessonViewProps) => {
+const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraLives, onUseExtraLife }: LessonViewProps) => {
   const lesson = getLessonContent(categoryId, lessonId);
   const steps = lesson?.steps || [];
 
@@ -80,6 +88,14 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: Less
   const [totalQuizzes, setTotalQuizzes] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [shuffledItems, setShuffledItems] = useState<{ id: string; text: string; order: number }[]>([]);
+  
+  // Lives system
+  const [lives, setLives] = useState(3);
+  const [gameOver, setGameOver] = useState(false);
+  const [showLifeLostAnim, setShowLifeLostAnim] = useState(false);
+  
+  // Treasure chest
+  const [showChest, setShowChest] = useState(false);
 
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
@@ -90,7 +106,50 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: Less
     }
   }, [currentStep]);
 
-  if (showCompletion) {
+  // Game over screen
+  if (gameOver) {
+    const msg = GAME_OVER_MSGS[Math.floor(Math.random() * GAME_OVER_MSGS.length)];
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
+          <Mascot message={msg} size="md" animation="bounce" />
+          <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">Out of Lives! 💔</h2>
+          <p className="text-muted-foreground mb-4">You used all 3 lives in this lesson.</p>
+          
+          <div className="flex justify-center gap-2 mb-6">
+            {[0, 1, 2].map(i => (
+              <Heart key={i} className="w-8 h-8 text-muted-foreground/30" fill="currentColor" />
+            ))}
+          </div>
+
+          <div className="lesson-card mb-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-lg font-semibold text-foreground">{correctAnswers}/{totalQuizzes}</div>
+                <div className="text-xs text-muted-foreground">Correct</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-semibold text-foreground">{totalXp} XP</div>
+                <div className="text-xs text-muted-foreground">Earned</div>
+              </div>
+            </div>
+          </div>
+
+          {extraLives > 0 && (
+            <Button onClick={() => { onUseExtraLife(); setLives(1); setGameOver(false); }} className="w-full mb-3 gap-2" size="lg">
+              <Heart className="w-4 h-4" /> Use Extra Life ({extraLives} left)
+            </Button>
+          )}
+          <Button onClick={onBack} variant={extraLives > 0 ? "outline" : "default"} className="w-full" size="lg">
+            Back to Dashboard
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Completion screen
+  if (showCompletion && !showChest) {
     const elapsed = Date.now() - startTime;
     const accuracy = totalQuizzes > 0 ? Math.round((correctAnswers / totalQuizzes) * 100) : 100;
     const tip = COMPLETION_TIPS[Math.floor(Math.random() * COMPLETION_TIPS.length)];
@@ -102,7 +161,15 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: Less
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
           <Mascot message={msg} size="md" animation="celebrate" />
           <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">Lesson Complete! 🎉</h2>
-          <p className="text-muted-foreground mb-8">{lesson?.title}</p>
+          <p className="text-muted-foreground mb-4">{lesson?.title}</p>
+          
+          {/* Lives remaining */}
+          <div className="flex justify-center gap-2 mb-6">
+            {[0, 1, 2].map(i => (
+              <Heart key={i} className={`w-6 h-6 ${i < lives ? "text-destructive" : "text-muted-foreground/30"}`} fill="currentColor" />
+            ))}
+          </div>
+
           <div className="grid grid-cols-3 gap-3 mb-8">
             <div className="lesson-card py-4">
               <Clock className="w-5 h-5 text-primary mx-auto mb-2" />
@@ -124,9 +191,30 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: Less
             <p className="text-sm font-medium text-primary mb-1">💡 Pebble's Tip</p>
             <p className="text-sm text-muted-foreground">{tip}</p>
           </div>
-          <Button onClick={onBack} className="w-full" size="lg">Back to Dashboard</Button>
+          <Button onClick={() => setShowChest(true)} className="w-full gap-2" size="lg">
+            <Diamond className="w-4 h-4" /> Open Treasure Chest! 🎁
+          </Button>
         </motion.div>
       </div>
+    );
+  }
+
+  // Treasure chest overlay
+  if (showChest) {
+    return (
+      <TreasureChest
+        onComplete={async (gems) => {
+          // Save gems to profile
+          if (userId) {
+            const { data: profile } = await supabase.from("profiles").select("gems").eq("user_id", userId).single();
+            if (profile) {
+              await supabase.from("profiles").update({ gems: (profile as any).gems + gems } as any).eq("user_id", userId);
+            }
+          }
+          onBack();
+        }}
+        onClose={onBack}
+      />
     );
   }
 
@@ -163,6 +251,17 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: Less
         setFeedbackMascotMsg(WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]);
         triggerXp(5);
         if (soundEnabled) playWrongSound();
+        // Lose a life
+        const newLives = lives - 1;
+        setLives(newLives);
+        setShowLifeLostAnim(true);
+        setTimeout(() => setShowLifeLostAnim(false), 800);
+        if (newLives <= 0) {
+          // Save partial progress then game over
+          saveLessonProgress(totalXp, false);
+          setTimeout(() => setGameOver(true), 1500);
+          return;
+        }
       }
     }
   };
@@ -175,17 +274,37 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: Less
 
   const handleSubmitOrder = () => {
     setDragSubmitted(true);
-    setFeedbackMascotMsg("Great effort! Ordering steps is key to building good habits. 📋");
-    triggerXp(20);
-    if (soundEnabled) playCorrectSound();
+    // Check if order is correct
+    const allCorrect = orderedItems.every((id, idx) => {
+      const item = step.items?.find(i => i.id === id);
+      return item && item.order === idx + 1;
+    });
+    if (allCorrect) {
+      setFeedbackMascotMsg("Perfect order! You really understand this! 🎯");
+      triggerXp(25);
+      if (soundEnabled) playCorrectSound();
+    } else {
+      setFeedbackMascotMsg("Good try! Check the correct order above. 📋");
+      triggerXp(10);
+      if (soundEnabled) playWrongSound();
+      const newLives = lives - 1;
+      setLives(newLives);
+      setShowLifeLostAnim(true);
+      setTimeout(() => setShowLifeLostAnim(false), 800);
+      if (newLives <= 0) {
+        saveLessonProgress(totalXp, false);
+        setTimeout(() => setGameOver(true), 1500);
+        return;
+      }
+    }
   };
 
-  const saveLessonProgress = async (earnedXp: number) => {
+  const saveLessonProgress = async (earnedXp: number, completed: boolean = true) => {
     if (!userId) return;
     try {
       await supabase.from("user_progress").upsert({
         user_id: userId, category_id: categoryId, lesson_id: lessonId,
-        completed: true, completed_at: new Date().toISOString(), score: earnedXp,
+        completed, completed_at: completed ? new Date().toISOString() : null, score: earnedXp,
       }, { onConflict: "user_id,category_id,lesson_id" });
 
       const { data: profile } = await supabase.from("profiles").select("xp, streak, last_activity_date").eq("user_id", userId).single();
@@ -200,8 +319,10 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: Less
         }).eq("user_id", userId);
       }
 
-      const { data: existing } = await supabase.from("achievements").select("id").eq("user_id", userId).eq("badge_id", "first-lesson").maybeSingle();
-      if (!existing) await supabase.from("achievements").insert({ user_id: userId, badge_id: "first-lesson" });
+      if (completed) {
+        const { data: existing } = await supabase.from("achievements").select("id").eq("user_id", userId).eq("badge_id", "first-lesson").maybeSingle();
+        if (!existing) await supabase.from("achievements").insert({ user_id: userId, badge_id: "first-lesson" });
+      }
     } catch (err) {
       console.error("Failed to save progress:", err);
     }
@@ -231,6 +352,21 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: Less
       <Confetti active={showConfetti} />
       <XpPopup amount={xpAmount} show={showXp} />
 
+      {/* Life lost animation */}
+      <AnimatePresence>
+        {showLifeLostAnim && (
+          <motion.div
+            initial={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 0, y: -50, scale: 2 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-[90]"
+          >
+            <Heart className="w-10 h-10 text-destructive" fill="currentColor" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <header className="sticky top-0 z-40 bg-background border-b border-border">
         <div className="max-w-2xl mx-auto px-6 py-3 flex items-center gap-4">
           <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Back">
@@ -238,6 +374,12 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: Less
           </button>
           <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
             <motion.div className="progress-fill h-full" animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
+          </div>
+          {/* Lives */}
+          <div className="flex items-center gap-0.5">
+            {[0, 1, 2].map(i => (
+              <Heart key={i} className={`w-4 h-4 transition-all duration-300 ${i < lives ? "text-destructive" : "text-muted-foreground/20"}`} fill="currentColor" />
+            ))}
           </div>
           <span className="text-sm font-medium text-accent xp-counter">{totalXp} XP</span>
           <span className="text-sm text-muted-foreground xp-counter">{currentStep + 1}/{steps.length}</span>
@@ -249,7 +391,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: Less
           <Mascot
             message={feedbackMascotMsg || step.mascotMsg}
             size="sm"
-            animation={feedbackMascotMsg ? (feedbackMascotMsg.includes("Nailed") || feedbackMascotMsg.includes("Brilliant") || feedbackMascotMsg.includes("fire") ? "celebrate" : "bounce") : "idle"}
+            animation={feedbackMascotMsg ? (feedbackMascotMsg.includes("Nailed") || feedbackMascotMsg.includes("Brilliant") || feedbackMascotMsg.includes("fire") || feedbackMascotMsg.includes("Perfect") ? "celebrate" : "bounce") : "idle"}
           />
         </motion.div>
 

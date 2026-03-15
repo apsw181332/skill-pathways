@@ -23,10 +23,27 @@ const Index = () => {
   const [config, setConfig] = useState<UserConfig>({ interests: [], learningStyle: "", accessibility: [] });
   const [activeLessonCategory, setActiveLessonCategory] = useState("tech");
   const [activeLessonId, setActiveLessonId] = useState(1);
+  const [gems, setGems] = useState(0);
+  const [extraLives, setExtraLives] = useState(0);
 
   useEffect(() => {
     if (!settingsLoading) applyThemeColor(settings.theme_color);
   }, [settings.theme_color, settingsLoading]);
+
+  // Fetch gems
+  useEffect(() => {
+    if (!user) return;
+    const fetchGems = async () => {
+      const { data } = await supabase.from("profiles").select("gems").eq("user_id", user.id).single();
+      if (data) setGems((data as any).gems || 0);
+    };
+    fetchGems();
+    const channel = supabase.channel("gems-sync")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
+        (payload) => { setGems((payload.new as any).gems || 0); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
 
   const effectiveState = (() => {
     if (!isReady || settingsLoading) return "landing";
@@ -68,6 +85,10 @@ const Index = () => {
     setState("lesson");
   };
 
+  const handleUseExtraLife = () => {
+    if (extraLives > 0) setExtraLives(prev => prev - 1);
+  };
+
   if (isReady && user && !adminLoading && isAdmin) return <AdminDashboard onSignOut={handleSignOut} />;
 
   switch (effectiveState) {
@@ -81,14 +102,29 @@ const Index = () => {
         <>
           <Dashboard config={config} onStartLesson={handleStartLesson} user={user!} onSignOut={handleSignOut}
             onOpenSettings={() => setState("settings")} enrolledCourses={settings.enrolled_courses}
-            onEnroll={enrollCourse} onUnenroll={unenrollCourse} />
+            onEnroll={enrollCourse} onUnenroll={unenrollCourse}
+            gems={gems} extraLives={extraLives}
+            onPurchase={async (itemId, cost) => {
+              if (gems < cost) return false;
+              const newGems = gems - cost;
+              await supabase.from("profiles").update({ gems: newGems } as any).eq("user_id", user!.id);
+              setGems(newGems);
+              if (itemId === "extra-life") setExtraLives(prev => prev + 1);
+              if (itemId === "life-pack") setExtraLives(prev => prev + 3);
+              if (itemId.startsWith("title-")) {
+                await supabase.from("profiles").update({ title: itemId } as any).eq("user_id", user!.id);
+              }
+              return true;
+            }}
+          />
           <ChatBot />
         </>
       );
     case "lesson":
       return (
         <LessonView onBack={() => setState("dashboard")} userId={user?.id}
-          categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled} />
+          categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
+          extraLives={extraLives} onUseExtraLife={handleUseExtraLife} />
       );
   }
 };
