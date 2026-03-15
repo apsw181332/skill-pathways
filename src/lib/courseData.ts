@@ -275,6 +275,7 @@ export const COURSES: Course[] = [
             type: "info",
             title: "What is a Credit Score?",
             content: "A credit score is a number between 300-850 that represents your creditworthiness. Lenders use it to decide whether to give you loans and at what interest rate. A higher score = better terms.",
+            video: "https://www.youtube.com/embed/wu8Ug3sCS5g",
             mascotMsg: "Your credit score opens (or closes) doors! 🚪",
           },
           {
