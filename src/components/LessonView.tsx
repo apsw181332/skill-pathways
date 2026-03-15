@@ -123,6 +123,7 @@ const LessonView = ({ onBack, userId, categoryId = "financial", lessonId = 1 }: 
 
   const handleOrderItem = (id: string) => {
     if (dragSubmitted) return;
+    playClickSound();
     if (orderedItems.includes(id)) {
       setOrderedItems(orderedItems.filter((i) => i !== id));
     } else {
