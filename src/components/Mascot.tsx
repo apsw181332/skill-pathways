@@ -34,36 +34,36 @@ const animationMap = {
   },
 };
 
-const Mascot = forwardRef<HTMLDivElement, MascotProps>(({ message, size = "md", animation = "idle", className = "" }, ref) => {
-  const anim = animationMap[animation];
+// Using forwardRef to prevent React warning when used inside motion components
+const Mascot = forwardRef<HTMLDivElement, MascotProps>(
+  function Mascot({ message, size = "md", animation = "idle", className = "" }, ref) {
+    const anim = animationMap[animation];
 
-  return (
-    <div ref={ref} className={`flex items-end gap-3 ${className}`}>
-      <motion.div
-        className={`${sizeMap[size]} shrink-0`}
-        animate={anim.animate}
-        transition={anim.transition}
-      >
-        <img
-          src={mascotImg}
-          alt="Pathways mascot penguin"
-          className="w-full h-full object-contain drop-shadow-md"
-        />
-      </motion.div>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8, x: -5 }}
-        animate={{ opacity: 1, scale: 1, x: 0 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
-        className="relative bg-card border-2 border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm max-w-xs"
-      >
-        <p className="text-sm text-foreground font-medium leading-snug">{message}</p>
-        {/* Speech bubble tail */}
-        <div className="absolute -left-2 bottom-2 w-3 h-3 bg-card border-l-2 border-b-2 border-border rotate-45" />
-      </motion.div>
-    </div>
-  );
-});
-
-Mascot.displayName = "Mascot";
+    return (
+      <div ref={ref} className={`flex items-end gap-3 ${className}`}>
+        <motion.div
+          className={`${sizeMap[size]} shrink-0`}
+          animate={anim.animate}
+          transition={anim.transition}
+        >
+          <img
+            src={mascotImg}
+            alt="Pathways mascot penguin"
+            className="w-full h-full object-contain drop-shadow-md"
+          />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, x: -5 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="relative bg-card border-2 border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm max-w-xs"
+        >
+          <p className="text-sm text-foreground font-medium leading-snug">{message}</p>
+          <div className="absolute -left-2 bottom-2 w-3 h-3 bg-card border-l-2 border-b-2 border-border rotate-45" />
+        </motion.div>
+      </div>
+    );
+  }
+);
 
 export default Mascot;
