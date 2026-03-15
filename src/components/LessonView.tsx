@@ -199,6 +199,7 @@ const LessonView = ({ onBack, userId, categoryId = "financial", lessonId = 1 }: 
   };
 
   const handleNext = () => {
+    playClickSound();
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
       setSelectedAnswer(null);
@@ -208,9 +209,9 @@ const LessonView = ({ onBack, userId, categoryId = "financial", lessonId = 1 }: 
       setFeedbackMascotMsg(null);
     } else {
       // Lesson complete — save to DB
-      const finalXp = totalXp + (step.type === "info" ? 0 : 0); // totalXp already accumulated
       saveLessonProgress(totalXp);
       setShowConfetti(true);
+      playSuccessSound();
       setTimeout(() => {
         setShowConfetti(false);
         onBack();
