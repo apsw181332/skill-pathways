@@ -371,6 +371,7 @@ export const COURSES: Course[] = [
             title: "Why Sleep Matters",
             content: "Adults need 7-9 hours of sleep. Poor sleep affects memory, mood, immune function, and even weight. Think of sleep as your body's maintenance mode — essential, not optional.",
             image: healthWellnessImg,
+            video: "https://www.youtube.com/embed/m2SVFx2mOEg",
             mascotMsg: "Good sleep = good life! Let's learn how! 😴",
           },
           {
