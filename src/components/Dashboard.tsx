@@ -406,7 +406,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) =
           { id: "home" as const, icon: Home, label: "Home" },
           { id: "learn" as const, icon: BookOpen, label: "Learn" },
           { id: "leaderboard" as const, icon: Trophy, label: "Rank" },
-          { id: "profile" as const, icon: User, label: "Profile" },
+          { id: "profile" as const, icon: UserIcon, label: "Profile" },
         ].map((tab) => {
           const Icon = tab.icon;
           return (
