@@ -75,7 +75,7 @@ const Index = () => {
         />
       );
     case "lesson":
-      return <LessonView onBack={() => setState("dashboard")} user={user} />;
+      return <LessonView onBack={() => setState("dashboard")} />;
   }
 };
 
