@@ -1021,6 +1021,7 @@ export const COURSES: Course[] = [
             type: "info",
             title: "Why We Fear Public Speaking",
             content: "Fear of public speaking (glossophobia) affects up to 75% of people. The key insight: your audience wants you to succeed. They're rooting for you! Preparation and practice are the best antidotes.",
+            video: "https://www.youtube.com/embed/Ns_z4wEtdRM",
             mascotMsg: "Everyone gets nervous — even pros! Let's conquer it! 🎤",
           },
           {
