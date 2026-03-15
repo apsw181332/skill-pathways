@@ -1,18 +1,5 @@
-import { useRef, useMemo, useEffect, useState, Suspense } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-import * as THREE from "three";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-// Convert lat/lng to 3D position on sphere
-function latLngToVector3(lat: number, lng: number, radius: number): [number, number, number] {
-  const phi = (90 - lat) * (Math.PI / 180);
-  const theta = (lng + 180) * (Math.PI / 180);
-  const x = -(radius * Math.sin(phi) * Math.cos(theta));
-  const z = radius * Math.sin(phi) * Math.sin(theta);
-  const y = radius * Math.cos(phi);
-  return [x, y, z];
-}
 
 interface UserMarker {
   id: string;
@@ -21,66 +8,6 @@ interface UserMarker {
   name: string;
 }
 
-// Earth sphere with wireframe style
-function Earth() {
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  useFrame((_, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.1;
-    }
-  });
-
-  return (
-    <group>
-      <mesh ref={meshRef}>
-        <sphereGeometry args={[2, 48, 48]} />
-        <meshStandardMaterial
-          color="hsl(230, 58%, 48%)"
-          transparent
-          opacity={0.15}
-          wireframe={false}
-        />
-      </mesh>
-      <mesh ref={meshRef}>
-        <sphereGeometry args={[2.01, 24, 24]} />
-        <meshStandardMaterial
-          color="hsl(230, 58%, 48%)"
-          transparent
-          opacity={0.4}
-          wireframe
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function UserDots({ markers }: { markers: UserMarker[] }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  const positions = useMemo(() => {
-    return markers.map((m) => latLngToVector3(m.lat, m.lng, 2.05));
-  }, [markers]);
-
-  useFrame((_, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.1;
-    }
-  });
-
-  return (
-    <group ref={meshRef as any}>
-      {positions.map((pos, i) => (
-        <mesh key={markers[i].id} position={pos}>
-          <sphereGeometry args={[0.04, 8, 8]} />
-          <meshStandardMaterial color="hsl(42, 70%, 62%)" emissive="hsl(42, 70%, 62%)" emissiveIntensity={0.5} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-// Sample markers for demo (spread across the world)
 const SAMPLE_MARKERS: UserMarker[] = [
   { id: "1", lat: 40.7, lng: -74.0, name: "New York" },
   { id: "2", lat: 51.5, lng: -0.1, name: "London" },
@@ -96,9 +23,16 @@ const SAMPLE_MARKERS: UserMarker[] = [
   { id: "12", lat: -1.2, lng: 36.8, name: "Nairobi" },
 ];
 
+function latLngToPercent(lat: number, lng: number): { x: number; y: number } {
+  const x = ((lng + 180) / 360) * 100;
+  const y = ((90 - lat) / 180) * 100;
+  return { x, y };
+}
+
 const AdminGlobe = () => {
   const [markers, setMarkers] = useState<UserMarker[]>(SAMPLE_MARKERS);
   const [userCount, setUserCount] = useState(0);
+  const [hoveredMarker, setHoveredMarker] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -124,6 +58,8 @@ const AdminGlobe = () => {
     fetchLocations();
   }, []);
 
+  const countries = new Set(markers.map(m => m.name)).size;
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
@@ -136,32 +72,54 @@ const AdminGlobe = () => {
           <div className="text-sm text-muted-foreground">Mapped Locations</div>
         </div>
         <div className="bg-card border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-semibold text-foreground">12</div>
-          <div className="text-sm text-muted-foreground">Countries</div>
+          <div className="text-2xl font-semibold text-foreground">{countries}</div>
+          <div className="text-sm text-muted-foreground">Regions</div>
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden" style={{ height: "500px" }}>
-        <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-          <ambientLight intensity={0.6} />
-          <pointLight position={[10, 10, 10]} intensity={0.8} />
-          <Suspense fallback={null}>
-            <Earth />
-            <UserDots markers={markers} />
-          </Suspense>
-          <OrbitControls
-            enableZoom
-            enablePan={false}
-            minDistance={3}
-            maxDistance={8}
-            autoRotate
-            autoRotateSpeed={0.5}
-          />
-        </Canvas>
+      <div className="bg-card border border-border rounded-lg overflow-hidden relative" style={{ height: "500px" }}>
+        {/* World map using Mercator-style dot grid */}
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-primary/10">
+          {/* Grid lines */}
+          <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {Array.from({ length: 7 }, (_, i) => (
+              <line key={`h${i}`} x1="0" y1={((i + 1) * 100) / 8} x2="100" y2={((i + 1) * 100) / 8} stroke="currentColor" strokeWidth="0.15" className="text-primary" />
+            ))}
+            {Array.from({ length: 11 }, (_, i) => (
+              <line key={`v${i}`} x1={((i + 1) * 100) / 12} y1="0" x2={((i + 1) * 100) / 12} y2="100" stroke="currentColor" strokeWidth="0.15" className="text-primary" />
+            ))}
+          </svg>
+
+          {/* User dots */}
+          {markers.map((marker) => {
+            const pos = latLngToPercent(marker.lat, marker.lng);
+            const isHovered = hoveredMarker === marker.id;
+            return (
+              <div
+                key={marker.id}
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                onMouseEnter={() => setHoveredMarker(marker.id)}
+                onMouseLeave={() => setHoveredMarker(null)}
+              >
+                {/* Pulse ring */}
+                <div className="absolute inset-0 w-4 h-4 -ml-1 -mt-1 rounded-full bg-accent/30 animate-ping" style={{ animationDuration: '3s' }} />
+                {/* Dot */}
+                <div className={`w-2.5 h-2.5 rounded-full bg-accent shadow-lg shadow-accent/30 transition-transform ${isHovered ? 'scale-[2]' : ''}`} />
+                {/* Tooltip */}
+                {isHovered && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover border border-border rounded text-xs text-popover-foreground whitespace-nowrap shadow-lg z-10">
+                    {marker.name}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <p className="text-sm text-muted-foreground text-center">
-        🌍 Drag to rotate • Scroll to zoom • User locations shown as golden dots
+        🌍 Hover over dots to see location names • Golden dots represent user locations
       </p>
     </div>
   );
