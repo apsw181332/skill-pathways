@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard, Users, Globe2, CreditCard, LogOut,
