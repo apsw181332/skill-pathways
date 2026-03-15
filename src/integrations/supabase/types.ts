@@ -14,7 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          accessibility: string[] | null
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          interests: string[] | null
+          last_activity_date: string | null
+          learning_style: string | null
+          streak: number
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          accessibility?: string[] | null
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          interests?: string[] | null
+          last_activity_date?: string | null
+          learning_style?: string | null
+          streak?: number
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          accessibility?: string[] | null
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          interests?: string[] | null
+          last_activity_date?: string | null
+          learning_style?: string | null
+          streak?: number
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
+      user_progress: {
+        Row: {
+          category_id: string
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          lesson_id: number
+          score: number
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id: number
+          score?: number
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: number
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
