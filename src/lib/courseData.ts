@@ -965,6 +965,7 @@ export const COURSES: Course[] = [
             type: "info",
             title: "The ABCs of First Aid",
             content: "In any emergency: check Airway (is it clear?), Breathing (are they breathing?), Circulation (is there a pulse/severe bleeding?). Always call emergency services first, then provide first aid while waiting.",
+            video: "https://www.youtube.com/embed/Plse2FOkV4Q",
             mascotMsg: "These skills can save lives! 🏥",
           },
           {
