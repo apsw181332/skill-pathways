@@ -135,6 +135,7 @@ const LessonView = ({ onBack, userId, categoryId = "financial", lessonId = 1 }: 
     setDragSubmitted(true);
     setFeedbackMascotMsg("Great effort! Ordering steps is key to building good habits. 📋");
     triggerXp(20);
+    playCorrectSound();
   };
 
   const saveLessonProgress = async (earnedXp: number) => {
