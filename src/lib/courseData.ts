@@ -333,6 +333,7 @@ export const COURSES: Course[] = [
             type: "info",
             title: "Compound Interest Magic",
             content: "If you invest $100/month starting at age 20 with 7% average returns, by age 60 you'd have about $264,000 — but you only put in $48,000! The rest is compound interest. Starting early is the biggest advantage.",
+            video: "https://www.youtube.com/embed/NuhVK4r-VQw",
             mascotMsg: "Compound interest is truly magical! ✨",
           },
           {
