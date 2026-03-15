@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button";
 import Mascot from "@/components/Mascot";
 import Confetti from "@/components/Confetti";
 import XpPopup from "@/components/XpPopup";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LessonViewProps {
   onBack: () => void;
+  userId?: string;
+  categoryId?: string;
+  lessonId?: number;
 }
 
 const STEPS = [
@@ -76,7 +80,7 @@ const WRONG_MESSAGES = [
   "Don't worry! Mistakes are how we learn best. 📚",
 ];
 
-const LessonView = ({ onBack }: LessonViewProps) => {
+const LessonView = ({ onBack, userId, categoryId = "financial", lessonId = 1 }: LessonViewProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -129,6 +133,66 @@ const LessonView = ({ onBack }: LessonViewProps) => {
     triggerXp(20);
   };
 
+  const saveLessonProgress = async (earnedXp: number) => {
+    if (!userId) return;
+
+    try {
+      // Save lesson completion to user_progress
+      await supabase.from("user_progress").upsert({
+        user_id: userId,
+        category_id: categoryId,
+        lesson_id: lessonId,
+        completed: true,
+        completed_at: new Date().toISOString(),
+        score: earnedXp,
+      }, { onConflict: "user_id,category_id,lesson_id" });
+
+      // Update profile XP, streak, and last_activity_date
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("xp, streak, last_activity_date")
+        .eq("user_id", userId)
+        .single();
+
+      if (profile) {
+        const today = new Date().toISOString().split("T")[0];
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+        const lastActive = profile.last_activity_date;
+
+        let newStreak = profile.streak;
+        if (lastActive === yesterday) {
+          newStreak = profile.streak + 1;
+        } else if (lastActive !== today) {
+          newStreak = 1;
+        }
+
+        await supabase.from("profiles").update({
+          xp: profile.xp + earnedXp,
+          streak: newStreak,
+          last_activity_date: today,
+          updated_at: new Date().toISOString(),
+        }).eq("user_id", userId);
+      }
+
+      // Check and award "first-lesson" badge
+      const { data: existing } = await supabase
+        .from("achievements")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("badge_id", "first-lesson")
+        .maybeSingle();
+
+      if (!existing) {
+        await supabase.from("achievements").insert({
+          user_id: userId,
+          badge_id: "first-lesson",
+        });
+      }
+    } catch (err) {
+      console.error("Failed to save progress:", err);
+    }
+  };
+
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -138,7 +202,9 @@ const LessonView = ({ onBack }: LessonViewProps) => {
       setDragSubmitted(false);
       setFeedbackMascotMsg(null);
     } else {
-      // Lesson complete!
+      // Lesson complete — save to DB
+      const finalXp = totalXp + (step.type === "info" ? 0 : 0); // totalXp already accumulated
+      saveLessonProgress(totalXp);
       setShowConfetti(true);
       setTimeout(() => {
         setShowConfetti(false);
@@ -180,7 +246,6 @@ const LessonView = ({ onBack }: LessonViewProps) => {
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto px-6 py-6 w-full">
-        {/* Mascot guidance */}
         <motion.div
           key={`mascot-${currentStep}-${feedbackMascotMsg}`}
           initial={{ opacity: 0, x: -10 }}
@@ -268,7 +333,6 @@ const LessonView = ({ onBack }: LessonViewProps) => {
               <div>
                 <p className="text-foreground text-lg mb-6">{step.instruction}</p>
 
-                {/* Ordered slots */}
                 <div className="space-y-2 mb-6">
                   {orderedItems.map((id, idx) => {
                     const item = step.items.find((i) => i.id === id)!;
@@ -302,7 +366,6 @@ const LessonView = ({ onBack }: LessonViewProps) => {
                   })}
                 </div>
 
-                {/* Available items */}
                 <div className="space-y-2">
                   {step.items
                     .filter((i) => !orderedItems.includes(i.id))
@@ -341,7 +404,6 @@ const LessonView = ({ onBack }: LessonViewProps) => {
         </AnimatePresence>
       </main>
 
-      {/* Bottom action */}
       <div className="sticky bottom-0 bg-background border-t border-border p-4">
         <div className="max-w-2xl mx-auto">
           <Button
