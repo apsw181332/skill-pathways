@@ -71,7 +71,7 @@ const AuthPage = ({ onAuth, signUp, signIn, resetPassword }: AuthPageProps) => {
           {mode === "login"
             ? "Sign in to continue your learning journey"
             : mode === "signup"
-            ? "Join Pathways and start mastering life skills"
+            ? "Join Pathways and start learning life skills"
             : "Enter your email and we'll send you a reset link"}
         </p>
 

@@ -39,13 +39,13 @@ const Landing = ({ onGetStarted }: LandingProps) => {
               className="text-foreground font-semibold leading-[1.1] mb-6"
               style={{ fontSize: "clamp(2.25rem, 5vw, 3.75rem)" }}
             >
-              Master the mechanics
+              Learn the skills
               <br />
-              of adulthood.
+              school never taught you.
             </h1>
             <p className="text-muted-foreground text-lg md:text-xl max-w-lg mx-auto mb-8 leading-relaxed">
-              From budgeting to home repairs — learn real-world skills through interactive,
-              bite-sized lessons designed for how adults actually learn.
+              From tying shoelaces to doing taxes — master everyday life skills through
+              interactive, bite-sized lessons for all ages.
             </p>
           </motion.div>
 
@@ -83,7 +83,7 @@ const Landing = ({ onGetStarted }: LandingProps) => {
             className="mt-16 grid grid-cols-3 gap-8 max-w-md mx-auto"
           >
             {[
-              { value: "10", label: "Skill categories" },
+              { value: "10", label: "Skill paths" },
               { value: "200+", label: "Lessons" },
               { value: "5 min", label: "Per lesson" },
             ].map((stat) => (
