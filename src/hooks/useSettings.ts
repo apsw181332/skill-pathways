@@ -24,8 +24,11 @@ export function useSettings(userId?: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) return;
-    const fetch = async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    const fetchSettings = async () => {
       const { data } = await supabase
         .from("profiles")
         .select("theme_color, tts_enabled, sound_enabled, onboarding_completed, tutorial_completed, enrolled_courses")
@@ -43,7 +46,7 @@ export function useSettings(userId?: string) {
       }
       setLoading(false);
     };
-    fetch();
+    fetchSettings();
   }, [userId]);
 
   const updateSetting = useCallback(async <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
