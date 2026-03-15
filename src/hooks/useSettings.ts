@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface UserSettings {
   theme_color: string;
-  tts_enabled: boolean;
   sound_enabled: boolean;
   onboarding_completed: boolean;
   tutorial_completed: boolean;
@@ -12,7 +11,6 @@ export interface UserSettings {
 
 const DEFAULTS: UserSettings = {
   theme_color: "blue",
-  tts_enabled: false,
   sound_enabled: true,
   onboarding_completed: false,
   tutorial_completed: false,
@@ -31,13 +29,12 @@ export function useSettings(userId?: string) {
     const fetchSettings = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("theme_color, tts_enabled, sound_enabled, onboarding_completed, tutorial_completed, enrolled_courses")
+        .select("theme_color, sound_enabled, onboarding_completed, tutorial_completed, enrolled_courses")
         .eq("user_id", userId)
         .single();
       if (data) {
         setSettings({
           theme_color: (data as any).theme_color || "blue",
-          tts_enabled: (data as any).tts_enabled ?? false,
           sound_enabled: (data as any).sound_enabled ?? true,
           onboarding_completed: (data as any).onboarding_completed ?? false,
           tutorial_completed: (data as any).tutorial_completed ?? false,
@@ -72,7 +69,6 @@ export function useSettings(userId?: string) {
   return { settings, loading, updateSetting, enrollCourse, unenrollCourse };
 }
 
-// Theme color CSS variable mapping
 export const THEME_COLORS: Record<string, { primary: string; ring: string; label: string }> = {
   blue: { primary: "230 58% 48%", ring: "230 58% 48%", label: "Ocean Blue" },
   green: { primary: "152 55% 40%", ring: "152 55% 40%", label: "Forest Green" },

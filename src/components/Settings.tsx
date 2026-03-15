@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Volume2, VolumeX, Mic, MicOff } from "lucide-react";
+import { ArrowLeft, Palette, Volume2, VolumeX } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import Mascot from "@/components/Mascot";
 import { type UserSettings, THEME_COLORS, applyThemeColor } from "@/hooks/useSettings";
@@ -28,14 +28,10 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 pt-6 space-y-6">
-        <Mascot message="Make Pathways feel like yours! Customize colors, sounds, and more. ⚙️" size="sm" animation="idle" />
+        <Mascot message="Make Pathways feel like yours! Customize colors and sounds. ⚙️" size="sm" animation="idle" />
 
         {/* Theme Color */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="lesson-card"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Palette className="w-5 h-5 text-primary" />
             <h2 className="font-semibold text-foreground">Theme Color</h2>
@@ -50,10 +46,7 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
                   settings.theme_color === key ? "bg-secondary ring-2 ring-primary" : "hover:bg-secondary/50"
                 }`}
               >
-                <div
-                  className="w-8 h-8 rounded-full border-2 border-border shadow-sm"
-                  style={{ backgroundColor: `hsl(${theme.primary})` }}
-                />
+                <div className="w-8 h-8 rounded-full border-2 border-border shadow-sm" style={{ backgroundColor: `hsl(${theme.primary})` }} />
                 <span className="text-xs text-muted-foreground">{theme.label.split(" ")[0]}</span>
               </button>
             ))}
@@ -61,12 +54,7 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
         </motion.div>
 
         {/* Sound Effects */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="lesson-card"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lesson-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {settings.sound_enabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
@@ -75,32 +63,7 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
                 <p className="text-sm text-muted-foreground">Play sounds for correct/wrong answers and button clicks</p>
               </div>
             </div>
-            <Switch
-              checked={settings.sound_enabled}
-              onCheckedChange={(v) => onUpdate("sound_enabled", v)}
-            />
-          </div>
-        </motion.div>
-
-        {/* Voice Narration */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="lesson-card"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {settings.tts_enabled ? <Mic className="w-5 h-5 text-primary" /> : <MicOff className="w-5 h-5 text-muted-foreground" />}
-              <div>
-                <h2 className="font-semibold text-foreground">Voice Narration</h2>
-                <p className="text-sm text-muted-foreground">Pebble reads lesson text aloud for you</p>
-              </div>
-            </div>
-            <Switch
-              checked={settings.tts_enabled}
-              onCheckedChange={(v) => onUpdate("tts_enabled", v)}
-            />
+            <Switch checked={settings.sound_enabled} onCheckedChange={(v) => onUpdate("sound_enabled", v)} />
           </div>
         </motion.div>
       </main>
