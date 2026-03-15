@@ -153,6 +153,7 @@ export type Database = {
           country: string | null
           created_at: string
           display_name: string | null
+          enrolled_courses: string[]
           id: string
           interests: string[] | null
           last_activity_date: string | null
@@ -160,7 +161,12 @@ export type Database = {
           learning_style: string | null
           level: number
           longitude: number | null
+          onboarding_completed: boolean
+          sound_enabled: boolean
           streak: number
+          theme_color: string
+          tts_enabled: boolean
+          tutorial_completed: boolean
           updated_at: string
           user_id: string
           xp: number
@@ -171,6 +177,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
+          enrolled_courses?: string[]
           id?: string
           interests?: string[] | null
           last_activity_date?: string | null
@@ -178,7 +185,12 @@ export type Database = {
           learning_style?: string | null
           level?: number
           longitude?: number | null
+          onboarding_completed?: boolean
+          sound_enabled?: boolean
           streak?: number
+          theme_color?: string
+          tts_enabled?: boolean
+          tutorial_completed?: boolean
           updated_at?: string
           user_id: string
           xp?: number
@@ -189,6 +201,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
+          enrolled_courses?: string[]
           id?: string
           interests?: string[] | null
           last_activity_date?: string | null
@@ -196,7 +209,12 @@ export type Database = {
           learning_style?: string | null
           level?: number
           longitude?: number | null
+          onboarding_completed?: boolean
+          sound_enabled?: boolean
           streak?: number
+          theme_color?: string
+          tts_enabled?: boolean
+          tutorial_completed?: boolean
           updated_at?: string
           user_id?: string
           xp?: number
