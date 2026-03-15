@@ -89,7 +89,7 @@ const AdminDashboard = ({ onSignOut }: AdminDashboardProps) => {
           >
             {activeTab === "overview" && <AdminOverview />}
             {activeTab === "users" && <AdminUsers />}
-            {activeTab === "globe" && <AdminGlobe />}
+            {activeTab === "globe" && <Suspense fallback={<div className="text-center py-12 text-muted-foreground">Loading globe...</div>}><AdminGlobe /></Suspense>}
             {activeTab === "subscriptions" && <AdminSubscriptions />}
           </motion.div>
         </div>
