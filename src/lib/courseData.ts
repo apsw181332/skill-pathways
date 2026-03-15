@@ -483,6 +483,7 @@ export const COURSES: Course[] = [
             title: "Resume Basics",
             content: "Your resume is your first impression. Recruiters spend an average of 7 seconds scanning it. Use clear formatting, bullet points, and quantify your achievements (e.g., 'Increased sales by 20%').",
             image: careerSkillsImg,
+            video: "https://www.youtube.com/embed/99oIYKZh8gQ",
             mascotMsg: "Let's make you stand out! 📄✨",
           },
           {
