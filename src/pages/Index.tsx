@@ -24,22 +24,16 @@ const Index = () => {
   const [activeLessonCategory, setActiveLessonCategory] = useState("tech");
   const [activeLessonId, setActiveLessonId] = useState(1);
 
-  // Apply theme color on load
   useEffect(() => {
-    if (!settingsLoading) {
-      applyThemeColor(settings.theme_color);
-    }
+    if (!settingsLoading) applyThemeColor(settings.theme_color);
   }, [settings.theme_color, settingsLoading]);
 
-  // Determine effective state based on auth and settings
   const effectiveState = (() => {
     if (!isReady || settingsLoading) return "landing";
     if (user) {
       if (state === "lesson") return "lesson";
       if (state === "settings") return "settings";
-      // First-time user: show onboarding if not completed
       if (!settings.onboarding_completed && state !== "dashboard") return "onboarding";
-      // Show tutorial after onboarding if not completed
       if (settings.onboarding_completed && !settings.tutorial_completed && state === "tutorial") return "tutorial";
       return "dashboard";
     }
@@ -50,14 +44,11 @@ const Index = () => {
     setConfig(userConfig);
     if (user) {
       await supabase.from("profiles").update({
-        interests: userConfig.interests,
-        learning_style: userConfig.learningStyle,
-        accessibility: userConfig.accessibility,
-        onboarding_completed: true,
+        interests: userConfig.interests, learning_style: userConfig.learningStyle,
+        accessibility: userConfig.accessibility, onboarding_completed: true,
       } as any).eq("user_id", user.id);
       await updateSetting("onboarding_completed", true);
     }
-    // After onboarding, show tutorial
     setState("tutorial");
   };
 
@@ -69,70 +60,35 @@ const Index = () => {
     setState("dashboard");
   };
 
-  const handleAuth = () => {
-    // After auth, check if onboarding is needed
-    setState("onboarding");
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    setState("landing");
-  };
-
+  const handleAuth = () => setState("onboarding");
+  const handleSignOut = async () => { await signOut(); setState("landing"); };
   const handleStartLesson = (categoryId: string, lessonId: number) => {
     setActiveLessonCategory(categoryId);
     setActiveLessonId(lessonId);
     setState("lesson");
   };
 
-  // Admin check
-  if (isReady && user && !adminLoading && isAdmin) {
-    return <AdminDashboard onSignOut={handleSignOut} />;
-  }
+  if (isReady && user && !adminLoading && isAdmin) return <AdminDashboard onSignOut={handleSignOut} />;
 
   switch (effectiveState) {
-    case "landing":
-      return <Landing onGetStarted={() => setState("auth")} />;
-    case "auth":
-      return <AuthPage onAuth={handleAuth} signUp={signUp} signIn={signIn} resetPassword={resetPassword} />;
-    case "onboarding":
-      return <Onboarding onComplete={handleOnboardingComplete} />;
-    case "tutorial":
-      return <Tutorial onComplete={handleTutorialComplete} />;
-    case "settings":
-      return (
-        <SettingsPage
-          settings={settings}
-          onUpdate={updateSetting}
-          onBack={() => setState("dashboard")}
-        />
-      );
+    case "landing": return <Landing onGetStarted={() => setState("auth")} />;
+    case "auth": return <AuthPage onAuth={handleAuth} signUp={signUp} signIn={signIn} resetPassword={resetPassword} />;
+    case "onboarding": return <Onboarding onComplete={handleOnboardingComplete} />;
+    case "tutorial": return <Tutorial onComplete={handleTutorialComplete} />;
+    case "settings": return <SettingsPage settings={settings} onUpdate={updateSetting} onBack={() => setState("dashboard")} />;
     case "dashboard":
       return (
         <>
-          <Dashboard
-            config={config}
-            onStartLesson={handleStartLesson}
-            user={user!}
-            onSignOut={handleSignOut}
-            onOpenSettings={() => setState("settings")}
-            enrolledCourses={settings.enrolled_courses}
-            onEnroll={enrollCourse}
-            onUnenroll={unenrollCourse}
-          />
+          <Dashboard config={config} onStartLesson={handleStartLesson} user={user!} onSignOut={handleSignOut}
+            onOpenSettings={() => setState("settings")} enrolledCourses={settings.enrolled_courses}
+            onEnroll={enrollCourse} onUnenroll={unenrollCourse} />
           <ChatBot />
         </>
       );
     case "lesson":
       return (
-        <LessonView
-          onBack={() => setState("dashboard")}
-          userId={user?.id}
-          categoryId={activeLessonCategory}
-          lessonId={activeLessonId}
-          soundEnabled={settings.sound_enabled}
-          ttsEnabled={settings.tts_enabled}
-        />
+        <LessonView onBack={() => setState("dashboard")} userId={user?.id}
+          categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled} />
       );
   }
 };

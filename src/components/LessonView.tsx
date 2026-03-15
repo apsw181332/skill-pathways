@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Mascot from "@/components/Mascot";
 import Confetti from "@/components/Confetti";
@@ -8,7 +8,6 @@ import XpPopup from "@/components/XpPopup";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, type LessonStep } from "@/lib/courseData";
-import { useTTS } from "@/hooks/useTTS";
 
 interface LessonViewProps {
   onBack: () => void;
@@ -16,7 +15,6 @@ interface LessonViewProps {
   categoryId: string;
   lessonId: number;
   soundEnabled: boolean;
-  ttsEnabled: boolean;
 }
 
 const CORRECT_MESSAGES = [
@@ -24,14 +22,46 @@ const CORRECT_MESSAGES = [
   "Brilliant! That's exactly right! ⭐",
   "You're on fire! Keep going! 🔥",
 ];
-
 const WRONG_MESSAGES = [
   "Not quite, but you're learning! That's what counts. 💪",
   "Almost! Check the explanation — you'll get it next time! 🤓",
   "Don't worry! Mistakes are how we learn best. 📚",
 ];
+const COMPLETION_TIPS = [
+  "Try teaching what you learned to someone — it's the best way to remember! 🧠",
+  "Review this lesson in a few days to lock it in your memory! 📚",
+  "Apply what you learned today in a real situation! 💪",
+  "Write down one key takeaway from this lesson! ✍️",
+  "Challenge a friend to take this lesson too! 🤝",
+  "Great learners never stop being curious — keep exploring! 🌟",
+  "Consistency beats intensity — come back tomorrow! 🔥",
+  "You're building skills that will last a lifetime! 🏆",
+];
+const COMPLETION_MSGS = [
+  "You're absolutely crushing it! 🎉",
+  "Look at you go — a natural learner! ⭐",
+  "Pebble is SO proud of you right now! 🐧",
+  "Another lesson conquered! You're unstoppable! 🚀",
+  "Knowledge is power, and you just leveled up! ⚡",
+];
 
-const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEnabled }: LessonViewProps) => {
+function shuffle<T>(arr: T[]): T[] {
+  const s = [...arr];
+  for (let i = s.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [s[i], s[j]] = [s[j], s[i]];
+  }
+  return s;
+}
+
+function fmtTime(ms: number): string {
+  const sec = Math.floor(ms / 1000);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled }: LessonViewProps) => {
   const lesson = getLessonContent(categoryId, lessonId);
   const steps = lesson?.steps || [];
 
@@ -45,20 +75,60 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
   const [xpAmount, setXpAmount] = useState(0);
   const [totalXp, setTotalXp] = useState(0);
   const [feedbackMascotMsg, setFeedbackMascotMsg] = useState<string | null>(null);
-
-  const { speak, stop } = useTTS(ttsEnabled);
+  const [startTime] = useState(Date.now());
+  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [totalQuizzes, setTotalQuizzes] = useState(0);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [shuffledItems, setShuffledItems] = useState<{ id: string; text: string; order: number }[]>([]);
 
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
 
-  // TTS: read step content when step changes
   useEffect(() => {
-    if (!step) return;
-    stop();
-    const text = step.content || step.question || step.instruction || "";
-    if (text) speak(text);
-    return () => stop();
-  }, [currentStep, step?.type]);
+    if (step?.type === "drag" && step.items) {
+      setShuffledItems(shuffle(step.items));
+    }
+  }, [currentStep]);
+
+  if (showCompletion) {
+    const elapsed = Date.now() - startTime;
+    const accuracy = totalQuizzes > 0 ? Math.round((correctAnswers / totalQuizzes) * 100) : 100;
+    const tip = COMPLETION_TIPS[Math.floor(Math.random() * COMPLETION_TIPS.length)];
+    const msg = COMPLETION_MSGS[Math.floor(Math.random() * COMPLETION_MSGS.length)];
+
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+        <Confetti active={showConfetti} />
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
+          <Mascot message={msg} size="md" animation="celebrate" />
+          <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">Lesson Complete! 🎉</h2>
+          <p className="text-muted-foreground mb-8">{lesson?.title}</p>
+          <div className="grid grid-cols-3 gap-3 mb-8">
+            <div className="lesson-card py-4">
+              <Clock className="w-5 h-5 text-primary mx-auto mb-2" />
+              <div className="text-lg font-semibold text-foreground">{fmtTime(elapsed)}</div>
+              <div className="text-xs text-muted-foreground">Time</div>
+            </div>
+            <div className="lesson-card py-4">
+              <Zap className="w-5 h-5 text-accent mx-auto mb-2" />
+              <div className="text-lg font-semibold text-foreground">{totalXp} XP</div>
+              <div className="text-xs text-muted-foreground">Earned</div>
+            </div>
+            <div className="lesson-card py-4">
+              <Target className="w-5 h-5 text-primary mx-auto mb-2" />
+              <div className="text-lg font-semibold text-foreground">{accuracy}%</div>
+              <div className="text-xs text-muted-foreground">Accuracy</div>
+            </div>
+          </div>
+          <div className="lesson-card text-left mb-6 border-primary/30">
+            <p className="text-sm font-medium text-primary mb-1">💡 Pebble's Tip</p>
+            <p className="text-sm text-muted-foreground">{tip}</p>
+          </div>
+          <Button onClick={onBack} className="w-full" size="lg">Back to Dashboard</Button>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (!lesson || !step) {
     return (
@@ -83,7 +153,9 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
     setSelectedAnswer(idx);
     setShowFeedback(true);
     if (step.type === "quiz") {
+      setTotalQuizzes(prev => prev + 1);
       if (idx === step.correct) {
+        setCorrectAnswers(prev => prev + 1);
         setFeedbackMascotMsg(CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]);
         triggerXp(15);
         if (soundEnabled) playCorrectSound();
@@ -123,7 +195,6 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
         let newStreak = profile.streak;
         if (profile.last_activity_date === yesterday) newStreak = profile.streak + 1;
         else if (profile.last_activity_date !== today) newStreak = 1;
-
         await supabase.from("profiles").update({
           xp: profile.xp + earnedXp, streak: newStreak, last_activity_date: today, updated_at: new Date().toISOString(),
         }).eq("user_id", userId);
@@ -149,7 +220,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       saveLessonProgress(totalXp);
       setShowConfetti(true);
       if (soundEnabled) playSuccessSound();
-      setTimeout(() => { setShowConfetti(false); onBack(); }, 2500);
+      setShowCompletion(true);
     }
   };
 
@@ -191,13 +262,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                 {step.image && <img src={step.image} alt={step.title} className="w-full h-48 object-cover rounded-lg mb-4" />}
                 {step.video && (
                   <div className="w-full aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
-                    <iframe
-                      src={step.video}
-                      title={step.title}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                    <iframe src={step.video} title={step.title} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                   </div>
                 )}
                 <p className="text-foreground leading-relaxed text-lg">{step.content}</p>
@@ -255,7 +320,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                   })}
                 </div>
                 <div className="space-y-2">
-                  {step.items?.filter(i => !orderedItems.includes(i.id)).map(item => (
+                  {shuffledItems.filter(i => !orderedItems.includes(i.id)).map(item => (
                     <motion.button key={item.id} whileTap={{ scale: 0.98 }} onClick={() => handleOrderItem(item.id)}
                       className="w-full p-4 border-2 border-dashed border-border rounded-lg text-left text-foreground hover:border-primary transition-colors">
                       {item.text}
