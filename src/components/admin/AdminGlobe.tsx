@@ -1,4 +1,4 @@
-// @ts-ignore - R3F extends JSX.IntrinsicElements at runtime
+import { useRef, useMemo, useEffect, useState, Suspense } from "react";
 import { useRef, useMemo, useEffect, useState, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
