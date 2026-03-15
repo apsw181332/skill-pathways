@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, BookOpen, Home, Users, Brain, Eye, Ear, Hand, Accessibility, Type, Contrast } from "lucide-react";
+import { ArrowRight, Eye, Ear, Hand, Accessibility, Type, Contrast } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Mascot from "@/components/Mascot";
 
 const INTERESTS = [
   { id: "financial", label: "Financial Literacy", icon: "💰", desc: "Budgeting, investing, taxes" },
@@ -24,6 +25,12 @@ const ACCESSIBILITY_OPTIONS = [
   { id: "dyslexic", label: "Dyslexia-Friendly Font", icon: Type, desc: "Use OpenDyslexic typeface" },
   { id: "high-contrast", label: "High Contrast", icon: Contrast, desc: "Increased contrast for readability" },
   { id: "screen-reader", label: "Screen Reader Optimized", icon: Accessibility, desc: "Enhanced ARIA labels" },
+];
+
+const MASCOT_MESSAGES = [
+  "Pick what excites you! 🎯 We'll build your path together.",
+  "Everyone learns differently — no wrong answers here! 🧠",
+  "Almost done! These help me personalize your experience. 🎨",
 ];
 
 interface OnboardingProps {
@@ -67,7 +74,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
       {/* Progress */}
-      <div className="w-full max-w-md mb-8">
+      <div className="w-full max-w-md mb-6">
         <div className="flex gap-2">
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
@@ -84,6 +91,21 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         </div>
         <p className="text-muted-foreground text-sm mt-3">Step {step + 1} of 3</p>
       </div>
+
+      {/* Mascot guide */}
+      <motion.div
+        key={`mascot-${step}`}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4 }}
+        className="mb-6 w-full max-w-2xl"
+      >
+        <Mascot
+          message={MASCOT_MESSAGES[step]}
+          size="sm"
+          animation={step === 2 ? "celebrate" : "bounce"}
+        />
+      </motion.div>
 
       <AnimatePresence mode="wait">
         {step === 0 && (

@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { UserConfig } from "@/components/Onboarding";
+import Mascot from "@/components/Mascot";
+import mascotImg from "@/assets/mascot-penguin.png";
 
 const CATEGORIES = [
   { id: "financial", label: "Financial Literacy", emoji: "💰", lessons: 8, completed: 2 },
@@ -26,6 +28,13 @@ const SAMPLE_LESSONS = [
   { id: 5, title: "Intro to Investing", status: "locked" as const },
 ];
 
+const GREETING_MESSAGES = [
+  "Welcome back! Ready to crush today's lesson? 🔥",
+  "You're on a roll! Let's keep that streak alive! 🎯",
+  "Great to see you! Your brain will thank you later. 🧠",
+  "Hey champ! Let's learn something awesome today! ⭐",
+];
+
 interface DashboardProps {
   config: UserConfig;
   onStartLesson: () => void;
@@ -41,12 +50,17 @@ const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
     (c) => config.interests.length === 0 || config.interests.includes(c.id)
   );
 
+  const greetingMsg = GREETING_MESSAGES[Math.floor(Date.now() / 60000) % GREETING_MESSAGES.length];
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Top bar */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border">
         <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
-          <span className="font-semibold text-lg text-foreground tracking-tight">Pathways</span>
+          <div className="flex items-center gap-2">
+            <img src={mascotImg} alt="Pebble" className="w-7 h-7 object-contain" />
+            <span className="font-semibold text-lg text-foreground tracking-tight">Pathways</span>
+          </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 text-sm">
               <Flame className="w-4 h-4 text-destructive" />
@@ -60,20 +74,44 @@ const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 pt-8">
+      <main className="max-w-2xl mx-auto px-6 pt-6">
         {!selectedCategory ? (
           <>
-            {/* Greeting */}
+            {/* Mascot greeting */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-              className="mb-8"
+              className="mb-6"
             >
-              <h1 className="text-2xl font-semibold text-foreground mb-1">Good to see you 👋</h1>
-              <p className="text-muted-foreground">
-                You've mastered 14% of Financial Literacy. Keep going!
-              </p>
+              <Mascot message={greetingMsg} size="sm" animation="wave" />
+            </motion.div>
+
+            {/* Streak & XP cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.05 }}
+              className="grid grid-cols-2 gap-3 mb-6"
+            >
+              <div className="lesson-card flex items-center gap-3 py-4">
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                  <Flame className="w-5 h-5 text-destructive" />
+                </div>
+                <div>
+                  <div className="text-xl font-semibold text-foreground xp-counter">{streak} days</div>
+                  <div className="text-xs text-muted-foreground">Current streak</div>
+                </div>
+              </div>
+              <div className="lesson-card flex items-center gap-3 py-4">
+                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
+                  <Star className="w-5 h-5 text-accent" />
+                </div>
+                <div>
+                  <div className="text-xl font-semibold text-foreground xp-counter">{xp} XP</div>
+                  <div className="text-xs text-muted-foreground">Total earned</div>
+                </div>
+              </div>
             </motion.div>
 
             {/* Continue learning card */}
@@ -93,6 +131,7 @@ const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
               <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
                 <div className="progress-fill" style={{ width: "25%" }} />
               </div>
+              <p className="text-xs text-primary mt-2 font-medium">+15 XP per question</p>
             </motion.button>
 
             {/* Categories */}
@@ -110,9 +149,17 @@ const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
                   <span className="text-2xl">{cat.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-foreground">{cat.label}</span>
-                    <p className="text-sm text-muted-foreground">
-                      {cat.completed}/{cat.lessons} lessons
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden">
+                        <div
+                          className="progress-fill h-full"
+                          style={{ width: `${(cat.completed / cat.lessons) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground xp-counter">
+                        {cat.completed}/{cat.lessons}
+                      </span>
+                    </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                 </motion.button>
@@ -128,6 +175,14 @@ const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
             >
               ← Back to paths
             </button>
+
+            <Mascot
+              message="Pick a lesson and let's dive in! Each one earns you XP. 🎮"
+              size="sm"
+              animation="bounce"
+              className="mb-6"
+            />
+
             <h1 className="text-2xl font-semibold text-foreground mb-2">
               {CATEGORIES.find((c) => c.id === selectedCategory)?.emoji}{" "}
               {CATEGORIES.find((c) => c.id === selectedCategory)?.label}
@@ -160,10 +215,10 @@ const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
                         <Lock className="w-5 h-5 text-muted-foreground" />
                       )}
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <span className="font-medium text-foreground">{lesson.title}</span>
                       <p className="text-sm text-muted-foreground">
-                        {lesson.status === "completed" ? "Completed ✓" : lesson.status === "current" ? "Up next" : "Locked"}
+                        {lesson.status === "completed" ? "Completed ✓ · +50 XP" : lesson.status === "current" ? "Up next · ~15 XP per question" : "Locked"}
                       </p>
                     </div>
                   </button>
