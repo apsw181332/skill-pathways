@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import AdminOverview from "./AdminOverview";
 import AdminUsers from "./AdminUsers";
-const AdminGlobe = lazy(() => import("./AdminGlobe"));
+import AdminGlobe from "./AdminGlobe";
 import AdminSubscriptions from "./AdminSubscriptions";
 import mascotImg from "@/assets/mascot-penguin.png";
 
