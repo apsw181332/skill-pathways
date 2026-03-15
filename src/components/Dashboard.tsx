@@ -58,9 +58,11 @@ const GREETING_MESSAGES = [
 interface DashboardProps {
   config: UserConfig;
   onStartLesson: () => void;
+  user: User;
+  onSignOut: () => Promise<void>;
 }
 
-const Dashboard = ({ config, onStartLesson }: DashboardProps) => {
+const Dashboard = ({ config, onStartLesson, user, onSignOut }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState<"home" | "learn" | "leaderboard" | "profile">("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const xp = 340;
