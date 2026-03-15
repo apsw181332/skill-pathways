@@ -1,3 +1,4 @@
+/// <reference types="@react-three/fiber" />
 import { useRef, useMemo, useEffect, useState, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
