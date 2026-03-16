@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Trash2, Plus, Minus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { getLevelForXp } from "@/lib/levels";
 import { toast } from "sonner";
@@ -40,18 +47,20 @@ const AdminUsers = () => {
   const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [xpTarget, setXpTarget] = useState<UserProfile | null>(null);
+  const [xpAmount, setXpAmount] = useState(100);
+  const [xpLoading, setXpLoading] = useState(false);
+
+  const fetchUsers = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data) setUsers(data as UserProfile[]);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (data) setUsers(data as UserProfile[]);
-      setLoading(false);
-    };
-
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUserId(user?.id ?? null);
@@ -59,7 +68,6 @@ const AdminUsers = () => {
     };
     init();
 
-    // Realtime sync
     const channel = supabase
       .channel("admin-users-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchUsers())
@@ -85,6 +93,26 @@ const AdminUsers = () => {
 
     setDeleting(false);
     setDeleteTarget(null);
+  };
+
+  const handleXpAction = async (action: "add" | "remove") => {
+    if (!xpTarget || xpAmount <= 0) return;
+    setXpLoading(true);
+
+    const { data, error } = await supabase.functions.invoke("admin-manage-xp", {
+      body: { user_id: xpTarget.user_id, action, amount: xpAmount },
+    });
+
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Failed to update XP");
+    } else {
+      toast.success(`${action === "add" ? "Added" : "Removed"} ${xpAmount} XP ${action === "add" ? "to" : "from"} ${xpTarget.display_name || "user"}`);
+      setUsers(prev => prev.map(u =>
+        u.id === xpTarget.id ? { ...u, xp: data.xp } : u
+      ));
+    }
+
+    setXpLoading(false);
   };
 
   const handleSort = (key: SortKey) => {
@@ -119,12 +147,7 @@ const AdminUsers = () => {
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search users..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+          <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <span className="text-sm text-muted-foreground">{filtered.length} users</span>
       </div>
@@ -135,37 +158,27 @@ const AdminUsers = () => {
             <thead>
               <tr className="border-b border-border bg-secondary/50">
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                  <button onClick={() => handleSort("display_name")} className="flex items-center gap-1">
-                    User <SortIcon col="display_name" />
-                  </button>
+                  <button onClick={() => handleSort("display_name")} className="flex items-center gap-1">User <SortIcon col="display_name" /></button>
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Level</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                  <button onClick={() => handleSort("xp")} className="flex items-center gap-1">
-                    XP <SortIcon col="xp" />
-                  </button>
+                  <button onClick={() => handleSort("xp")} className="flex items-center gap-1">XP <SortIcon col="xp" /></button>
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                  <button onClick={() => handleSort("streak")} className="flex items-center gap-1">
-                    Streak <SortIcon col="streak" />
-                  </button>
+                  <button onClick={() => handleSort("streak")} className="flex items-center gap-1">Streak <SortIcon col="streak" /></button>
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Country</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Interests</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                  <button onClick={() => handleSort("created_at")} className="flex items-center gap-1">
-                    Joined <SortIcon col="created_at" />
-                  </button>
+                  <button onClick={() => handleSort("created_at")} className="flex items-center gap-1">Joined <SortIcon col="created_at" /></button>
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Last Active</th>
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">No users found</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No users found</td></tr>
               ) : (
                 filtered.map((user) => {
                   const lvl = getLevelForXp(user.xp);
@@ -179,42 +192,29 @@ const AdminUsers = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1 text-foreground">
-                          {lvl.emoji} Lv.{lvl.level}
-                        </span>
+                        <span className="inline-flex items-center gap-1 text-foreground">{lvl.emoji} Lv.{lvl.level}</span>
                       </td>
                       <td className="px-4 py-3 text-foreground font-medium">{user.xp.toLocaleString()}</td>
                       <td className="px-4 py-3 text-foreground">{user.streak} 🔥</td>
                       <td className="px-4 py-3 text-foreground">{user.country || "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(user.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {user.interests?.slice(0, 3).map(i => (
-                            <span key={i} className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">{i}</span>
-                          ))}
-                          {(user.interests?.length || 0) > 3 && (
-                            <span className="text-xs text-muted-foreground">+{(user.interests?.length || 0) - 3}</span>
+                        <div className="flex items-center justify-center gap-1">
+                          {isSelf ? (
+                            <span className="text-xs text-muted-foreground">You</span>
+                          ) : (
+                            <>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={() => { setXpTarget(user); setXpAmount(100); }} title="Manage XP">
+                                <Plus className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleteTarget(user)} title="Delete user">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
                           )}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {user.last_activity_date || "Never"}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {isSelf ? (
-                          <span className="text-xs text-muted-foreground">You</span>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget(user)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
                       </td>
                     </tr>
                   );
@@ -225,26 +225,51 @@ const AdminUsers = () => {
         </div>
       </div>
 
+      {/* Delete dialog */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Permanently delete user?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete <strong>{deleteTarget?.display_name || "this user"}</strong> and all their data (progress, achievements, friendships). They will no longer be able to sign in. This action cannot be undone.
+              This will permanently delete <strong>{deleteTarget?.display_name || "this user"}</strong> and all their data. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {deleting ? "Deleting..." : "Delete permanently"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* XP Management dialog */}
+      <Dialog open={!!xpTarget} onOpenChange={(open) => !open && setXpTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage XP — {xpTarget?.display_name || "User"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-1">Current XP</p>
+              <p className="text-3xl font-bold text-foreground">{xpTarget?.xp.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{xpTarget && getLevelForXp(xpTarget.xp).emoji} Level {xpTarget && getLevelForXp(xpTarget.xp).level}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">Amount</label>
+              <Input type="number" min={1} value={xpAmount} onChange={e => setXpAmount(Math.max(1, parseInt(e.target.value) || 0))} />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button onClick={() => handleXpAction("remove")} disabled={xpLoading} variant="outline" className="flex-1 gap-1 text-destructive">
+              <Minus className="w-4 h-4" /> Remove {xpAmount} XP
+            </Button>
+            <Button onClick={() => handleXpAction("add")} disabled={xpLoading} className="flex-1 gap-1">
+              <Plus className="w-4 h-4" /> Add {xpAmount} XP
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

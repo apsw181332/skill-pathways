@@ -23,6 +23,7 @@ const Index = () => {
   const [config, setConfig] = useState<UserConfig>({ interests: [], learningStyle: "", accessibility: [] });
   const [activeLessonCategory, setActiveLessonCategory] = useState("tech");
   const [activeLessonId, setActiveLessonId] = useState(1);
+  const [activeLessonReview, setActiveLessonReview] = useState(false);
   const [gems, setGems] = useState(0);
   const [extraLives, setExtraLives] = useState(0);
 
@@ -30,7 +31,6 @@ const Index = () => {
     if (!settingsLoading) applyThemeColor(settings.theme_color);
   }, [settings.theme_color, settingsLoading]);
 
-  // Fetch gems
   useEffect(() => {
     if (!user) return;
     const fetchGems = async () => {
@@ -79,9 +79,10 @@ const Index = () => {
 
   const handleAuth = () => setState("onboarding");
   const handleSignOut = async () => { await signOut(); setState("landing"); };
-  const handleStartLesson = (categoryId: string, lessonId: number) => {
+  const handleStartLesson = (categoryId: string, lessonId: number, isReview: boolean = false) => {
     setActiveLessonCategory(categoryId);
     setActiveLessonId(lessonId);
+    setActiveLessonReview(isReview);
     setState("lesson");
   };
 
@@ -124,7 +125,7 @@ const Index = () => {
       return (
         <LessonView onBack={() => setState("dashboard")} userId={user?.id}
           categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
-          extraLives={extraLives} onUseExtraLife={handleUseExtraLife} />
+          extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
       );
   }
 };
