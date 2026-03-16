@@ -5,7 +5,7 @@ import {
   Home, BookOpen, Trophy, User as UserIcon, Flame, Star,
   ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award, LogOut,
   Users, UserPlus, Check, X, Search, Settings as SettingsIcon, Plus, Minus,
-  Diamond, Heart, ShoppingBag, Target
+  Diamond, Heart, ShoppingBag, Target, MessageCircle, Gift, Send, ArrowLeft, RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,7 @@ function getGreeting(streak: number): string {
 
 interface DashboardProps {
   config: UserConfig;
-  onStartLesson: (categoryId: string, lessonId: number) => void;
+  onStartLesson: (categoryId: string, lessonId: number, isReview?: boolean) => void;
   user: SupabaseUser;
   onSignOut: () => Promise<void>;
   onOpenSettings: () => void;
@@ -64,6 +64,7 @@ interface DashboardProps {
 interface FriendData { id: string; user_id: string; friend_id: string; status: string; }
 interface ProfileData { id: string; user_id: string; display_name: string | null; xp: number; streak: number; level: number; }
 interface LeaderboardEntry { rank: number; name: string; xp: number; streak: number; userId: string; isUser: boolean; }
+interface ChatMessage { id: string; sender_id: string; receiver_id: string; content: string; gem_gift: number; created_at: string; }
 
 const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState<"home" | "learn" | "missions" | "shop" | "profile">("home");
@@ -81,13 +82,21 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const [claimedMissions, setClaimedMissions] = useState<string[]>([]);
   const [ownedTitles, setOwnedTitles] = useState<string[]>([]);
   const [totalLessonsCompleted, setTotalLessonsCompleted] = useState(0);
+  const [inviteCode, setInviteCode] = useState("");
+  const [addingFriend, setAddingFriend] = useState(false);
+  // Chat state
+  const [chatFriend, setChatFriend] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [giftAmount, setGiftAmount] = useState(0);
   const { toast } = useToast();
 
   const levelInfo = getXpProgress(xp);
   const greetingMsg = getGreeting(streak);
+  const myInviteCode = user.id.slice(0, 8).toUpperCase();
 
   const filteredCourses = COURSES.filter(c => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       c.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
@@ -151,7 +160,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     fetchFriends();
   }, [user.id]);
 
-  // Load claimed missions from localStorage (simple persistence)
   useEffect(() => {
     const stored = localStorage.getItem(`missions_${user.id}`);
     if (stored) setClaimedMissions(JSON.parse(stored));
@@ -159,8 +167,102 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     if (titles) setOwnedTitles(JSON.parse(titles));
   }, [user.id]);
 
+  // Load chat messages when chatFriend changes
+  useEffect(() => {
+    if (!chatFriend) { setChatMessages([]); return; }
+    const loadMessages = async () => {
+      const { data } = await supabase.from("friend_messages")
+        .select("*")
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${chatFriend}),and(sender_id.eq.${chatFriend},receiver_id.eq.${user.id})`)
+        .order("created_at", { ascending: true })
+        .limit(100);
+      if (data) setChatMessages(data as ChatMessage[]);
+    };
+    loadMessages();
+    const channel = supabase.channel(`chat-${chatFriend}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "friend_messages" }, (payload) => {
+        const msg = payload.new as ChatMessage;
+        if ((msg.sender_id === user.id && msg.receiver_id === chatFriend) || (msg.sender_id === chatFriend && msg.receiver_id === user.id)) {
+          setChatMessages(prev => [...prev, msg]);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [chatFriend, user.id]);
+
   const handleAcceptFriend = async (id: string) => { await supabase.from("friendships").update({ status: "accepted" }).eq("id", id); setPendingRequests(prev => prev.filter(r => r.id !== id)); };
   const handleRejectFriend = async (id: string) => { await supabase.from("friendships").update({ status: "rejected" }).eq("id", id); setPendingRequests(prev => prev.filter(r => r.id !== id)); };
+
+  const handleAddFriendByCode = async () => {
+    if (!inviteCode.trim() || inviteCode.trim().length < 8) {
+      toast({ title: "Invalid code", description: "Enter a valid 8-character invite code.", variant: "destructive" });
+      return;
+    }
+    setAddingFriend(true);
+    const code = inviteCode.trim().toLowerCase();
+    // Find user by invite code prefix
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name").ilike("user_id", `${code}%`);
+    if (!profiles || profiles.length === 0) {
+      toast({ title: "User not found", description: "No user matches this invite code.", variant: "destructive" });
+      setAddingFriend(false);
+      return;
+    }
+    const target = profiles[0];
+    if (target.user_id === user.id) {
+      toast({ title: "That's you!", description: "You can't add yourself as a friend.", variant: "destructive" });
+      setAddingFriend(false);
+      return;
+    }
+    // Check if already friends or pending
+    const { data: existing } = await supabase.from("friendships").select("id")
+      .or(`and(user_id.eq.${user.id},friend_id.eq.${target.user_id}),and(user_id.eq.${target.user_id},friend_id.eq.${user.id})`);
+    if (existing && existing.length > 0) {
+      toast({ title: "Already connected", description: "You already have a friendship with this user." });
+      setAddingFriend(false);
+      return;
+    }
+    const { error } = await supabase.from("friendships").insert({ user_id: user.id, friend_id: target.user_id, status: "pending" });
+    if (error) {
+      toast({ title: "Error", description: "Failed to send friend request.", variant: "destructive" });
+    } else {
+      toast({ title: "Friend request sent! 🤝", description: `Request sent to ${target.display_name || "user"}.` });
+      setInviteCode("");
+    }
+    setAddingFriend(false);
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatFriend || (!chatInput.trim() && giftAmount <= 0)) return;
+    const content = chatInput.trim() || (giftAmount > 0 ? `Sent you ${giftAmount} gems! 💎` : "");
+    if (!content) return;
+
+    if (giftAmount > 0) {
+      if (gems < giftAmount) {
+        toast({ title: "Not enough gems", variant: "destructive" });
+        return;
+      }
+      // Deduct gems from sender
+      const { data: myProfile } = await supabase.from("profiles").select("gems").eq("user_id", user.id).single();
+      if (myProfile) {
+        await supabase.from("profiles").update({ gems: (myProfile as any).gems - giftAmount } as any).eq("user_id", user.id);
+      }
+      // Add gems to receiver
+      const { data: friendProfile } = await supabase.from("profiles").select("gems").eq("user_id", chatFriend).single();
+      if (friendProfile) {
+        await supabase.from("profiles").update({ gems: (friendProfile as any).gems + giftAmount } as any).eq("user_id", chatFriend);
+      }
+    }
+
+    await supabase.from("friend_messages").insert({
+      sender_id: user.id,
+      receiver_id: chatFriend,
+      content,
+      gem_gift: giftAmount,
+    } as any);
+
+    setChatInput("");
+    setGiftAmount(0);
+  };
 
   const handleEnroll = async (courseId: string) => {
     const success = await onEnroll(courseId);
@@ -173,7 +275,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     const newClaimed = [...claimedMissions, missionId];
     setClaimedMissions(newClaimed);
     localStorage.setItem(`missions_${user.id}`, JSON.stringify(newClaimed));
-    // Add gems
     const { data: profile } = await supabase.from("profiles").select("gems").eq("user_id", user.id).single();
     if (profile) {
       await supabase.from("profiles").update({ gems: (profile as any).gems + reward } as any).eq("user_id", user.id);
@@ -213,6 +314,69 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     coursesEnrolled: enrolledCourses.length,
     friendsCount: friends.length,
   };
+
+  // Chat view for a friend
+  if (chatFriend) {
+    const fProfile = friendProfiles[chatFriend];
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border">
+          <div className="max-w-2xl mx-auto px-6 py-3 flex items-center gap-3">
+            <button onClick={() => setChatFriend(null)} className="text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <UserIcon className="w-5 h-5 text-primary" />
+            <span className="font-medium text-foreground">{fProfile?.display_name || "Friend"}</span>
+            <span className="text-xs text-muted-foreground ml-auto">{fProfile?.xp || 0} XP</span>
+          </div>
+        </header>
+        <main className="flex-1 max-w-2xl mx-auto px-6 py-4 w-full overflow-y-auto">
+          {chatMessages.length === 0 && (
+            <div className="text-center text-muted-foreground py-12">
+              <MessageCircle className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+              <p className="text-sm">No messages yet. Say hi! 👋</p>
+            </div>
+          )}
+          <div className="space-y-3">
+            {chatMessages.map(msg => {
+              const isMine = msg.sender_id === user.id;
+              return (
+                <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm ${isMine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-foreground rounded-bl-md"}`}>
+                    {msg.gem_gift > 0 && (
+                      <div className={`flex items-center gap-1 mb-1 text-xs font-medium ${isMine ? "text-primary-foreground/80" : "text-cyan-500"}`}>
+                        <Diamond className="w-3 h-3" /> {msg.gem_gift} gems gifted
+                      </div>
+                    )}
+                    {msg.content}
+                    <div className={`text-xs mt-1 ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </main>
+        <div className="sticky bottom-0 bg-background border-t border-border p-4">
+          <div className="max-w-2xl mx-auto flex items-center gap-2">
+            <Button variant="outline" size="icon" className="shrink-0" onClick={() => setGiftAmount(prev => prev > 0 ? 0 : 5)} title="Gift gems">
+              <Gift className={`w-4 h-4 ${giftAmount > 0 ? "text-cyan-500" : "text-muted-foreground"}`} />
+            </Button>
+            {giftAmount > 0 && (
+              <Input type="number" min={1} value={giftAmount} onChange={e => setGiftAmount(Math.max(1, parseInt(e.target.value) || 0))}
+                className="w-16 text-center" placeholder="💎" />
+            )}
+            <Input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Type a message..."
+              className="flex-1" onKeyDown={e => e.key === "Enter" && handleSendMessage()} />
+            <Button size="icon" onClick={handleSendMessage} disabled={!chatInput.trim() && giftAmount <= 0}>
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const renderHome = () => (
     <>
@@ -256,13 +420,28 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         </div>
       </motion.div>
 
-      {/* Extra lives indicator */}
+      {/* Extra lives */}
       {extraLives > 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 flex items-center gap-3 py-3 border-destructive/30">
           <Heart className="w-5 h-5 text-destructive" fill="currentColor" />
           <span className="text-sm text-foreground font-medium">{extraLives} extra {extraLives === 1 ? "life" : "lives"} available</span>
         </motion.div>
       )}
+
+      {/* Add friend by invite code */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-6">
+        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+          <UserPlus className="w-4 h-4 text-primary" /> Add Friend
+        </h3>
+        <div className="flex gap-2 mb-2">
+          <Input value={inviteCode} onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="Enter invite code..." className="flex-1 font-mono"
+            maxLength={8} onKeyDown={e => e.key === "Enter" && handleAddFriendByCode()} />
+          <Button size="sm" onClick={handleAddFriendByCode} disabled={addingFriend || inviteCode.length < 8}>
+            {addingFriend ? "..." : "Add"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">Your code: <span className="font-mono font-semibold text-foreground">{myInviteCode}</span></p>
+      </motion.div>
 
       {/* Enrolled courses */}
       {enrolledCourses.length > 0 && (
@@ -324,6 +503,68 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     </>
   );
 
+  // Path map offsets for winding effect
+  const PATH_OFFSETS = [0, 40, 70, 40, 0, -40, -70, -40];
+
+  const renderCoursePath = (course: typeof COURSES[0]) => {
+    const completed = categoryProgress[course.id] || 0;
+    const isEnrolled = enrolledCourses.includes(course.id);
+
+    return (
+      <div className="relative flex flex-col items-center gap-0 py-4">
+        {/* Central line */}
+        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-border -translate-x-1/2 z-0" />
+
+        {course.lessons.map((lesson, i) => {
+          const isCompleted = i < completed;
+          const isCurrent = i === completed;
+          const isLocked = i > completed;
+          const canPlay = (isCompleted || (isCurrent && isEnrolled));
+          const offset = PATH_OFFSETS[i % PATH_OFFSETS.length];
+
+          return (
+            <motion.div
+              key={lesson.id}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.08 }}
+              className="relative z-10 mb-8"
+              style={{ transform: `translateX(${offset}px)` }}
+            >
+              <button
+                onClick={() => {
+                  if (isCompleted) onStartLesson(course.id, lesson.id, true);
+                  else if (isCurrent && isEnrolled) onStartLesson(course.id, lesson.id, false);
+                }}
+                disabled={!canPlay}
+                className={`w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 border-4 ${
+                  isCompleted ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/30" :
+                  isCurrent && isEnrolled ? "bg-primary border-primary text-primary-foreground ring-4 ring-primary/20 shadow-lg" :
+                  "bg-muted border-border text-muted-foreground"
+                } ${canPlay ? "cursor-pointer hover:scale-110" : "cursor-not-allowed opacity-60"}`}
+              >
+                {isCompleted ? <CheckCircle2 className="w-6 h-6" /> :
+                 isCurrent ? <Star className="w-6 h-6" /> :
+                 <Lock className="w-5 h-5" />}
+              </button>
+              <div className="mt-2 text-center max-w-[140px]">
+                <p className="text-xs font-medium text-foreground leading-tight">{lesson.title}</p>
+                {isCompleted && (
+                  <p className="text-xs text-primary flex items-center justify-center gap-1 mt-0.5">
+                    <RotateCcw className="w-3 h-3" /> Review
+                  </p>
+                )}
+                {isCurrent && isEnrolled && (
+                  <p className="text-xs text-primary font-medium mt-0.5">Start →</p>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderLearn = () => (
     <>
       {!selectedCategory ? (
@@ -373,15 +614,13 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         </>
       ) : (
         <>
-          <button onClick={() => setSelectedCategory(null)} className="text-sm text-muted-foreground hover:text-foreground mb-6 flex items-center gap-1">← Back to courses</button>
+          <button onClick={() => setSelectedCategory(null)} className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">← Back to courses</button>
           {(() => {
             const course = COURSES.find(c => c.id === selectedCategory);
-            const completed = categoryProgress[selectedCategory] || 0;
             const isEnrolled = enrolledCourses.includes(selectedCategory);
             if (!course) return null;
             return (
               <>
-                <Mascot message={`Let's dive into ${course.label}! Each lesson earns XP. 🎮`} size="sm" animation="bounce" className="mb-6" />
                 <div className="flex items-center justify-between mb-2">
                   <h1 className="text-2xl font-semibold text-foreground">{course.emoji} {course.label}</h1>
                   {!isEnrolled && (
@@ -390,35 +629,12 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                     </Button>
                   )}
                 </div>
-                <p className="text-muted-foreground mb-6">{course.description}</p>
-                {course.image && <img src={course.image} alt={course.label} className="w-full h-40 object-cover rounded-xl mb-6" />}
-                <div className="space-y-3">
-                  {course.lessons.map((lesson, i) => {
-                    const status = i < completed ? "completed" : i === completed ? "current" : "locked";
-                    return (
-                      <motion.div key={lesson.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                        <button onClick={status === "current" && isEnrolled ? () => onStartLesson(course.id, lesson.id) : undefined}
-                          disabled={status === "locked" || !isEnrolled}
-                          className={`lesson-card w-full text-left flex items-center gap-4 ${status === "current" && isEnrolled ? "border-primary" : ""} ${status === "locked" || !isEnrolled ? "opacity-50 cursor-not-allowed" : ""}`}>
-                          <div className="shrink-0">
-                            {status === "completed" && <CheckCircle2 className="w-5 h-5 text-primary" />}
-                            {status === "current" && <Circle className="w-5 h-5 text-primary" />}
-                            {status === "locked" && <Lock className="w-5 h-5 text-muted-foreground" />}
-                          </div>
-                          <div className="flex-1">
-                            <span className="font-medium text-foreground">{lesson.title}</span>
-                            <p className="text-sm text-muted-foreground">{lesson.description}</p>
-                          </div>
-                          {status === "current" && isEnrolled && (
-                            <div className="flex items-center gap-0.5 shrink-0">
-                              {[0,1,2].map(j => <Heart key={j} className="w-3 h-3 text-destructive" fill="currentColor" />)}
-                            </div>
-                          )}
-                        </button>
-                      </motion.div>
-                    );
-                  })}
-                </div>
+                <p className="text-muted-foreground mb-2">{course.description}</p>
+                {course.image && <img src={course.image} alt={course.label} className="w-full h-40 object-cover rounded-xl mb-4" />}
+
+                {/* Path Map */}
+                {renderCoursePath(course)}
+
                 {!isEnrolled && <p className="text-sm text-muted-foreground mt-4 text-center">Enroll in this course to start learning!</p>}
               </>
             );
@@ -451,11 +667,18 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         </div>
       </motion.div>
 
-      {/* Leaderboard preview */}
+      {/* Invite code */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card text-center mb-6 border-primary/30">
+        <p className="text-sm text-muted-foreground mb-1">Your Invite Code</p>
+        <p className="text-2xl font-mono font-bold text-foreground tracking-widest">{myInviteCode}</p>
+        <p className="text-xs text-muted-foreground mt-1">Share with friends to connect!</p>
+      </motion.div>
+
+      {/* Leaderboard */}
       <h3 className="text-lg font-semibold text-foreground mb-3">Leaderboard</h3>
       {leaderboard.length > 0 ? (
         <div className="space-y-2 mb-6">
-          {leaderboard.slice(0, 5).map((entry, i) => {
+          {leaderboard.slice(0, 5).map((entry) => {
             const rankEmojis = ["", "🥇", "🥈", "🥉"];
             const lvl = getLevelForXp(entry.xp);
             return (
@@ -497,11 +720,14 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
             const fId = friend.user_id === user.id ? friend.friend_id : friend.user_id;
             const profile = friendProfiles[fId];
             return (
-              <div key={friend.id} className="lesson-card flex items-center gap-3 py-3">
+              <button key={friend.id} onClick={() => setChatFriend(fId)} className="lesson-card flex items-center gap-3 py-3 w-full text-left hover:border-primary transition-colors">
                 <UserIcon className="w-4 h-4 text-accent" />
                 <span className="font-medium text-foreground text-sm">{profile?.display_name || "Anonymous"}</span>
-                {profile && <span className="text-xs text-muted-foreground ml-auto">{profile.xp} XP</span>}
-              </div>
+                <div className="ml-auto flex items-center gap-2">
+                  {profile && <span className="text-xs text-muted-foreground">{profile.xp} XP</span>}
+                  <MessageCircle className="w-4 h-4 text-primary" />
+                </div>
+              </button>
             );
           })}
         </div>
@@ -509,7 +735,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         <div className="lesson-card text-center py-6 mb-6">
           <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">No friends yet — share your invite code!</p>
-          <div className="bg-secondary rounded-lg px-4 py-2 font-mono text-sm text-foreground inline-block mt-2">{user.id.slice(0, 8).toUpperCase()}</div>
         </div>
       )}
 
