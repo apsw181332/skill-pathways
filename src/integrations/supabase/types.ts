@@ -122,6 +122,33 @@ export type Database = {
         }
         Relationships: []
       }
+      friend_messages: {
+        Row: {
+          content: string
+          created_at: string
+          gem_gift: number | null
+          id: string
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          gem_gift?: number | null
+          id?: string
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          gem_gift?: number | null
+          id?: string
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           created_at: string

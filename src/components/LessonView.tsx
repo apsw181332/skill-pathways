@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap, Heart, Diamond } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ interface LessonViewProps {
   soundEnabled: boolean;
   extraLives: number;
   onUseExtraLife: () => void;
+  isReview?: boolean;
 }
 
 const CORRECT_MESSAGES = [
@@ -69,7 +70,7 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraLives, onUseExtraLife }: LessonViewProps) => {
+const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraLives, onUseExtraLife, isReview = false }: LessonViewProps) => {
   const lesson = getLessonContent(categoryId, lessonId);
   const steps = lesson?.steps || [];
 
@@ -88,21 +89,39 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
   const [totalQuizzes, setTotalQuizzes] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [shuffledItems, setShuffledItems] = useState<{ id: string; text: string; order: number }[]>([]);
-  
+
+  // Shuffled quiz options
+  const [shuffledQuiz, setShuffledQuiz] = useState<{ options: string[]; correctIndex: number } | null>(null);
+
   // Lives system
   const [lives, setLives] = useState(3);
   const [gameOver, setGameOver] = useState(false);
   const [showLifeLostAnim, setShowLifeLostAnim] = useState(false);
-  
+
   // Treasure chest
   const [showChest, setShowChest] = useState(false);
 
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
 
+  // Shuffle drag items
   useEffect(() => {
     if (step?.type === "drag" && step.items) {
       setShuffledItems(shuffle(step.items));
+    }
+  }, [currentStep]);
+
+  // Shuffle quiz options
+  useEffect(() => {
+    if (step?.type === "quiz" && step.options && step.correct !== undefined) {
+      const indexed = step.options.map((text, i) => ({ text, originalIndex: i }));
+      const shuffled = shuffle(indexed);
+      setShuffledQuiz({
+        options: shuffled.map(s => s.text),
+        correctIndex: shuffled.findIndex(s => s.originalIndex === step.correct),
+      });
+    } else {
+      setShuffledQuiz(null);
     }
   }, [currentStep]);
 
@@ -115,13 +134,11 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
           <Mascot message={msg} size="md" animation="bounce" />
           <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">Out of Lives! 💔</h2>
           <p className="text-muted-foreground mb-4">You used all 3 lives in this lesson.</p>
-          
           <div className="flex justify-center gap-2 mb-6">
             {[0, 1, 2].map(i => (
               <Heart key={i} className="w-8 h-8 text-muted-foreground/30" fill="currentColor" />
             ))}
           </div>
-
           <div className="lesson-card mb-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
@@ -134,7 +151,6 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
               </div>
             </div>
           </div>
-
           {extraLives > 0 && (
             <Button onClick={() => { onUseExtraLife(); setLives(1); setGameOver(false); }} className="w-full mb-3 gap-2" size="lg">
               <Heart className="w-4 h-4" /> Use Extra Life ({extraLives} left)
@@ -160,16 +176,15 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
         <Confetti active={showConfetti} />
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
           <Mascot message={msg} size="md" animation="celebrate" />
-          <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">Lesson Complete! 🎉</h2>
+          <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">
+            {isReview ? "Review Complete! 📖" : "Lesson Complete! 🎉"}
+          </h2>
           <p className="text-muted-foreground mb-4">{lesson?.title}</p>
-          
-          {/* Lives remaining */}
           <div className="flex justify-center gap-2 mb-6">
             {[0, 1, 2].map(i => (
               <Heart key={i} className={`w-6 h-6 ${i < lives ? "text-destructive" : "text-muted-foreground/30"}`} fill="currentColor" />
             ))}
           </div>
-
           <div className="grid grid-cols-3 gap-3 mb-8">
             <div className="lesson-card py-4">
               <Clock className="w-5 h-5 text-primary mx-auto mb-2" />
@@ -178,8 +193,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
             </div>
             <div className="lesson-card py-4">
               <Zap className="w-5 h-5 text-accent mx-auto mb-2" />
-              <div className="text-lg font-semibold text-foreground">{totalXp} XP</div>
-              <div className="text-xs text-muted-foreground">Earned</div>
+              <div className="text-lg font-semibold text-foreground">{isReview ? "0" : totalXp} XP</div>
+              <div className="text-xs text-muted-foreground">{isReview ? "Review" : "Earned"}</div>
             </div>
             <div className="lesson-card py-4">
               <Target className="w-5 h-5 text-primary mx-auto mb-2" />
@@ -191,9 +206,15 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
             <p className="text-sm font-medium text-primary mb-1">💡 Pebble's Tip</p>
             <p className="text-sm text-muted-foreground">{tip}</p>
           </div>
-          <Button onClick={() => setShowChest(true)} className="w-full gap-2" size="lg">
-            <Diamond className="w-4 h-4" /> Open Treasure Chest! 🎁
-          </Button>
+          {isReview ? (
+            <Button onClick={onBack} className="w-full gap-2" size="lg">
+              Back to Dashboard
+            </Button>
+          ) : (
+            <Button onClick={() => setShowChest(true)} className="w-full gap-2" size="lg">
+              <Diamond className="w-4 h-4" /> Open Treasure Chest! 🎁
+            </Button>
+          )}
         </motion.div>
       </div>
     );
@@ -204,7 +225,6 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
     return (
       <TreasureChest
         onComplete={async (gems) => {
-          // Save gems to profile
           if (userId) {
             const { data: profile } = await supabase.from("profiles").select("gems").eq("user_id", userId).single();
             if (profile) {
@@ -230,6 +250,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
   }
 
   const triggerXp = (amount: number) => {
+    if (isReview || amount === 0) return;
     setXpAmount(amount);
     setShowXp(true);
     setTotalXp(prev => prev + amount);
@@ -237,31 +258,28 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
   };
 
   const handleAnswer = (idx: number) => {
-    if (showFeedback) return;
+    if (showFeedback || !shuffledQuiz) return;
     setSelectedAnswer(idx);
     setShowFeedback(true);
-    if (step.type === "quiz") {
-      setTotalQuizzes(prev => prev + 1);
-      if (idx === step.correct) {
-        setCorrectAnswers(prev => prev + 1);
-        setFeedbackMascotMsg(CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]);
-        triggerXp(15);
-        if (soundEnabled) playCorrectSound();
-      } else {
-        setFeedbackMascotMsg(WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]);
-        triggerXp(5);
-        if (soundEnabled) playWrongSound();
-        // Lose a life
-        const newLives = lives - 1;
-        setLives(newLives);
-        setShowLifeLostAnim(true);
-        setTimeout(() => setShowLifeLostAnim(false), 800);
-        if (newLives <= 0) {
-          // Save partial progress then game over
-          saveLessonProgress(totalXp, false);
-          setTimeout(() => setGameOver(true), 1500);
-          return;
-        }
+
+    setTotalQuizzes(prev => prev + 1);
+    if (idx === shuffledQuiz.correctIndex) {
+      setCorrectAnswers(prev => prev + 1);
+      setFeedbackMascotMsg(CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]);
+      triggerXp(15);
+      if (soundEnabled) playCorrectSound();
+    } else {
+      setFeedbackMascotMsg(WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]);
+      // No XP for wrong answers
+      if (soundEnabled) playWrongSound();
+      const newLives = lives - 1;
+      setLives(newLives);
+      setShowLifeLostAnim(true);
+      setTimeout(() => setShowLifeLostAnim(false), 800);
+      if (newLives <= 0) {
+        if (!isReview) saveLessonProgress(totalXp, false);
+        setTimeout(() => setGameOver(true), 1500);
+        return;
       }
     }
   };
@@ -274,25 +292,26 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
 
   const handleSubmitOrder = () => {
     setDragSubmitted(true);
-    // Check if order is correct
+    setTotalQuizzes(prev => prev + 1);
     const allCorrect = orderedItems.every((id, idx) => {
       const item = step.items?.find(i => i.id === id);
       return item && item.order === idx + 1;
     });
     if (allCorrect) {
+      setCorrectAnswers(prev => prev + 1);
       setFeedbackMascotMsg("Perfect order! You really understand this! 🎯");
       triggerXp(25);
       if (soundEnabled) playCorrectSound();
     } else {
       setFeedbackMascotMsg("Good try! Check the correct order above. 📋");
-      triggerXp(10);
+      // No XP for wrong answers
       if (soundEnabled) playWrongSound();
       const newLives = lives - 1;
       setLives(newLives);
       setShowLifeLostAnim(true);
       setTimeout(() => setShowLifeLostAnim(false), 800);
       if (newLives <= 0) {
-        saveLessonProgress(totalXp, false);
+        if (!isReview) saveLessonProgress(totalXp, false);
         setTimeout(() => setGameOver(true), 1500);
         return;
       }
@@ -300,7 +319,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
   };
 
   const saveLessonProgress = async (earnedXp: number, completed: boolean = true) => {
-    if (!userId) return;
+    if (!userId || isReview) return;
     try {
       await supabase.from("user_progress").upsert({
         user_id: userId, category_id: categoryId, lesson_id: lessonId,
@@ -338,7 +357,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
       setDragSubmitted(false);
       setFeedbackMascotMsg(null);
     } else {
-      saveLessonProgress(totalXp);
+      if (!isReview) saveLessonProgress(totalXp);
       setShowConfetti(true);
       if (soundEnabled) playSuccessSound();
       setShowCompletion(true);
@@ -352,7 +371,6 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
       <Confetti active={showConfetti} />
       <XpPopup amount={xpAmount} show={showXp} />
 
-      {/* Life lost animation */}
       <AnimatePresence>
         {showLifeLostAnim && (
           <motion.div
@@ -375,13 +393,13 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
           <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
             <motion.div className="progress-fill h-full" animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
           </div>
-          {/* Lives */}
           <div className="flex items-center gap-0.5">
             {[0, 1, 2].map(i => (
               <Heart key={i} className={`w-4 h-4 transition-all duration-300 ${i < lives ? "text-destructive" : "text-muted-foreground/20"}`} fill="currentColor" />
             ))}
           </div>
-          <span className="text-sm font-medium text-accent xp-counter">{totalXp} XP</span>
+          {isReview && <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded-full">Review</span>}
+          <span className="text-sm font-medium text-accent xp-counter">{isReview ? "—" : `${totalXp} XP`}</span>
           <span className="text-sm text-muted-foreground xp-counter">{currentStep + 1}/{steps.length}</span>
         </div>
       </header>
@@ -411,29 +429,29 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
               </div>
             )}
 
-            {step.type === "quiz" && (
+            {step.type === "quiz" && shuffledQuiz && (
               <div>
                 <p className="text-foreground text-lg mb-6">{step.question}</p>
                 <div className="space-y-3">
-                  {step.options?.map((opt, idx) => {
+                  {shuffledQuiz.options.map((opt, idx) => {
                     let borderClass = "";
-                    if (showFeedback && idx === step.correct) borderClass = "border-primary bg-primary/5";
-                    else if (showFeedback && idx === selectedAnswer && idx !== step.correct) borderClass = "border-destructive bg-destructive/5";
+                    if (showFeedback && idx === shuffledQuiz.correctIndex) borderClass = "border-primary bg-primary/5";
+                    else if (showFeedback && idx === selectedAnswer && idx !== shuffledQuiz.correctIndex) borderClass = "border-destructive bg-destructive/5";
                     return (
                       <motion.button key={idx} whileTap={{ scale: 0.98 }} onClick={() => handleAnswer(idx)} disabled={showFeedback}
                         className={`lesson-card w-full text-left flex items-center gap-3 ${borderClass} ${!showFeedback && selectedAnswer === idx ? "border-primary" : ""}`}>
                         <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0 text-sm font-medium text-foreground">{String.fromCharCode(65 + idx)}</div>
                         <span className="text-foreground">{opt}</span>
-                        {showFeedback && idx === step.correct && <CheckCircle2 className="w-5 h-5 text-primary ml-auto shrink-0" />}
-                        {showFeedback && idx === selectedAnswer && idx !== step.correct && <XCircle className="w-5 h-5 text-destructive ml-auto shrink-0" />}
+                        {showFeedback && idx === shuffledQuiz.correctIndex && <CheckCircle2 className="w-5 h-5 text-primary ml-auto shrink-0" />}
+                        {showFeedback && idx === selectedAnswer && idx !== shuffledQuiz.correctIndex && <XCircle className="w-5 h-5 text-destructive ml-auto shrink-0" />}
                       </motion.button>
                     );
                   })}
                 </div>
                 {showFeedback && (
                   <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
-                    className={`mt-4 p-4 rounded-lg border-2 ${selectedAnswer === step.correct ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
-                    <p className="text-sm font-medium text-foreground mb-1">{selectedAnswer === step.correct ? "Correct! ✓" : "Not quite."}</p>
+                    className={`mt-4 p-4 rounded-lg border-2 ${selectedAnswer === shuffledQuiz.correctIndex ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
+                    <p className="text-sm font-medium text-foreground mb-1">{selectedAnswer === shuffledQuiz.correctIndex ? "Correct! ✓" : "Not quite."}</p>
                     <p className="text-sm text-muted-foreground">{step.explanation}</p>
                   </motion.div>
                 )}
