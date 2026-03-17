@@ -491,7 +491,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
             {addingFriend ? "..." : "Add"}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">Your code: <span className="font-mono font-semibold text-foreground">{myInviteCode}</span></p>
+        <p className="text-xs text-muted-foreground">{t("home.your_code")}: <span className="font-mono font-semibold text-foreground">{myInviteCode}</span></p>
       </motion.div>
 
       {/* Enrolled courses */}
