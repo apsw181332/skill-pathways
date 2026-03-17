@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Eye, Ear, Hand, Accessibility, Type, Contrast } from "lucide-react";
+import { ArrowRight, Eye, Ear, Hand, Accessibility, Type, Contrast, Brain, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Mascot from "@/components/Mascot";
 
@@ -21,16 +21,19 @@ const LEARNING_STYLES = [
   { id: "kinesthetic", label: "Kinesthetic", icon: Hand, desc: "I learn best by doing and practicing" },
 ];
 
-const ACCESSIBILITY_OPTIONS = [
-  { id: "dyslexic", label: "Dyslexia-Friendly Font", icon: Type, desc: "Use OpenDyslexic typeface" },
-  { id: "high-contrast", label: "High Contrast", icon: Contrast, desc: "Increased contrast for readability" },
-  { id: "screen-reader", label: "Screen Reader Optimized", icon: Accessibility, desc: "Enhanced ARIA labels" },
+const DISABILITY_OPTIONS = [
+  { id: "dyslexic", label: "Dyslexia", icon: "📖", desc: "I find reading standard fonts difficult. Switch to OpenDyslexic with wider spacing.", mode: "dyslexic" },
+  { id: "colorblind", label: "Colour Blindness", icon: "🎨", desc: "I have difficulty distinguishing certain colours. Use patterns and text cues instead.", mode: "colorblind" },
+  { id: "adhd", label: "ADHD", icon: "🧠", desc: "I get distracted easily. Reduce animations, simplify layout, larger tap targets.", mode: "adhd" },
+  { id: "low-vision", label: "Low Vision", icon: "👁️", desc: "I need high contrast and larger text for comfortable reading.", mode: "high-contrast" },
+  { id: "none", label: "None of the above", icon: "✅", desc: "I don't need any special adjustments.", mode: null },
 ];
 
 const MASCOT_MESSAGES = [
   "Pick what excites you! 🎯 We'll build your path together.",
   "Everyone learns differently — no wrong answers here! 🧠",
-  "Almost done! These help me personalize your experience. 🎨",
+  "We want to make sure everything is comfortable for you! 🌈",
+  "Almost done! Let's finish setting up. 🎨",
 ];
 
 interface OnboardingProps {
@@ -41,6 +44,7 @@ export interface UserConfig {
   interests: string[];
   learningStyle: string;
   accessibility: string[];
+  accessibilityModes: string[];
 }
 
 const stepVariants = {
@@ -53,21 +57,37 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
   const [step, setStep] = useState(0);
   const [interests, setInterests] = useState<string[]>([]);
   const [learningStyle, setLearningStyle] = useState("");
+  const [disabilities, setDisabilities] = useState<string[]>([]);
   const [accessibility, setAccessibility] = useState<string[]>([]);
 
   const toggleInterest = (id: string) =>
     setInterests((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
 
-  const toggleAccessibility = (id: string) =>
-    setAccessibility((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+  const toggleDisability = (id: string) => {
+    if (id === "none") {
+      setDisabilities(["none"]);
+      return;
+    }
+    setDisabilities((prev) => {
+      const filtered = prev.filter(d => d !== "none");
+      return filtered.includes(id) ? filtered.filter((i) => i !== id) : [...filtered, id];
+    });
+  };
 
   const canProceed = step === 0 ? interests.length > 0 : step === 1 ? !!learningStyle : true;
+  const totalSteps = 3;
 
   const handleNext = () => {
-    if (step < 2) {
+    if (step < totalSteps - 1) {
       setStep(step + 1);
     } else {
-      onComplete({ interests, learningStyle, accessibility });
+      // Map disabilities to accessibility modes
+      const accessibilityModes: string[] = [];
+      disabilities.forEach(d => {
+        const opt = DISABILITY_OPTIONS.find(o => o.id === d);
+        if (opt?.mode) accessibilityModes.push(opt.mode);
+      });
+      onComplete({ interests, learningStyle, accessibility, accessibilityModes });
     }
   };
 
@@ -76,7 +96,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
       {/* Progress */}
       <div className="w-full max-w-md mb-6">
         <div className="flex gap-2">
-          {[0, 1, 2].map((i) => (
+          {Array.from({ length: totalSteps }).map((_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
               {i <= step && (
                 <motion.div
@@ -89,7 +109,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
             </div>
           ))}
         </div>
-        <p className="text-muted-foreground text-sm mt-3">Step {step + 1} of 3</p>
+        <p className="text-muted-foreground text-sm mt-3">Step {step + 1} of {totalSteps}</p>
       </div>
 
       {/* Mascot guide */}
@@ -103,7 +123,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         <Mascot
           message={MASCOT_MESSAGES[step]}
           size="sm"
-          animation={step === 2 ? "celebrate" : "bounce"}
+          animation={step === totalSteps - 1 ? "celebrate" : "bounce"}
         />
       </motion.div>
 
@@ -181,7 +201,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
 
         {step === 2 && (
           <motion.div
-            key="accessibility"
+            key="disabilities"
             variants={stepVariants}
             initial="enter"
             animate="center"
@@ -189,22 +209,24 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
             transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
             className="w-full max-w-lg"
           >
-            <h1 className="text-3xl md:text-4xl font-semibold mb-2 text-foreground">Accessibility preferences</h1>
-            <p className="text-muted-foreground mb-8">Optional. Select any that apply, or skip this step.</p>
+            <h1 className="text-3xl md:text-4xl font-semibold mb-2 text-foreground">Do you have any accessibility needs?</h1>
+            <p className="text-muted-foreground mb-4">
+              We want everyone to learn comfortably. Select any that apply — the website will automatically adjust for you. You can always change this in Settings.
+            </p>
             <div className="space-y-3">
-              {ACCESSIBILITY_OPTIONS.map((item) => {
-                const Icon = item.icon;
+              {DISABILITY_OPTIONS.map((item) => {
+                const isSelected = disabilities.includes(item.id);
                 return (
                   <button
                     key={item.id}
-                    onClick={() => toggleAccessibility(item.id)}
+                    onClick={() => toggleDisability(item.id)}
                     className={`lesson-card w-full text-left flex items-center gap-4 ${
-                      accessibility.includes(item.id) ? "border-primary shadow-md" : ""
+                      isSelected ? "border-primary shadow-md" : ""
                     }`}
-                    aria-pressed={accessibility.includes(item.id)}
+                    aria-pressed={isSelected}
                   >
                     <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5 text-foreground" />
+                      <span className="text-xl">{item.icon}</span>
                     </div>
                     <div>
                       <span className="font-medium text-foreground">{item.label}</span>
@@ -232,7 +254,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
           className="gap-2 px-6"
           size="lg"
         >
-          {step === 2 ? "Start Learning" : "Continue"}
+          {step === totalSteps - 1 ? "Start Learning" : "Continue"}
           <ArrowRight className="w-4 h-4" />
         </Button>
       </div>
