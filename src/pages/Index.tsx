@@ -14,6 +14,7 @@ import { COURSES } from "@/lib/courseData";
 import Tutorial from "@/components/Tutorial";
 import SettingsPage, { applyAccessibilityModes } from "@/components/Settings";
 import ChatBot from "@/components/ChatBot";
+import AISuggestion from "@/components/AISuggestion";
 
 type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
 
@@ -22,7 +23,7 @@ const Index = () => {
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
   const { settings, loading: settingsLoading, updateSetting, enrollCourse, unenrollCourse } = useSettings(user?.id);
   const [state, setState] = useState<AppState>("landing");
-  const [config, setConfig] = useState<UserConfig>({ interests: [], learningStyle: "", accessibility: [] });
+  const [config, setConfig] = useState<UserConfig>({ interests: [], learningStyle: "", accessibility: [], accessibilityModes: [] });
   const [activeLessonCategory, setActiveLessonCategory] = useState("tech");
   const [activeLessonId, setActiveLessonId] = useState(1);
   const [activeLessonReview, setActiveLessonReview] = useState(false);
@@ -33,9 +34,9 @@ const Index = () => {
   useEffect(() => {
     if (!settingsLoading) {
       applyThemeColor(settings.theme_color);
-      applyAccessibilityModes((settings as any).accessibility_modes || []);
+      applyAccessibilityModes(settings.accessibility_modes || []);
     }
-  }, [settings.theme_color, (settings as any).accessibility_modes, settingsLoading]);
+  }, [settings.theme_color, settings.accessibility_modes, settingsLoading]);
 
   useEffect(() => {
     if (!user) return;
@@ -70,8 +71,14 @@ const Index = () => {
       await supabase.from("profiles").update({
         interests: userConfig.interests, learning_style: userConfig.learningStyle,
         accessibility: userConfig.accessibility, onboarding_completed: true,
+        accessibility_modes: userConfig.accessibilityModes || [],
       } as any).eq("user_id", user.id);
       await updateSetting("onboarding_completed", true);
+      // Apply accessibility modes from onboarding immediately
+      if (userConfig.accessibilityModes?.length) {
+        applyAccessibilityModes(userConfig.accessibilityModes);
+        await updateSetting("accessibility_modes", userConfig.accessibilityModes);
+      }
     }
     setState("tutorial");
   };
@@ -126,6 +133,7 @@ const Index = () => {
             }}
           />
           <ChatBot />
+          <AISuggestion userId={user!.id} enrolledCourses={settings.enrolled_courses} onEnroll={enrollCourse} />
         </>
       );
     case "path-complete":
@@ -139,7 +147,6 @@ const Index = () => {
     case "lesson":
       return (
         <LessonView onBack={async () => {
-          // Check if the user just completed the last lesson of a course
           if (user && !activeLessonReview) {
             const course = COURSES.find(c => c.id === activeLessonCategory);
             if (course) {
@@ -150,7 +157,6 @@ const Index = () => {
                 .eq("completed", true);
               const completedCount = progress?.length || 0;
               if (completedCount >= course.lessons.length && settings.enrolled_courses.includes(activeLessonCategory)) {
-                // Path complete! Auto-unenroll and show completion page
                 await unenrollCourse(activeLessonCategory);
                 setCompletedCourse(course);
                 setState("path-complete");

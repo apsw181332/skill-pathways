@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -7,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -20,29 +19,31 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const token = authHeader.replace("Bearer ", "");
     const client = createClient(supabaseUrl, anonKey, {
       global: { headers: { authorization: authHeader } },
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: { user } } = await client.auth.getUser();
-    if (!user) {
+    const { data: claimsData, error: claimsError } = await client.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const userId = claimsData.claims.sub as string;
 
     const [profileRes, progressRes] = await Promise.all([
-      client.from("profiles").select("interests, enrolled_courses, learning_style").eq("user_id", user.id).single(),
-      client.from("user_progress").select("category_id, completed").eq("user_id", user.id),
+      client.from("profiles").select("interests, enrolled_courses, learning_style").eq("user_id", userId).single(),
+      client.from("user_progress").select("category_id, completed").eq("user_id", userId),
     ]);
 
     const profile = profileRes.data;
@@ -53,7 +54,22 @@ serve(async (req) => {
       if (p.completed) completedCourses[p.category_id] = (completedCourses[p.category_id] || 0) + 1;
     });
 
-    const prompt = `You are a learning path recommender for a life skills platform. Based on the user's profile, recommend exactly 3 course IDs they should try next.
+    // Check if request includes a "type" for suggestion popup
+    let body: any = {};
+    try { body = await req.json(); } catch { /* no body is fine */ }
+    const suggestionType = body?.type || "recommend";
+
+    const prompt = suggestionType === "suggestion"
+      ? `You are a friendly learning companion for a life skills platform. Based on the user's activity, write a short, encouraging 1-2 sentence suggestion about what they should learn next. Be specific and mention a course name. Keep it casual and motivating.
+
+Available courses: Financial Literacy, Home Maintenance, Cooking & Nutrition, Social Skills, Career Growth, Health & Wellness, Legal Basics, Digital Literacy, Everyday Independence, Environmental Awareness, Personal Safety, Communication Mastery, Photography Basics, Music Fundamentals, Gardening, Parenting Essentials, Travel Skills, Pet Care, Mindfulness & Meditation, Automotive Basics, Sewing & Textiles, Language Learning, Digital Tools, Negotiation, Mental Models, Networking, Moving & Relocation, Taxes & Filing, Insurance, Creative Writing, Civic Engagement & Voting
+
+User interests: ${JSON.stringify(profile?.interests || [])}
+Currently enrolled: ${JSON.stringify(profile?.enrolled_courses || [])}
+Completed lessons by course: ${JSON.stringify(completedCourses)}
+
+Return ONLY the suggestion text, nothing else.`
+      : `You are a learning path recommender for a life skills platform. Based on the user's profile, recommend exactly 3 course IDs they should try next.
 
 Available course IDs: tech, financial, health, career, cooking, social, home, everyday, legal, environment, safety, communication, photography, music, gardening, parenting, travel, pets, mindfulness, automotive, sewing, languages, digital-tools, negotiation, mental-models, networking, moving, taxes, insurance, writing, voting
 
@@ -77,7 +93,7 @@ Rules:
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a JSON-only API. Return only valid JSON arrays, no explanation." },
+          { role: "system", content: suggestionType === "suggestion" ? "You are a friendly learning companion. Be brief and encouraging." : "You are a JSON-only API. Return only valid JSON arrays, no explanation." },
           { role: "user", content: prompt },
         ],
       }),
@@ -87,23 +103,27 @@ Rules:
       const status = response.status;
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited, try again later" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       throw new Error("AI request failed");
     }
 
     const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content || "[]";
+    const content = aiData.choices?.[0]?.message?.content || "";
 
-    // Parse JSON from the response (handle markdown code blocks)
+    if (suggestionType === "suggestion") {
+      return new Response(
+        JSON.stringify({ suggestion: content.trim() }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     let recommendations: string[];
     try {
       const cleaned = content.replace(/```json?\n?/g, "").replace(/```/g, "").trim();

@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.admin-manage-xp]
 verify_jwt = false
+
+[functions.friend-send-message]
+verify_jwt = false
+
+[functions.recommend-paths]
+verify_jwt = false
