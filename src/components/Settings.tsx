@@ -157,8 +157,8 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
             <div className="flex items-center gap-3">
               {settings.sound_enabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
               <div>
-                <h2 className="font-semibold text-foreground">Sound Effects</h2>
-                <p className="text-sm text-muted-foreground">Play sounds for correct/wrong answers</p>
+                <h2 className="font-semibold text-foreground">{t("settings.sound")}</h2>
+                <p className="text-sm text-muted-foreground">{t("settings.sound_desc")}</p>
               </div>
             </div>
             <Switch checked={settings.sound_enabled} onCheckedChange={(v) => onUpdate("sound_enabled", v)} />
