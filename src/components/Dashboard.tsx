@@ -497,7 +497,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {/* Enrolled courses */}
       {enrolledCourses.length > 0 && (
         <>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Your Courses ({enrolledCourses.length}/3)</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-3">{t("home.your_courses")} ({enrolledCourses.length}/3)</h2>
           <div className="space-y-3 mb-6">
             {enrolledCourses.map(courseId => {
               const course = COURSES.find(c => c.id === courseId);
