@@ -307,11 +307,21 @@
 @layer components {
   /* Skip navigation link (WCAG 2.4.1) */
   .skip-nav {
-    @apply absolute -top-12 left-4 bg-primary text-primary-foreground px-4 py-2 rounded-md z-[9999] font-medium text-sm;
+    position: absolute;
+    top: -100px;
+    left: 16px;
+    z-index: 9999;
+    padding: 8px 16px;
+    font-weight: 500;
+    font-size: 14px;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 8px;
+    text-decoration: none;
     transition: top 0.2s ease;
   }
   .skip-nav:focus {
-    @apply top-4;
+    top: 16px;
   }
 
   .lesson-card {
