@@ -132,9 +132,9 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Palette className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-foreground">Theme Color</h2>
+            <h2 className="font-semibold text-foreground">{t("settings.theme")}</h2>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">Change the accent color of buttons, links, and highlights.</p>
+          <p className="text-sm text-muted-foreground mb-4">{t("settings.theme_desc")}</p>
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
             {Object.entries(THEME_COLORS).map(([key, theme]) => (
               <button
