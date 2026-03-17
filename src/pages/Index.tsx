@@ -180,7 +180,7 @@ const Index = () => {
           setState("dashboard");
         }} userId={user?.id}
           categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
-          ttsEnabled={settings.tts_enabled}
+          ttsEnabled={settings.tts_enabled} locale={(settings.language || "en") as Locale}
           extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
       );
   }
