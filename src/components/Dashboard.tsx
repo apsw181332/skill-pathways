@@ -264,8 +264,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     }
 
     setAddingFriend(true);
-    const code = inviteCode.trim().toLowerCase();
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name").ilike("user_id", `${code}%`);
+    const code = inviteCode.trim().toUpperCase();
+    
+    // Search by friend_code column
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name").eq("friend_code", code);
 
     if (!profiles || profiles.length === 0) {
       toast({ title: "User not found", description: "No user matches this invite code.", variant: "destructive" });
