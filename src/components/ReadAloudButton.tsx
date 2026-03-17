@@ -28,7 +28,7 @@ const ReadAloudButton = ({ text, className = "", size = "sm" }: ReadAloudButtonP
     setLoading(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tts`,
         {
           method: "POST",
           headers: {
