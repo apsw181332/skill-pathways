@@ -98,7 +98,15 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const { toast } = useToast();
 
   const levelInfo = getXpProgress(xp);
-  const greetingMsg = getGreeting(streak);
+  const greetingMsgEn = getGreeting(streak);
+  const dashboardMascotTexts = useMemo(() => [
+    greetingMsgEn,
+    "Explore all courses! Enroll in up to 3 at a time. 🎮",
+    "Look at all your badges! Keep collecting! 🏅",
+    "Complete lessons to start earning badges! 🎯",
+  ], [greetingMsgEn]);
+  const { translated: tDashMascot } = useTranslatedContent(dashboardMascotTexts, locale, "dashboard mascot messages");
+  const greetingMsg = tDashMascot[0] ?? greetingMsgEn;
   const [myInviteCode, setMyInviteCode] = useState(user.id.slice(0, 8).toUpperCase());
 
   const filteredCourses = COURSES.filter(c => {
