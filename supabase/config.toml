@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.recommend-paths]
 verify_jwt = false
+
+[functions.translate-content]
+verify_jwt = false
+
+[functions.adapt-lesson]
+verify_jwt = false

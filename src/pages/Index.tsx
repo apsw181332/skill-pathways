@@ -17,6 +17,7 @@ import { applyAccessibilityModes } from "@/lib/accessibility";
 import ChatBot from "@/components/ChatBot";
 import AISuggestion from "@/components/AISuggestion";
 import { getCountryCoords } from "@/lib/countries";
+import { generateLearningCode } from "@/lib/learningCode";
 import type { Locale } from "@/lib/i18n";
 
 type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
@@ -71,6 +72,12 @@ const Index = () => {
   const handleOnboardingComplete = async (userConfig: UserConfig) => {
     setConfig(userConfig);
     if (user) {
+      // Generate learning code from onboarding data
+      const learningCode = generateLearningCode(
+        userConfig.learningStyle,
+        userConfig.interests,
+        userConfig.accessibilityModes || []
+      );
       // Geocode country
       const coords = userConfig.country ? getCountryCoords(userConfig.country) : null;
       await supabase.from("profiles").update({
@@ -78,6 +85,7 @@ const Index = () => {
         accessibility: userConfig.accessibility, onboarding_completed: true,
         accessibility_modes: userConfig.accessibilityModes || [],
         country: userConfig.country || null,
+        learning_code: learningCode,
         ...(coords ? { latitude: coords.lat, longitude: coords.lng } : {}),
       } as any).eq("user_id", user.id);
       await updateSetting("onboarding_completed", true);
@@ -172,7 +180,7 @@ const Index = () => {
           setState("dashboard");
         }} userId={user?.id}
           categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
-          ttsEnabled={settings.tts_enabled}
+          ttsEnabled={settings.tts_enabled} locale={(settings.language || "en") as Locale}
           extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
       );
   }

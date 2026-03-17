@@ -189,6 +189,7 @@ export type Database = {
           language: string
           last_activity_date: string | null
           latitude: number | null
+          learning_code: string | null
           learning_style: string | null
           level: number
           longitude: number | null
@@ -218,6 +219,7 @@ export type Database = {
           language?: string
           last_activity_date?: string | null
           latitude?: number | null
+          learning_code?: string | null
           learning_style?: string | null
           level?: number
           longitude?: number | null
@@ -247,6 +249,7 @@ export type Database = {
           language?: string
           last_activity_date?: string | null
           latitude?: number | null
+          learning_code?: string | null
           learning_style?: string | null
           level?: number
           longitude?: number | null

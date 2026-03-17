@@ -10,6 +10,8 @@ import ReadAloudButton from "@/components/ReadAloudButton";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, type LessonStep } from "@/lib/courseData";
+import { useTranslation, type Locale } from "@/lib/i18n";
+import { useTranslatedContent } from "@/hooks/useTranslation";
 
 interface LessonViewProps {
   onBack: () => void;
@@ -21,6 +23,7 @@ interface LessonViewProps {
   extraLives: number;
   onUseExtraLife: () => void;
   isReview?: boolean;
+  locale?: Locale;
 }
 
 const CORRECT_MESSAGES = [
@@ -72,7 +75,8 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false }: LessonViewProps) => {
+const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en" }: LessonViewProps) => {
+  const { t } = useTranslation(locale);
   const lesson = getLessonContent(categoryId, lessonId);
   const steps = lesson?.steps || [];
 
@@ -105,6 +109,38 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
+
+  // Translate current step content when locale != "en"
+  const stepTexts = useMemo(() => {
+    if (!step) return [];
+    const texts: string[] = [step.title, step.mascotMsg];
+    if (step.content) texts.push(step.content);
+    if (step.question) texts.push(step.question);
+    if (step.explanation) texts.push(step.explanation);
+    if (step.instruction) texts.push(step.instruction);
+    if (step.options) texts.push(...step.options);
+    if (step.items) texts.push(...step.items.map(i => i.text));
+    return texts;
+  }, [currentStep, step]);
+
+  const { translated: translatedTexts } = useTranslatedContent(stepTexts, locale, "educational quiz/lesson");
+
+  // Build translated step
+  const tStep = useMemo(() => {
+    if (!step || locale === "en" || translatedTexts === stepTexts) return step;
+    let idx = 0;
+    const next = () => translatedTexts[idx++] || "";
+    const result = { ...step };
+    result.title = next();
+    result.mascotMsg = next();
+    if (step.content) result.content = next();
+    if (step.question) result.question = next();
+    if (step.explanation) result.explanation = next();
+    if (step.instruction) result.instruction = next();
+    if (step.options) result.options = step.options.map(() => next());
+    if (step.items) result.items = step.items.map(i => ({ ...i, text: next() }));
+    return result;
+  }, [step, translatedTexts, locale, stepTexts]);
 
   // Shuffle drag items
   useEffect(() => {
@@ -409,7 +445,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       <main className="flex-1 max-w-2xl mx-auto px-6 py-6 w-full">
         <motion.div key={`mascot-${currentStep}-${feedbackMascotMsg}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-6">
           <Mascot
-            message={feedbackMascotMsg || step.mascotMsg}
+            message={feedbackMascotMsg || (tStep?.mascotMsg ?? step.mascotMsg)}
             size="sm"
             animation={feedbackMascotMsg ? (feedbackMascotMsg.includes("Nailed") || feedbackMascotMsg.includes("Brilliant") || feedbackMascotMsg.includes("fire") || feedbackMascotMsg.includes("Perfect") ? "celebrate" : "bounce") : "idle"}
           />
@@ -417,19 +453,19 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
         <AnimatePresence mode="wait">
           <motion.div key={currentStep} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-            <h2 className="text-2xl font-semibold text-foreground mb-6">{step.title}</h2>
+            <h2 className="text-2xl font-semibold text-foreground mb-6">{tStep?.title ?? step.title}</h2>
 
             {step.type === "info" && (
               <div className="lesson-card">
-                {step.image && <img src={step.image} alt={`Illustration for ${step.title}`} className="w-full h-48 object-cover rounded-lg mb-4" />}
+                {step.image && <img src={step.image} alt={`Illustration for ${tStep?.title ?? step.title}`} className="w-full h-48 object-cover rounded-lg mb-4" />}
                 {step.video && (
                   <div className="w-full aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
-                    <iframe src={step.video} title={step.title} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    <iframe src={step.video} title={tStep?.title ?? step.title} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                   </div>
                 )}
                 <div className="flex items-start gap-2">
-                  <p className="text-foreground leading-relaxed text-lg flex-1">{step.content}</p>
-                  {step.content && <ReadAloudButton text={step.content} size="sm" className="shrink-0 mt-1" />}
+                  <p className="text-foreground leading-relaxed text-lg flex-1">{tStep?.content ?? step.content}</p>
+                  {(tStep?.content ?? step.content) && <ReadAloudButton text={tStep?.content ?? step.content ?? ""} size="sm" className="shrink-0 mt-1" />}
                 </div>
               </div>
             )}
@@ -437,8 +473,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
             {step.type === "quiz" && shuffledQuiz && (
               <div>
                 <div className="flex items-start gap-2 mb-6">
-                  <p className="text-foreground text-lg flex-1">{step.question}</p>
-                  {step.question && <ReadAloudButton text={step.question} size="sm" className="shrink-0 mt-1" />}
+                  <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
+                  {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
                 </div>
                 <div className="space-y-3">
                   {shuffledQuiz.options.map((opt, idx) => {
@@ -447,7 +483,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                     else if (showFeedback && idx === selectedAnswer && idx !== shuffledQuiz.correctIndex) borderClass = "border-destructive bg-destructive/5";
                     return (
                       <motion.button key={idx} whileTap={{ scale: 0.98 }} onClick={() => handleAnswer(idx)} disabled={showFeedback}
-                        className={`lesson-card w-full text-left flex items-center gap-3 ${borderClass} ${!showFeedback && selectedAnswer === idx ? "border-primary" : ""}`}>
+                        className={`lesson-card w-full text-left flex items-center gap-3 min-h-[44px] ${borderClass} ${!showFeedback && selectedAnswer === idx ? "border-primary" : ""}`}>
                         <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0 text-sm font-medium text-foreground">{String.fromCharCode(65 + idx)}</div>
                         <span className="text-foreground">{opt}</span>
                         {showFeedback && idx === shuffledQuiz.correctIndex && <CheckCircle2 className="w-5 h-5 text-primary ml-auto shrink-0" />}
@@ -460,7 +496,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                   <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
                     className={`mt-4 p-4 rounded-lg border-2 ${selectedAnswer === shuffledQuiz.correctIndex ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
                     <p className="text-sm font-medium text-foreground mb-1">{selectedAnswer === shuffledQuiz.correctIndex ? "Correct! ✓" : "Not quite."}</p>
-                    <p className="text-sm text-muted-foreground">{step.explanation}</p>
+                    <p className="text-sm text-muted-foreground">{tStep?.explanation ?? step.explanation}</p>
                   </motion.div>
                 )}
               </div>
@@ -468,19 +504,20 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
             {step.type === "drag" && (
               <div>
-                <p className="text-foreground text-lg mb-6">{step.instruction}</p>
+                <p className="text-foreground text-lg mb-6">{tStep?.instruction ?? step.instruction}</p>
                 <div className="space-y-2 mb-6">
                   {orderedItems.map((id, idx) => {
-                    const item = step.items?.find(i => i.id === id);
+                    const item = (tStep?.items ?? step.items)?.find(i => i.id === id);
                     if (!item) return null;
-                    const isCorrect = dragSubmitted && item.order === idx + 1;
-                    const isWrong = dragSubmitted && item.order !== idx + 1;
+                    const origItem = step.items?.find(i => i.id === id);
+                    const isCorrect = dragSubmitted && origItem && origItem.order === idx + 1;
+                    const isWrong = dragSubmitted && origItem && origItem.order !== idx + 1;
                     return (
                       <motion.div key={id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                        className={`lesson-card flex items-center gap-3 py-3 ${isCorrect ? "border-primary" : isWrong ? "border-destructive" : ""}`}>
+                        className={`lesson-card flex items-center gap-3 py-3 min-h-[44px] ${isCorrect ? "border-primary" : isWrong ? "border-destructive" : ""}`}>
                         <span className="w-6 h-6 rounded-md bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground">{idx + 1}</span>
                         <span className="text-foreground">{item.text}</span>
-                        {!dragSubmitted && <button onClick={() => handleOrderItem(id)} className="ml-auto text-muted-foreground hover:text-destructive text-xs">Remove</button>}
+                        {!dragSubmitted && <button onClick={() => handleOrderItem(id)} className="ml-auto text-muted-foreground hover:text-destructive text-xs min-h-[44px] min-w-[44px] flex items-center justify-center">Remove</button>}
                         {dragSubmitted && isCorrect && <CheckCircle2 className="w-4 h-4 text-primary ml-auto" />}
                         {dragSubmitted && isWrong && <XCircle className="w-4 h-4 text-destructive ml-auto" />}
                       </motion.div>
@@ -488,15 +525,18 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                   })}
                 </div>
                 <div className="space-y-2">
-                  {shuffledItems.filter(i => !orderedItems.includes(i.id)).map(item => (
-                    <motion.button key={item.id} whileTap={{ scale: 0.98 }} onClick={() => handleOrderItem(item.id)}
-                      className="w-full p-4 border-2 border-dashed border-border rounded-lg text-left text-foreground hover:border-primary transition-colors">
-                      {item.text}
-                    </motion.button>
-                  ))}
+                  {shuffledItems.filter(i => !orderedItems.includes(i.id)).map(item => {
+                    const tItem = (tStep?.items ?? step.items)?.find(i => i.id === item.id);
+                    return (
+                      <motion.button key={item.id} whileTap={{ scale: 0.98 }} onClick={() => handleOrderItem(item.id)}
+                        className="w-full p-4 border-2 border-dashed border-border rounded-lg text-left text-foreground hover:border-primary transition-colors min-h-[44px]">
+                        {tItem?.text ?? item.text}
+                      </motion.button>
+                    );
+                  })}
                 </div>
                 {orderedItems.length === (step.items?.length || 0) && !dragSubmitted && (
-                  <Button className="mt-4" onClick={handleSubmitOrder}>Check order</Button>
+                  <Button className="mt-4 min-h-[44px]" onClick={handleSubmitOrder}>Check order</Button>
                 )}
                 {dragSubmitted && (
                   <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-4 rounded-lg border-2 border-primary/30 bg-primary/5">
@@ -511,8 +551,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
       <div className="sticky bottom-0 bg-background border-t border-border p-4">
         <div className="max-w-2xl mx-auto">
-          <Button onClick={handleNext} disabled={!canProceed} className="w-full gap-2" size="lg">
-            {currentStep === steps.length - 1 ? "🎉 Complete lesson" : "Continue"}
+          <Button onClick={handleNext} disabled={!canProceed} className="w-full gap-2 min-h-[44px]" size="lg">
+            {currentStep === steps.length - 1 ? t("lesson.complete").replace(" 🎉", "") : t("onboarding.continue")}
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>

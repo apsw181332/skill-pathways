@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, ChevronDown, ChevronUp, Trash2, Plus, Minus } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Trash2, Plus, Minus, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { getLevelForXp } from "@/lib/levels";
+import { decodeLearningCode, LEARNING_CODE_CRITERIA } from "@/lib/learningCode";
 import { toast } from "sonner";
 
 interface UserProfile {
@@ -34,6 +35,7 @@ interface UserProfile {
   last_activity_date: string | null;
   created_at: string;
   interests: string[] | null;
+  learning_code: string | null;
 }
 
 type SortKey = "xp" | "streak" | "created_at" | "display_name";
@@ -50,6 +52,8 @@ const AdminUsers = () => {
   const [xpTarget, setXpTarget] = useState<UserProfile | null>(null);
   const [xpAmount, setXpAmount] = useState(100);
   const [xpLoading, setXpLoading] = useState(false);
+  const [learningCodeUser, setLearningCodeUser] = useState<UserProfile | null>(null);
+  const [showLegend, setShowLegend] = useState(false);
 
   const fetchUsers = async () => {
     const { data } = await supabase
@@ -149,8 +153,30 @@ const AdminUsers = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
+        <Button variant="outline" size="sm" onClick={() => setShowLegend(!showLegend)} className="gap-1">
+          <Info className="w-3.5 h-3.5" /> Learning Code Legend
+        </Button>
         <span className="text-sm text-muted-foreground">{filtered.length} users</span>
       </div>
+
+      {showLegend && (
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Learning Code Legend (9 digits)</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            {LEARNING_CODE_CRITERIA.map((c, i) => (
+              <div key={i} className="flex items-start gap-2 bg-secondary/50 rounded-lg p-2">
+                <span className="font-mono font-bold text-primary">Pos {c.position}</span>
+                <div>
+                  <span className="font-medium text-foreground">{c.name}</span>
+                  <div className="text-muted-foreground">
+                    0={c.levels[0]}, 1={c.levels[1]}, 2={c.levels[2]}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -168,6 +194,7 @@ const AdminUsers = () => {
                   <button onClick={() => handleSort("streak")} className="flex items-center gap-1">Streak <SortIcon col="streak" /></button>
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Country</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Learning Code</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">
                   <button onClick={() => handleSort("created_at")} className="flex items-center gap-1">Joined <SortIcon col="created_at" /></button>
                 </th>
@@ -176,9 +203,9 @@ const AdminUsers = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">Loading...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No users found</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No users found</td></tr>
               ) : (
                 filtered.map((user) => {
                   const lvl = getLevelForXp(user.xp);
@@ -197,6 +224,19 @@ const AdminUsers = () => {
                       <td className="px-4 py-3 text-foreground font-medium">{user.xp.toLocaleString()}</td>
                       <td className="px-4 py-3 text-foreground">{user.streak} 🔥</td>
                       <td className="px-4 py-3 text-foreground">{user.country || "—"}</td>
+                      <td className="px-4 py-3">
+                        {user.learning_code ? (
+                          <button
+                            onClick={() => setLearningCodeUser(user)}
+                            className="font-mono text-xs bg-secondary px-2 py-1 rounded text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                            title="Click to view decoded learning profile"
+                          >
+                            {user.learning_code}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(user.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1">
@@ -268,6 +308,38 @@ const AdminUsers = () => {
               <Plus className="w-4 h-4" /> Add {xpAmount} XP
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Learning Code Dialog */}
+      <Dialog open={!!learningCodeUser} onOpenChange={(open) => !open && setLearningCodeUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Learning Profile — {learningCodeUser?.display_name || "User"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-1">Learning Code</p>
+              <p className="text-3xl font-mono font-bold text-primary tracking-widest">{learningCodeUser?.learning_code || "—"}</p>
+            </div>
+            {learningCodeUser?.learning_code && (
+              <div className="space-y-2">
+                {decodeLearningCode(learningCodeUser.learning_code).map((item, i) => (
+                  <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2">
+                    <span className="text-sm font-medium text-foreground">{item.name}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {[0, 1, 2].map(v => (
+                          <div key={v} className={`w-3 h-3 rounded-full ${v <= item.value ? "bg-primary" : "bg-border"}`} />
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted-foreground w-20 text-right">{item.label}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
