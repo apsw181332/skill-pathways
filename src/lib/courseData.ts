@@ -36,7 +36,7 @@ export interface Course {
   image?: string;
 }
 
-export const COURSES: Course[] = [
+const RAW_COURSES: Course[] = [
   {
     id: "tech",
     label: "Digital Literacy",
