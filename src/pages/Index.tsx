@@ -128,14 +128,12 @@ const Index = () => {
             gems={gems} extraLives={extraLives} locale={(settings.language || "en") as Locale}
             onPurchase={async (itemId, cost) => {
               if (gems < cost) return false;
+              if (itemId.startsWith("title-")) return false; // Titles are earned, not purchased
               const newGems = gems - cost;
               await supabase.from("profiles").update({ gems: newGems } as any).eq("user_id", user!.id);
               setGems(newGems);
               if (itemId === "extra-life") setExtraLives(prev => prev + 1);
               if (itemId === "life-pack") setExtraLives(prev => prev + 3);
-              if (itemId.startsWith("title-")) {
-                await supabase.from("profiles").update({ title: itemId } as any).eq("user_id", user!.id);
-              }
               return true;
             }}
           />
