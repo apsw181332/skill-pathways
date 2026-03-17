@@ -10,6 +10,8 @@ import ReadAloudButton from "@/components/ReadAloudButton";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, type LessonStep } from "@/lib/courseData";
+import { useTranslation, type Locale } from "@/lib/i18n";
+import { useTranslatedContent } from "@/hooks/useTranslation";
 
 interface LessonViewProps {
   onBack: () => void;
@@ -21,6 +23,7 @@ interface LessonViewProps {
   extraLives: number;
   onUseExtraLife: () => void;
   isReview?: boolean;
+  locale?: Locale;
 }
 
 const CORRECT_MESSAGES = [
