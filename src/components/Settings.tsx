@@ -102,9 +102,9 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Eye className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-foreground">Accessibility</h2>
+            <h2 className="font-semibold text-foreground">{t("settings.accessibility")}</h2>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">Enable modes that make learning more comfortable for you.</p>
+          <p className="text-sm text-muted-foreground mb-4">{t("settings.accessibility_desc")}</p>
           <div className="space-y-3">
             {ACCESSIBILITY_MODES.map(mode => {
               const isActive = ((settings as any).accessibility_modes || []).includes(mode.id);
