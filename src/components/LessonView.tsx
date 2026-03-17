@@ -310,12 +310,13 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
     setTotalQuizzes(prev => prev + 1);
     if (idx === shuffledQuiz.correctIndex) {
       setCorrectAnswers(prev => prev + 1);
+      recentQuizResults.current.push(true);
       setFeedbackMascotMsg(CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]);
       triggerXp(15);
       if (soundEnabled) playCorrectSound();
     } else {
+      recentQuizResults.current.push(false);
       setFeedbackMascotMsg(WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]);
-      // No XP for wrong answers
       if (soundEnabled) playWrongSound();
       const newLives = lives - 1;
       setLives(newLives);
