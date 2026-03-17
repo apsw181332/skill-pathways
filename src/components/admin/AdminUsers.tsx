@@ -194,6 +194,7 @@ const AdminUsers = () => {
                   <button onClick={() => handleSort("streak")} className="flex items-center gap-1">Streak <SortIcon col="streak" /></button>
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Country</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Learning Code</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">
                   <button onClick={() => handleSort("created_at")} className="flex items-center gap-1">Joined <SortIcon col="created_at" /></button>
                 </th>
