@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -21,6 +21,7 @@ import { COURSES } from "@/lib/courseData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation, type Locale } from "@/lib/i18n";
+import { useTranslatedContent } from "@/hooks/useTranslation";
 
 const BADGE_DEFINITIONS = [
   { id: "first-lesson", label: "First Steps", emoji: "🐣", desc: "Complete your first lesson" },
@@ -97,7 +98,15 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const { toast } = useToast();
 
   const levelInfo = getXpProgress(xp);
-  const greetingMsg = getGreeting(streak);
+  const greetingMsgEn = getGreeting(streak);
+  const dashboardMascotTexts = useMemo(() => [
+    greetingMsgEn,
+    "Explore all courses! Enroll in up to 3 at a time. 🎮",
+    "Look at all your badges! Keep collecting! 🏅",
+    "Complete lessons to start earning badges! 🎯",
+  ], [greetingMsgEn]);
+  const { translated: tDashMascot } = useTranslatedContent(dashboardMascotTexts, locale, "dashboard mascot messages");
+  const greetingMsg = tDashMascot[0] ?? greetingMsgEn;
   const [myInviteCode, setMyInviteCode] = useState(user.id.slice(0, 8).toUpperCase());
 
   const filteredCourses = COURSES.filter(c => {
@@ -696,7 +705,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {!selectedCategory ? (
         <>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <Mascot message="Explore all courses! Enroll in up to 3 at a time. 🎮" size="sm" animation="bounce" />
+            <Mascot message={tDashMascot[1] ?? "Explore all courses! Enroll in up to 3 at a time. 🎮"} size="sm" animation="bounce" />
           </motion.div>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -789,7 +798,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     return (
     <>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <Mascot message={earnedBadges.length > 0 ? "Look at all your badges! Keep collecting! 🏅" : "Complete lessons to start earning badges! 🎯"} size="sm" animation="idle" />
+        <Mascot message={earnedBadges.length > 0 ? (tDashMascot[2] ?? "Look at all your badges! Keep collecting! 🏅") : (tDashMascot[3] ?? "Complete lessons to start earning badges! 🎯")} size="sm" animation="idle" />
       </motion.div>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lesson-card text-center mb-6">
         <div className="relative w-24 h-24 mx-auto mb-3">

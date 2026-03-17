@@ -97,8 +97,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
   const [showCompletion, setShowCompletion] = useState(false);
   const [shuffledItems, setShuffledItems] = useState<{ id: string; text: string; order: number }[]>([]);
 
-  // Shuffled quiz options
-  const [shuffledQuiz, setShuffledQuiz] = useState<{ options: string[]; correctIndex: number } | null>(null);
+  // Shuffled quiz options — store original indices so we can map to translated text at render time
+  const [shuffledQuiz, setShuffledQuiz] = useState<{ originalIndices: number[]; correctIndex: number } | null>(null);
 
   // Lives system
   const [lives, setLives] = useState(3);
@@ -132,6 +132,28 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
   const { translated: translatedTexts } = useTranslatedContent(stepTexts, locale, "educational quiz/lesson");
 
+  // Translate mascot feedback messages
+  const allFeedbackTexts = useMemo(() => [
+    ...CORRECT_MESSAGES, ...WRONG_MESSAGES, ...COMPLETION_MSGS,
+    ...COMPLETION_TIPS, ...GAME_OVER_MSGS,
+  ], []);
+  const { translated: translatedFeedback } = useTranslatedContent(allFeedbackTexts, locale, "mascot encouragement messages");
+  const tFeedback = useMemo(() => {
+    if (locale === "en" || translatedFeedback === allFeedbackTexts) return null;
+    let i = 0;
+    const tCorrect = CORRECT_MESSAGES.map(() => translatedFeedback[i++]);
+    const tWrong = WRONG_MESSAGES.map(() => translatedFeedback[i++]);
+    const tComplete = COMPLETION_MSGS.map(() => translatedFeedback[i++]);
+    const tTips = COMPLETION_TIPS.map(() => translatedFeedback[i++]);
+    const tGameOver = GAME_OVER_MSGS.map(() => translatedFeedback[i++]);
+    return { correct: tCorrect, wrong: tWrong, complete: tComplete, tips: tTips, gameOver: tGameOver };
+  }, [translatedFeedback, locale, allFeedbackTexts]);
+
+  const pickMsg = (origArr: string[], translatedArr?: string[]) => {
+    const idx = Math.floor(Math.random() * origArr.length);
+    return translatedArr?.[idx] ?? origArr[idx];
+  };
+
   // Build translated step
   const tStep = useMemo(() => {
     if (!step || locale === "en" || translatedTexts === stepTexts) return step;
@@ -162,7 +184,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       const indexed = step.options.map((text, i) => ({ text, originalIndex: i }));
       const shuffled = shuffle(indexed);
       setShuffledQuiz({
-        options: shuffled.map(s => s.text),
+        originalIndices: shuffled.map(s => s.originalIndex),
         correctIndex: shuffled.findIndex(s => s.originalIndex === step.correct),
       });
     } else {
@@ -172,7 +194,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
   // Game over screen
   if (gameOver) {
-    const msg = GAME_OVER_MSGS[Math.floor(Math.random() * GAME_OVER_MSGS.length)];
+    const msg = pickMsg(GAME_OVER_MSGS, tFeedback?.gameOver);
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
@@ -213,8 +235,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
   if (showCompletion && !showChest) {
     const elapsed = Date.now() - startTime;
     const accuracy = totalQuizzes > 0 ? Math.round((correctAnswers / totalQuizzes) * 100) : 100;
-    const tip = COMPLETION_TIPS[Math.floor(Math.random() * COMPLETION_TIPS.length)];
-    const msg = COMPLETION_MSGS[Math.floor(Math.random() * COMPLETION_MSGS.length)];
+    const tip = pickMsg(COMPLETION_TIPS, tFeedback?.tips);
+    const msg = pickMsg(COMPLETION_MSGS, tFeedback?.complete);
 
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
@@ -311,12 +333,12 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
     if (idx === shuffledQuiz.correctIndex) {
       setCorrectAnswers(prev => prev + 1);
       recentQuizResults.current.push(true);
-      setFeedbackMascotMsg(CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]);
+      setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
       triggerXp(15);
       if (soundEnabled) playCorrectSound();
     } else {
       recentQuizResults.current.push(false);
-      setFeedbackMascotMsg(WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]);
+      setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
       if (soundEnabled) playWrongSound();
       const newLives = lives - 1;
       setLives(newLives);
@@ -534,7 +556,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                   {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
                 </div>
                 <div className="space-y-3">
-                  {shuffledQuiz.options.map((opt, idx) => {
+                  {shuffledQuiz.originalIndices.map((origIdx, idx) => {
+                    const opt = (tStep?.options ?? step.options)?.[origIdx] ?? "";
                     let borderClass = "";
                     if (showFeedback && idx === shuffledQuiz.correctIndex) borderClass = "border-primary bg-primary/5";
                     else if (showFeedback && idx === selectedAnswer && idx !== shuffledQuiz.correctIndex) borderClass = "border-destructive bg-destructive/5";
