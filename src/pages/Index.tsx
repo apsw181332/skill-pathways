@@ -161,6 +161,7 @@ const Index = () => {
           setState("dashboard");
         }} userId={user?.id}
           categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
+          ttsEnabled={settings.tts_enabled}
           extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
       );
   }
