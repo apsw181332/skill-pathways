@@ -705,7 +705,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {!selectedCategory ? (
         <>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <Mascot message="Explore all courses! Enroll in up to 3 at a time. 🎮" size="sm" animation="bounce" />
+            <Mascot message={tDashMascot[1] ?? "Explore all courses! Enroll in up to 3 at a time. 🎮"} size="sm" animation="bounce" />
           </motion.div>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
