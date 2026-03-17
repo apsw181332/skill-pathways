@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Eye, Ear, Hand, MapPin } from "lucide-react";
+import { ArrowRight, Eye, Ear, Hand, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Mascot from "@/components/Mascot";
 import { COUNTRIES } from "@/lib/countries";
+import { ACCESSIBILITY_MODES } from "@/lib/accessibility";
 
 const INTERESTS = [
   { id: "financial", label: "Financial Literacy", icon: "💰", desc: "Budgeting, investing, taxes" },
@@ -23,18 +24,10 @@ const LEARNING_STYLES = [
   { id: "kinesthetic", label: "Kinesthetic", icon: Hand, desc: "I learn best by doing and practicing" },
 ];
 
-const DISABILITY_OPTIONS = [
-  { id: "dyslexic", label: "Dyslexia", icon: "📖", desc: "I find reading standard fonts difficult. Switch to OpenDyslexic with wider spacing.", mode: "dyslexic" },
-  { id: "colorblind", label: "Colour Blindness", icon: "🎨", desc: "I have difficulty distinguishing certain colours. Use patterns and text cues instead.", mode: "colorblind" },
-  { id: "adhd", label: "ADHD", icon: "🧠", desc: "I get distracted easily. Reduce animations, simplify layout, larger tap targets.", mode: "adhd" },
-  { id: "low-vision", label: "Low Vision", icon: "👁️", desc: "I need high contrast and larger text for comfortable reading.", mode: "high-contrast" },
-  { id: "none", label: "None of the above", icon: "✅", desc: "I don't need any special adjustments.", mode: null },
-];
-
 const MASCOT_MESSAGES = [
   "Pick what excites you! 🎯 We'll build your path together.",
   "Everyone learns differently — no wrong answers here! 🧠",
-  "We want to make sure everything is comfortable for you! 🌈",
+  "We want to make sure everything is comfortable for you! Select all that apply — or skip if none. 🌈",
   "Tell us where you're from! 🌍 We love our global community.",
 ];
 
@@ -62,10 +55,10 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
   const [interests, setInterests] = useState<string[]>([]);
   const [learningStyle, setLearningStyle] = useState("");
   const [disabilities, setDisabilities] = useState<string[]>([]);
-  const [accessibility, setAccessibility] = useState<string[]>([]);
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
   const [countrySearch, setCountrySearch] = useState("");
+  const [showAllAccessibility, setShowAllAccessibility] = useState(false);
 
   const toggleInterest = (id: string) =>
     setInterests((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
@@ -88,16 +81,22 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
     ? COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase())).slice(0, 8)
     : COUNTRIES.slice(0, 8);
 
+  // Show first 6 accessibility options initially, rest behind "Show more"
+  const COMMON_IDS = ["dyslexia", "colorblind", "adhd", "low-vision", "hearing", "motor", "autism", "epilepsy"];
+  const commonModes = ACCESSIBILITY_MODES.filter(m => COMMON_IDS.includes(m.id));
+  const extraModes = ACCESSIBILITY_MODES.filter(m => !COMMON_IDS.includes(m.id));
+  const visibleModes = showAllAccessibility ? ACCESSIBILITY_MODES : commonModes;
+
   const handleNext = () => {
     if (step < totalSteps - 1) {
       setStep(step + 1);
     } else {
       const accessibilityModes: string[] = [];
       disabilities.forEach(d => {
-        const opt = DISABILITY_OPTIONS.find(o => o.id === d);
-        if (opt?.mode) accessibilityModes.push(opt.mode);
+        const opt = ACCESSIBILITY_MODES.find(o => o.id === d);
+        if (opt?.cssClass) accessibilityModes.push(opt.id);
       });
-      onComplete({ interests, learningStyle, accessibility, accessibilityModes, country, city });
+      onComplete({ interests, learningStyle, accessibility: disabilities, accessibilityModes, country, city });
     }
   };
 
@@ -190,26 +189,41 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
             transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }} className="w-full max-w-lg">
             <h1 className="text-3xl md:text-4xl font-semibold mb-2 text-foreground">Do you have any accessibility needs?</h1>
             <p className="text-muted-foreground mb-4">
-              We want everyone to learn comfortably. Select any that apply — the website will automatically adjust for you. You can always change this in Settings.
+              We support 18+ accessibility adaptations. The website will automatically adjust for you. You can always change this in Settings.
             </p>
-            <div className="space-y-3">
-              {DISABILITY_OPTIONS.map((item) => {
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+              {visibleModes.map((item) => {
                 const isSelected = disabilities.includes(item.id);
                 return (
                   <button key={item.id} onClick={() => toggleDisability(item.id)}
-                    className={`lesson-card w-full text-left flex items-center gap-4 ${isSelected ? "border-primary shadow-md" : ""}`}
+                    className={`lesson-card w-full text-left flex items-center gap-3 py-3 px-4 ${isSelected ? "border-primary shadow-md" : ""}`}
                     aria-pressed={isSelected}>
-                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                      <span className="text-xl">{item.icon}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-foreground">{item.label}</span>
-                      <p className="text-sm text-muted-foreground mt-0.5">{item.desc}</p>
+                    <span className="text-xl shrink-0">{item.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-foreground text-sm">{item.label}</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                     </div>
                   </button>
                 );
               })}
             </div>
+            {extraModes.length > 0 && (
+              <button
+                onClick={() => setShowAllAccessibility(!showAllAccessibility)}
+                className="mt-3 text-sm text-primary font-medium flex items-center gap-1 hover:underline"
+              >
+                {showAllAccessibility ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                {showAllAccessibility ? "Show fewer options" : `Show ${extraModes.length} more options`}
+              </button>
+            )}
+            <button onClick={() => { setDisabilities([]); }}
+              className={`mt-3 lesson-card w-full text-left flex items-center gap-3 py-3 px-4 ${disabilities.length === 0 ? "border-primary shadow-md" : ""}`}>
+              <span className="text-xl">✅</span>
+              <div>
+                <span className="font-medium text-foreground text-sm">None / Skip</span>
+                <p className="text-xs text-muted-foreground">I don't need any adjustments right now.</p>
+              </div>
+            </button>
           </motion.div>
         )}
 

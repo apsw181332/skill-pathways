@@ -112,43 +112,38 @@
     text-wrap: balance;
   }
 
-  /* Dyslexia-friendly mode */
-  .dyslexic-mode body,
-  .dyslexic-mode {
+  /* ═══════════════════════════════════════════════
+     ACCESSIBILITY MODES — 18 disability adaptations
+     ═══════════════════════════════════════════════ */
+
+  /* 1. DYSLEXIA — OpenDyslexic font, wide spacing, cream tint */
+  .mode-dyslexia,
+  .mode-dyslexia body {
     font-family: 'OpenDyslexic', system-ui, sans-serif !important;
-    letter-spacing: 0.05em;
-    word-spacing: 0.15em;
-    line-height: 1.8 !important;
+    letter-spacing: 0.08em;
+    word-spacing: 0.2em;
+    line-height: 2 !important;
   }
-  .dyslexic-mode h1, .dyslexic-mode h2, .dyslexic-mode h3,
-  .dyslexic-mode h4, .dyslexic-mode h5, .dyslexic-mode h6 {
+  .mode-dyslexia h1, .mode-dyslexia h2, .mode-dyslexia h3,
+  .mode-dyslexia h4, .mode-dyslexia h5, .mode-dyslexia h6 {
     font-family: 'OpenDyslexic', system-ui, sans-serif !important;
   }
-
-  /* Colorblind mode - use underlines and patterns for emphasis instead of color alone */
-  .colorblind-mode .text-primary { text-decoration: underline; text-decoration-thickness: 2px; }
-  .colorblind-mode .text-destructive { font-style: italic; text-decoration: underline wavy; text-decoration-thickness: 2px; }
-  .colorblind-mode .text-accent { font-weight: 800; }
-  .colorblind-mode .border-primary { border-style: dashed !important; border-width: 3px !important; }
-  .colorblind-mode .border-destructive { border-style: dotted !important; border-width: 3px !important; }
-
-  /* ADHD mode - reduce animations, less clutter, larger tap targets */
-  .adhd-mode * {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-  .adhd-mode .lesson-card {
-    padding: 1.5rem !important;
-  }
-  .adhd-mode button {
-    min-height: 48px;
-  }
-  .adhd-mode p, .adhd-mode span, .adhd-mode div {
-    line-height: 1.7 !important;
+  .mode-dyslexia {
+    --background: 45 40% 94%;
+    --card: 45 35% 97%;
   }
 
-  /* High contrast mode */
-  .high-contrast-mode {
+  /* 2. COLOUR BLINDNESS — patterns & text cues, no colour-only info */
+  .mode-colorblind .text-primary { text-decoration: underline; text-decoration-thickness: 2px; }
+  .mode-colorblind .text-destructive { font-style: italic; text-decoration: underline wavy; text-decoration-thickness: 2px; }
+  .mode-colorblind .text-accent { font-weight: 800; }
+  .mode-colorblind .border-primary { border-style: dashed !important; border-width: 3px !important; }
+  .mode-colorblind .border-destructive { border-style: dotted !important; border-width: 3px !important; }
+  .mode-colorblind .progress-fill { background: repeating-linear-gradient(45deg, hsl(var(--primary)), hsl(var(--primary)) 4px, hsl(var(--primary) / 0.5) 4px, hsl(var(--primary) / 0.5) 8px) !important; }
+
+  /* 3. LOW VISION — 125% scale, max contrast, bold, thick borders */
+  .mode-low-vision {
+    font-size: 125% !important;
     --foreground: 0 0% 0%;
     --background: 0 0% 100%;
     --card: 0 0% 100%;
@@ -156,8 +151,154 @@
     --primary: 220 100% 40%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 90%;
-    --muted-foreground: 0 0% 30%;
+    --muted-foreground: 0 0% 25%;
   }
+  .mode-low-vision * { font-weight: 600; }
+  .mode-low-vision .lesson-card { border-width: 3px !important; }
+
+  /* 4. TUNNEL VISION — narrow centred column */
+  .mode-tunnel-vision body { max-width: 480px !important; margin: 0 auto !important; }
+  .mode-tunnel-vision main { max-width: 440px !important; margin: 0 auto !important; }
+
+  /* 5. LIGHT SENSITIVITY — dark warm background, no pure white */
+  .mode-light-sensitivity {
+    --background: 30 15% 12%;
+    --foreground: 40 15% 85%;
+    --card: 30 15% 16%;
+    --card-foreground: 40 15% 85%;
+    --border: 30 10% 25%;
+    --secondary: 30 12% 20%;
+    --muted-foreground: 40 10% 60%;
+    --popover: 30 15% 16%;
+    --popover-foreground: 40 15% 85%;
+  }
+
+  /* 6. ADHD — zero animations, larger targets, focus ring, clean layout */
+  .mode-adhd *,
+  .mode-adhd *::before,
+  .mode-adhd *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .mode-adhd .lesson-card { padding: 1.5rem !important; }
+  .mode-adhd button { min-height: 48px; }
+  .mode-adhd p, .mode-adhd span, .mode-adhd div { line-height: 1.7 !important; }
+  .mode-adhd *:focus-visible {
+    outline: 3px solid hsl(var(--primary)) !important;
+    outline-offset: 2px !important;
+  }
+
+  /* 7. AUTISM SPECTRUM — calm pastel palette, predictable layout, no visual surprises */
+  .mode-autism {
+    --primary: 200 30% 50%;
+    --accent: 200 25% 55%;
+    --destructive: 0 30% 50%;
+    --background: 200 15% 95%;
+    --card: 200 12% 98%;
+  }
+  .mode-autism * { transition-duration: 0.3s !important; }
+  .mode-autism .lesson-card { box-shadow: none !important; }
+  .mode-autism .lesson-card:hover { transform: none !important; border-color: hsl(var(--border)) !important; }
+
+  /* 8. EPILEPSY — no flashing, pulsing, or rapid transitions */
+  .mode-epilepsy *,
+  .mode-epilepsy *::before,
+  .mode-epilepsy *::after {
+    animation: none !important;
+    transition-duration: 0.5s !important;
+  }
+  .mode-epilepsy video, .mode-epilepsy .animate-spin, .mode-epilepsy .animate-pulse,
+  .mode-epilepsy .animate-bounce { display: none !important; }
+
+  /* 9. DYSCALCULIA — monospace numbers, larger digits */
+  .mode-dyscalculia {
+    font-variant-numeric: tabular-nums;
+  }
+  .mode-dyscalculia .xp-counter,
+  .mode-dyscalculia [data-number] {
+    font-family: 'Courier New', monospace !important;
+    font-size: 1.2em;
+    letter-spacing: 0.1em;
+  }
+
+  /* 10. COGNITIVE — large text, simple layout, clear hierarchy */
+  .mode-cognitive {
+    font-size: 118% !important;
+    line-height: 1.9 !important;
+  }
+  .mode-cognitive .lesson-card { padding: 1.75rem !important; }
+  .mode-cognitive h1 { font-size: 2rem !important; }
+  .mode-cognitive h2 { font-size: 1.5rem !important; }
+  .mode-cognitive p { max-width: 60ch; }
+
+  /* 11. MEMORY — persistent indicators, clear nav */
+  .mode-memory .thumb-bar { background: hsl(var(--primary) / 0.08) !important; border-top-width: 3px !important; }
+  .mode-memory header { border-bottom-width: 3px !important; background: hsl(var(--primary) / 0.05) !important; }
+
+  /* 12. ANXIETY — soft everything, no urgency colours */
+  .mode-anxiety {
+    --destructive: 200 30% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --accent: 200 30% 55%;
+  }
+  .mode-anxiety * { transition-duration: 0.4s !important; transition-timing-function: ease !important; }
+  .mode-anxiety .lesson-card:hover { box-shadow: 0 2px 8px hsl(var(--primary) / 0.1) !important; }
+
+  /* 13. MOTOR IMPAIRMENT — extra-large buttons, generous spacing */
+  .mode-motor button,
+  .mode-motor a,
+  .mode-motor [role="button"] {
+    min-height: 56px !important;
+    min-width: 56px !important;
+    padding: 0.75rem 1.25rem !important;
+  }
+  .mode-motor .space-y-2 { gap: 1rem !important; }
+  .mode-motor .space-y-3 { gap: 1.25rem !important; }
+  .mode-motor .gap-2 { gap: 1rem !important; }
+  .mode-motor .gap-3 { gap: 1.25rem !important; }
+
+  /* 14. TREMOR — very large targets, no hover-only */
+  .mode-tremor button,
+  .mode-tremor a,
+  .mode-tremor [role="button"] {
+    min-height: 64px !important;
+    min-width: 64px !important;
+    padding: 1rem 1.5rem !important;
+  }
+  .mode-tremor *:hover { cursor: pointer; }
+  .mode-tremor .lesson-card { padding: 1.75rem !important; }
+
+  /* 15. DYSPRAXIA — forgiving click zones, larger interactive areas */
+  .mode-dyspraxia button,
+  .mode-dyspraxia a,
+  .mode-dyspraxia [role="button"] {
+    min-height: 52px !important;
+    position: relative;
+  }
+  .mode-dyspraxia button::after,
+  .mode-dyspraxia a::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
+
+  /* 16. HEARING IMPAIRMENT — visual indicators, icon emphasis */
+  .mode-hearing [aria-label*="sound"],
+  .mode-hearing [aria-label*="audio"] {
+    border: 2px solid hsl(var(--primary)) !important;
+  }
+
+  /* 17. SCREEN READER — enhanced focus, skip nav */
+  .mode-screen-reader *:focus-visible {
+    outline: 4px solid hsl(var(--primary)) !important;
+    outline-offset: 4px !important;
+  }
+  .mode-screen-reader [aria-hidden="true"] { display: none !important; }
+
+  /* 18. CHRONIC FATIGUE — shorter sections feel, reduced scrolling */
+  .mode-chronic-fatigue .lesson-card { max-height: 300px; overflow-y: auto; }
+  .mode-chronic-fatigue main { padding-bottom: 4rem !important; }
 }
 
 @layer components {
