@@ -357,13 +357,14 @@
     border-radius: 4px;
   }
 
-  /* Minimum 44x44px tap targets (WCAG 2.5.5) */
-  button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
+  /* Minimum 44x44px tap targets (WCAG 2.5.5) — only for interactive lesson/form elements */
+  .lesson-card button, .lesson-card [role="button"],
+  main button, main a[role="button"],
+  form button, form input[type="submit"] {
     min-height: 44px;
-    min-width: 44px;
   }
-  /* Exceptions for inline/icon elements that have visual padding */
-  .inline-action, th button, nav button {
+  /* Exceptions for inline/icon elements */
+  th button, nav button, .inline-action, .skip-nav {
     min-height: auto;
     min-width: auto;
   }
