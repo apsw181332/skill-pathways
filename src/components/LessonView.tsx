@@ -132,6 +132,28 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
   const { translated: translatedTexts } = useTranslatedContent(stepTexts, locale, "educational quiz/lesson");
 
+  // Translate mascot feedback messages
+  const allFeedbackTexts = useMemo(() => [
+    ...CORRECT_MESSAGES, ...WRONG_MESSAGES, ...COMPLETION_MSGS,
+    ...COMPLETION_TIPS, ...GAME_OVER_MSGS,
+  ], []);
+  const { translated: translatedFeedback } = useTranslatedContent(allFeedbackTexts, locale, "mascot encouragement messages");
+  const tFeedback = useMemo(() => {
+    if (locale === "en" || translatedFeedback === allFeedbackTexts) return null;
+    let i = 0;
+    const tCorrect = CORRECT_MESSAGES.map(() => translatedFeedback[i++]);
+    const tWrong = WRONG_MESSAGES.map(() => translatedFeedback[i++]);
+    const tComplete = COMPLETION_MSGS.map(() => translatedFeedback[i++]);
+    const tTips = COMPLETION_TIPS.map(() => translatedFeedback[i++]);
+    const tGameOver = GAME_OVER_MSGS.map(() => translatedFeedback[i++]);
+    return { correct: tCorrect, wrong: tWrong, complete: tComplete, tips: tTips, gameOver: tGameOver };
+  }, [translatedFeedback, locale, allFeedbackTexts]);
+
+  const pickMsg = (origArr: string[], translatedArr?: string[]) => {
+    const idx = Math.floor(Math.random() * origArr.length);
+    return translatedArr?.[idx] ?? origArr[idx];
+  };
+
   // Build translated step
   const tStep = useMemo(() => {
     if (!step || locale === "en" || translatedTexts === stepTexts) return step;
