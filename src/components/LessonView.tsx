@@ -110,6 +110,38 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
 
+  // Translate current step content when locale != "en"
+  const stepTexts = useMemo(() => {
+    if (!step) return [];
+    const texts: string[] = [step.title, step.mascotMsg];
+    if (step.content) texts.push(step.content);
+    if (step.question) texts.push(step.question);
+    if (step.explanation) texts.push(step.explanation);
+    if (step.instruction) texts.push(step.instruction);
+    if (step.options) texts.push(...step.options);
+    if (step.items) texts.push(...step.items.map(i => i.text));
+    return texts;
+  }, [currentStep, step]);
+
+  const { translated: translatedTexts } = useTranslatedContent(stepTexts, locale, "educational quiz/lesson");
+
+  // Build translated step
+  const tStep = useMemo(() => {
+    if (!step || locale === "en" || translatedTexts === stepTexts) return step;
+    let idx = 0;
+    const next = () => translatedTexts[idx++] || "";
+    const result = { ...step };
+    result.title = next();
+    result.mascotMsg = next();
+    if (step.content) result.content = next();
+    if (step.question) result.question = next();
+    if (step.explanation) result.explanation = next();
+    if (step.instruction) result.instruction = next();
+    if (step.options) result.options = step.options.map(() => next());
+    if (step.items) result.items = step.items.map(i => ({ ...i, text: next() }));
+    return result;
+  }, [step, translatedTexts, locale, stepTexts]);
+
   // Shuffle drag items
   useEffect(() => {
     if (step?.type === "drag" && step.items) {
