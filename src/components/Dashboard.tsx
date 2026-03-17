@@ -828,7 +828,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       ) : null}
 
       {/* Friends */}
-      <h3 className="text-lg font-semibold text-foreground mb-3">Friends ({friends.length})</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-3">{t("profile.friends")} ({friends.length})</h3>
       {pendingRequests.length > 0 && (
         <div className="mb-4">
           <p className="text-xs text-muted-foreground mb-2">Pending requests</p>
