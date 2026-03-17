@@ -17,28 +17,27 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const token = authHeader.replace("Bearer ", "");
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { authorization: authHeader } },
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const {
-      data: { user },
-    } = await userClient.auth.getUser();
-
-    if (!user) {
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const userId = claimsData.claims.sub as string;
 
     const body = await req.json().catch(() => null);
     const receiverId = typeof body?.receiver_id === "string" ? body.receiver_id : "";
@@ -59,7 +58,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (receiverId === user.id) {
+    if (receiverId === userId) {
       return new Response(JSON.stringify({ error: "You cannot message yourself" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -73,7 +72,7 @@ Deno.serve(async (req) => {
     const { data: friendship } = await adminClient
       .from("friendships")
       .select("id")
-      .or(`and(user_id.eq.${user.id},friend_id.eq.${receiverId}),and(user_id.eq.${receiverId},friend_id.eq.${user.id})`)
+      .or(`and(user_id.eq.${userId},friend_id.eq.${receiverId}),and(user_id.eq.${receiverId},friend_id.eq.${userId})`)
       .eq("status", "accepted")
       .maybeSingle();
 
@@ -88,7 +87,7 @@ Deno.serve(async (req) => {
       const { data: senderProfile, error: senderError } = await adminClient
         .from("profiles")
         .select("gems")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .single();
 
       const { data: receiverProfile, error: receiverError } = await adminClient
@@ -114,7 +113,7 @@ Deno.serve(async (req) => {
       const { error: senderUpdateError } = await adminClient
         .from("profiles")
         .update({ gems: senderProfile.gems - gemGift })
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       if (senderUpdateError) {
         return new Response(JSON.stringify({ error: senderUpdateError.message }), {
@@ -132,7 +131,7 @@ Deno.serve(async (req) => {
         await adminClient
           .from("profiles")
           .update({ gems: senderProfile.gems })
-          .eq("user_id", user.id);
+          .eq("user_id", userId);
 
         return new Response(JSON.stringify({ error: receiverUpdateError.message }), {
           status: 500,
@@ -142,7 +141,7 @@ Deno.serve(async (req) => {
     }
 
     const payload = {
-      sender_id: user.id,
+      sender_id: userId,
       receiver_id: receiverId,
       content: content || `Sent you ${gemGift} gems! 💎`,
       gem_gift: gemGift,
