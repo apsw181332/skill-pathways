@@ -1,8 +1,28 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Brain, Languages } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import Mascot from "@/components/Mascot";
 import { type UserSettings, THEME_COLORS, applyThemeColor } from "@/hooks/useSettings";
+
+export const LANGUAGES = [
+  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
+  { code: "es", label: "Español", flag: "🇪🇸" },
+  { code: "zh-CN", label: "简体中文", flag: "🇨🇳" },
+  { code: "zh-TW", label: "繁體中文", flag: "🇹🇼" },
+  { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "ja", label: "日本語", flag: "🇯🇵" },
+  { code: "ko", label: "한국어", flag: "🇰🇷" },
+  { code: "pt", label: "Português", flag: "🇧🇷" },
+  { code: "ar", label: "العربية", flag: "🇸🇦" },
+];
+
+export const ACCESSIBILITY_MODES = [
+  { id: "dyslexic", label: "Dyslexia-Friendly", description: "Uses OpenDyslexic font with wider spacing for easier reading", icon: "📖", cssClass: "dyslexic-mode" },
+  { id: "colorblind", label: "Colorblind-Friendly", description: "Adds patterns and text styles to differentiate elements without relying on color", icon: "🎨", cssClass: "colorblind-mode" },
+  { id: "adhd", label: "ADHD-Friendly", description: "Reduces animations, increases tap targets, and simplifies layout", icon: "🧠", cssClass: "adhd-mode" },
+  { id: "high-contrast", label: "High Contrast", description: "Maximum contrast between text and background for low vision", icon: "👁️", cssClass: "high-contrast-mode" },
+];
 
 interface SettingsProps {
   settings: UserSettings;
@@ -10,10 +30,30 @@ interface SettingsProps {
   onBack: () => void;
 }
 
+export function applyAccessibilityModes(modes: string[]) {
+  const root = document.documentElement;
+  ACCESSIBILITY_MODES.forEach(mode => {
+    root.classList.toggle(mode.cssClass, modes.includes(mode.id));
+  });
+}
+
 const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
   const handleColorChange = (color: string) => {
     applyThemeColor(color);
     onUpdate("theme_color", color);
+  };
+
+  const handleLanguageChange = (lang: string) => {
+    onUpdate("language" as keyof UserSettings, lang as any);
+  };
+
+  const toggleAccessibilityMode = (modeId: string) => {
+    const current = (settings as any).accessibility_modes || [];
+    const next = current.includes(modeId)
+      ? current.filter((m: string) => m !== modeId)
+      : [...current, modeId];
+    applyAccessibilityModes(next);
+    onUpdate("accessibility_modes" as keyof UserSettings, next as any);
   };
 
   return (
@@ -28,10 +68,65 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 pt-6 space-y-6">
-        <Mascot message="Make Pathways feel like yours! Customize colors and sounds. ⚙️" size="sm" animation="idle" />
+        <Mascot message="Make Pathways feel like yours! Customize everything. ⚙️" size="sm" animation="idle" />
+
+        {/* Language */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card">
+          <div className="flex items-center gap-3 mb-4">
+            <Globe className="w-5 h-5 text-primary" />
+            <h2 className="font-semibold text-foreground">Language</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">Choose your preferred interface language.</p>
+          <div className="grid grid-cols-2 gap-2">
+            {LANGUAGES.map(lang => (
+              <button
+                key={lang.code}
+                onClick={() => handleLanguageChange(lang.code)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                  (settings as any).language === lang.code
+                    ? "bg-primary/10 text-primary ring-2 ring-primary font-semibold"
+                    : "bg-secondary text-foreground hover:bg-secondary/80"
+                }`}
+              >
+                <span className="text-lg">{lang.flag}</span>
+                <span>{lang.label}</span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Accessibility */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }} className="lesson-card">
+          <div className="flex items-center gap-3 mb-4">
+            <Eye className="w-5 h-5 text-primary" />
+            <h2 className="font-semibold text-foreground">Accessibility</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">Enable modes that make learning more comfortable for you.</p>
+          <div className="space-y-3">
+            {ACCESSIBILITY_MODES.map(mode => {
+              const isActive = ((settings as any).accessibility_modes || []).includes(mode.id);
+              return (
+                <button
+                  key={mode.id}
+                  onClick={() => toggleAccessibilityMode(mode.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
+                    isActive ? "bg-primary/10 ring-2 ring-primary" : "bg-secondary hover:bg-secondary/80"
+                  }`}
+                >
+                  <span className="text-2xl">{mode.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium text-foreground text-sm">{mode.label}</span>
+                    <p className="text-xs text-muted-foreground">{mode.description}</p>
+                  </div>
+                  <Switch checked={isActive} onCheckedChange={() => toggleAccessibilityMode(mode.id)} />
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
 
         {/* Theme Color */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Palette className="w-5 h-5 text-primary" />
             <h2 className="font-semibold text-foreground">Theme Color</h2>
@@ -54,16 +149,30 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
         </motion.div>
 
         {/* Sound Effects */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lesson-card">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }} className="lesson-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {settings.sound_enabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
               <div>
                 <h2 className="font-semibold text-foreground">Sound Effects</h2>
-                <p className="text-sm text-muted-foreground">Play sounds for correct/wrong answers and button clicks</p>
+                <p className="text-sm text-muted-foreground">Play sounds for correct/wrong answers</p>
               </div>
             </div>
             <Switch checked={settings.sound_enabled} onCheckedChange={(v) => onUpdate("sound_enabled", v)} />
+          </div>
+        </motion.div>
+
+        {/* TTS */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }} className="lesson-card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Languages className="w-5 h-5 text-primary" />
+              <div>
+                <h2 className="font-semibold text-foreground">Text-to-Speech</h2>
+                <p className="text-sm text-muted-foreground">Show read-aloud buttons on lesson text</p>
+              </div>
+            </div>
+            <Switch checked={settings.tts_enabled} onCheckedChange={(v) => onUpdate("tts_enabled", v)} />
           </div>
         </motion.div>
       </main>
