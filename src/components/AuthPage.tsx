@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Mail, Lock, UserPlus, LogIn, ShieldCheck } from "lucide-react";
+import { ArrowRight, Mail, Lock, UserPlus, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -133,16 +133,16 @@ const AuthPage = ({ onAuth, signUp, signIn, resetPassword }: AuthPageProps) => {
             </div>
           )}
           {mode === "signup" && password.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex gap-1">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= strength.score ? strength.color : "bg-muted"}`} />
-                ))}
+            <div className="space-y-1">
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
+                  style={{ width: `${Math.max(strength.score * 25, 5)}%` }}
+                />
               </div>
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className={`w-3.5 h-3.5 ${strength.score >= 3 ? "text-primary" : "text-muted-foreground"}`} />
-                <span className={`text-xs font-medium ${strength.score >= 3 ? "text-primary" : "text-muted-foreground"}`}>{strength.label}</span>
-              </div>
+              <span className={`text-xs font-medium ${
+                strength.score <= 1 ? "text-destructive" : strength.score <= 2 ? "text-accent-foreground" : "text-primary"
+              }`}>{strength.label}</span>
             </div>
           )}
 
