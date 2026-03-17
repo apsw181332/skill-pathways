@@ -127,7 +127,7 @@ const AuthPage = ({ onAuth, signUp, signIn, resetPassword }: AuthPageProps) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={8}
+                minLength={mode === "signup" ? 8 : 1}
                 className="pl-10"
               />
             </div>
