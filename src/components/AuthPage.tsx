@@ -1,10 +1,23 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Mail, Lock, UserPlus, LogIn } from "lucide-react";
+import { ArrowRight, Mail, Lock, UserPlus, LogIn, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import Mascot from "@/components/Mascot";
+
+function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return { score, label: "Weak", color: "bg-destructive" };
+  if (score <= 2) return { score, label: "Fair", color: "bg-accent" };
+  if (score <= 3) return { score, label: "Good", color: "bg-primary/70" };
+  return { score, label: "Strong", color: "bg-primary" };
+}
 
 interface AuthPageProps {
   onAuth: () => void;
