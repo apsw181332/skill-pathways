@@ -32,14 +32,14 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: claimsData, error: claimsError } = await client.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await client.auth.getUser(token);
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     const [profileRes, progressRes] = await Promise.all([
       client.from("profiles").select("interests, enrolled_courses, learning_style").eq("user_id", userId).single(),
