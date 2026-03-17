@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, ChevronDown, ChevronUp, Trash2, Plus, Minus } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Trash2, Plus, Minus, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { getLevelForXp } from "@/lib/levels";
+import { decodeLearningCode, LEARNING_CODE_CRITERIA } from "@/lib/learningCode";
 import { toast } from "sonner";
 
 interface UserProfile {
@@ -34,6 +35,7 @@ interface UserProfile {
   last_activity_date: string | null;
   created_at: string;
   interests: string[] | null;
+  learning_code: string | null;
 }
 
 type SortKey = "xp" | "streak" | "created_at" | "display_name";
