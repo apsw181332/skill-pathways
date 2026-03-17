@@ -333,7 +333,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
     if (idx === shuffledQuiz.correctIndex) {
       setCorrectAnswers(prev => prev + 1);
       recentQuizResults.current.push(true);
-      setFeedbackMascotMsg(CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]);
+      setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
       triggerXp(15);
       if (soundEnabled) playCorrectSound();
     } else {
