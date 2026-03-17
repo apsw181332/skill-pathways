@@ -20,6 +20,7 @@ import { getLevelForXp, getXpProgress, LEVELS } from "@/lib/levels";
 import { COURSES } from "@/lib/courseData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation, type Locale } from "@/lib/i18n";
 
 const BADGE_DEFINITIONS = [
   { id: "first-lesson", label: "First Steps", emoji: "🐣", desc: "Complete your first lesson" },
