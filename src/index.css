@@ -368,3 +368,22 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
 }
+
+/* Skip navigation — outside @layer so it applies to element outside React root */
+.skip-nav {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  z-index: 9999;
+  padding: 8px 16px;
+  font-weight: 500;
+  font-size: 14px;
+  background: hsl(165 50% 42%);
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+.skip-nav:focus {
+  top: 16px;
+}
