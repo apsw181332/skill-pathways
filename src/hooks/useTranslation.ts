@@ -5,9 +5,8 @@ import type { Locale } from "@/lib/i18n";
 // Cache translations to avoid repeated API calls
 const translationCache: Record<string, string[]> = {};
 
-function getCacheKey(texts: string[], locale: string): string {
-  // Use first 3 texts + locale as a lightweight cache key
-  return `${locale}:${texts.slice(0, 3).join("|").slice(0, 100)}`;
+function getCacheKey(texts: string[], locale: string, context: string): string {
+  return JSON.stringify({ locale, context, texts });
 }
 
 export function useTranslatedContent(
