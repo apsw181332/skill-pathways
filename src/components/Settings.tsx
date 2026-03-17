@@ -122,7 +122,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
       </header>
 
       <main className="max-w-2xl mx-auto px-6 pt-6 space-y-6">
-        <Mascot message="Make Pathways feel like yours! Customize everything. ⚙️" size="sm" animation="idle" />
+        <Mascot message={t("settings.title") !== "Settings" ? t("settings.title") + " ⚙️" : "Make Pathways feel like yours! Customize everything. ⚙️"} size="sm" animation="idle" />
 
         {/* Account — Display Name */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card">
