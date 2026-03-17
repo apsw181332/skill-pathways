@@ -534,7 +534,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                   {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
                 </div>
                 <div className="space-y-3">
-                  {shuffledQuiz.options.map((opt, idx) => {
+                  {shuffledQuiz.originalIndices.map((origIdx, idx) => {
+                    const opt = (tStep?.options ?? step.options)?.[origIdx] ?? "";
                     let borderClass = "";
                     if (showFeedback && idx === shuffledQuiz.correctIndex) borderClass = "border-primary bg-primary/5";
                     else if (showFeedback && idx === selectedAnswer && idx !== shuffledQuiz.correctIndex) borderClass = "border-destructive bg-destructive/5";
