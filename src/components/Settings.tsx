@@ -1,10 +1,15 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Languages } from "lucide-react";
+import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Languages, User, Lock, Check, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import Mascot from "@/components/Mascot";
 import { type UserSettings, THEME_COLORS, applyThemeColor } from "@/hooks/useSettings";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { ACCESSIBILITY_MODES, applyAccessibilityModes } from "@/lib/accessibility";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export { applyAccessibilityModes };
 
@@ -26,10 +31,67 @@ interface SettingsProps {
   onUpdate: <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => Promise<void>;
   onBack: () => void;
   locale?: Locale;
+  userId?: string;
 }
 
-const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) => {
+const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: SettingsProps) => {
   const { t } = useTranslation(locale);
+  const { toast } = useToast();
+
+  // Display name state
+  const [displayName, setDisplayName] = useState("");
+  const [nameLoading, setNameLoading] = useState(false);
+  const [nameLoaded, setNameLoaded] = useState(false);
+
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+
+  // Load display name on first render
+  if (!nameLoaded && userId) {
+    setNameLoaded(true);
+    supabase.from("profiles").select("display_name").eq("user_id", userId).single().then(({ data }) => {
+      if (data?.display_name) setDisplayName(data.display_name);
+    });
+  }
+
+  const handleNameSave = async () => {
+    const trimmed = displayName.trim();
+    if (!trimmed || !userId) return;
+    setNameLoading(true);
+    const { error } = await supabase.from("profiles").update({ display_name: trimmed }).eq("user_id", userId);
+    setNameLoading(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Display name updated!" });
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (newPassword.length < 8) {
+      toast({ title: "Password too short", description: "Must be at least 8 characters.", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Passwords don't match", variant: "destructive" });
+      return;
+    }
+    setPwLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setPwLoading(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Password updated successfully!" });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  };
+
   const handleColorChange = (color: string) => {
     applyThemeColor(color);
     onUpdate("theme_color", color);
@@ -62,8 +124,55 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
       <main className="max-w-2xl mx-auto px-6 pt-6 space-y-6">
         <Mascot message="Make Pathways feel like yours! Customize everything. ⚙️" size="sm" animation="idle" />
 
-        {/* Language */}
+        {/* Account — Display Name */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card">
+          <div className="flex items-center gap-3 mb-4">
+            <User className="w-5 h-5 text-primary" />
+            <h2 className="font-semibold text-foreground">Display Name</h2>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Your display name"
+              maxLength={50}
+              className="flex-1"
+            />
+            <Button onClick={handleNameSave} disabled={nameLoading || !displayName.trim()} size="sm">
+              {nameLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            </Button>
+          </div>
+        </motion.div>
+
+        {/* Account — Change Password */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02 }} className="lesson-card">
+          <div className="flex items-center gap-3 mb-4">
+            <Lock className="w-5 h-5 text-primary" />
+            <h2 className="font-semibold text-foreground">Change Password</h2>
+          </div>
+          <div className="space-y-3">
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password (min 8 chars)"
+              minLength={8}
+            />
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+            />
+            <Button onClick={handlePasswordChange} disabled={pwLoading || !newPassword || !confirmPassword} className="w-full">
+              {pwLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Update Password
+            </Button>
+          </div>
+        </motion.div>
+
+        {/* Language */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Globe className="w-5 h-5 text-primary" />
             <h2 className="font-semibold text-foreground">{t("settings.language")}</h2>
@@ -88,7 +197,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
         </motion.div>
 
         {/* Accessibility — 18 modes */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }} className="lesson-card">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Eye className="w-5 h-5 text-primary" />
             <h2 className="font-semibold text-foreground">{t("settings.accessibility")}</h2>
@@ -118,7 +227,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
         </motion.div>
 
         {/* Theme Color */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lesson-card">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Palette className="w-5 h-5 text-primary" />
             <h2 className="font-semibold text-foreground">{t("settings.theme")}</h2>
@@ -141,7 +250,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
         </motion.div>
 
         {/* Sound Effects */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }} className="lesson-card">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lesson-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {settings.sound_enabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
@@ -155,7 +264,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
         </motion.div>
 
         {/* TTS */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }} className="lesson-card">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="lesson-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Languages className="w-5 h-5 text-primary" />

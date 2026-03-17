@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  LayoutDashboard, Users, Globe2, CreditCard, LogOut,
-  TrendingUp, UserCheck, BookOpen, DollarSign
+  LayoutDashboard, Users, Globe2, CreditCard, LogOut, Settings as SettingsIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminOverview from "./AdminOverview";
 import AdminUsers from "./AdminUsers";
 import AdminGlobe from "./AdminGlobe";
 import AdminSubscriptions from "./AdminSubscriptions";
+import SettingsPage from "@/components/Settings";
+import { useSettings } from "@/hooks/useSettings";
+import { useAuth } from "@/hooks/useAuth";
 import mascotImg from "@/assets/mascot-penguin.png";
+import type { Locale } from "@/lib/i18n";
 
 interface AdminDashboardProps {
   onSignOut: () => Promise<void>;
@@ -20,12 +23,15 @@ const NAV_ITEMS = [
   { id: "users", label: "Users", icon: Users },
   { id: "globe", label: "Globe", icon: Globe2 },
   { id: "subscriptions", label: "Subscriptions", icon: CreditCard },
+  { id: "settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 
 type TabId = (typeof NAV_ITEMS)[number]["id"];
 
 const AdminDashboard = ({ onSignOut }: AdminDashboardProps) => {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const { user } = useAuth();
+  const { settings, updateSetting } = useSettings(user?.id);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -76,23 +82,34 @@ const AdminDashboard = ({ onSignOut }: AdminDashboardProps) => {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border px-8 py-4">
-          <h2 className="text-xl font-semibold text-foreground capitalize">{activeTab}</h2>
-        </header>
-
-        <div className="p-8">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeTab === "overview" && <AdminOverview />}
-            {activeTab === "users" && <AdminUsers />}
-            {activeTab === "globe" && <AdminGlobe />}
-            {activeTab === "subscriptions" && <AdminSubscriptions />}
-          </motion.div>
-        </div>
+        {activeTab === "settings" ? (
+          <SettingsPage
+            settings={settings}
+            onUpdate={updateSetting}
+            onBack={() => setActiveTab("overview")}
+            locale={(settings.language || "en") as Locale}
+            userId={user?.id}
+          />
+        ) : (
+          <>
+            <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border px-8 py-4">
+              <h2 className="text-xl font-semibold text-foreground capitalize">{activeTab}</h2>
+            </header>
+            <div className="p-8">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {activeTab === "overview" && <AdminOverview />}
+                {activeTab === "users" && <AdminUsers />}
+                {activeTab === "globe" && <AdminGlobe />}
+                {activeTab === "subscriptions" && <AdminSubscriptions />}
+              </motion.div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
