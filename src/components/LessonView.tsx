@@ -338,7 +338,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       if (soundEnabled) playCorrectSound();
     } else {
       recentQuizResults.current.push(false);
-      setFeedbackMascotMsg(WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]);
+      setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
       if (soundEnabled) playWrongSound();
       const newLives = lives - 1;
       setLives(newLives);
