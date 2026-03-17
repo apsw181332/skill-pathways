@@ -395,6 +395,25 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
   const handleNext = () => {
     if (soundEnabled) playClickSound();
+    setPaceWarning(null);
+
+    // Track reading time for info steps
+    const elapsed = (Date.now() - stepStartTime.current) / 1000;
+    if (step?.type === "info" && step.content) {
+      infoReadTimes.current.push({ duration: elapsed, contentLength: step.content.length });
+
+      // Check if Pebble should intervene about reading pace
+      const recentCorrect = recentQuizResults.current.slice(-3);
+      const recentAccuracy = recentCorrect.length > 0 ? recentCorrect.filter(Boolean).length / recentCorrect.length : 1;
+      const warning = getReadingPaceIntervention(elapsed, step.content.length, recentAccuracy);
+      if (warning) {
+        setPaceWarning(warning);
+        // Don't block, just show warning briefly
+      }
+    }
+
+    stepStartTime.current = Date.now();
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
       setSelectedAnswer(null);
@@ -403,10 +422,40 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       setDragSubmitted(false);
       setFeedbackMascotMsg(null);
     } else {
-      if (!isReview) saveLessonProgress(totalXp);
+      if (!isReview) {
+        saveLessonProgress(totalXp);
+        adaptUserLearningCode();
+      }
       setShowConfetti(true);
       if (soundEnabled) playSuccessSound();
       setShowCompletion(true);
+    }
+  };
+
+  /** After lesson completion, adapt the learning code based on observed behavior */
+  const adaptUserLearningCode = async () => {
+    if (!userId) return;
+    try {
+      const { data: profile } = await supabase.from("profiles").select("learning_code").eq("user_id", userId).single();
+      const currentCode = (profile as any)?.learning_code || "111111111";
+      const reads = infoReadTimes.current;
+      const avgReadTime = reads.length > 0 ? reads.reduce((s, r) => s + r.duration, 0) / reads.length : 15;
+      const avgContentLen = reads.length > 0 ? reads.reduce((s, r) => s + r.contentLength, 0) / reads.length : 200;
+      const accuracy = totalQuizzes > 0 ? correctAnswers / totalQuizzes : 1;
+
+      const newCode = adaptLearningCode(currentCode, {
+        avgReadingTimeSec: avgReadTime,
+        accuracy,
+        totalQuizzes,
+        infoStepsCount: reads.length,
+        avgContentLength: avgContentLen,
+      });
+
+      if (newCode !== currentCode) {
+        await supabase.from("profiles").update({ learning_code: newCode } as any).eq("user_id", userId);
+      }
+    } catch (err) {
+      console.error("Failed to adapt learning code:", err);
     }
   };
 
