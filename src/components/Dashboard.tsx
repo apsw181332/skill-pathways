@@ -798,7 +798,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     return (
     <>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <Mascot message={earnedBadges.length > 0 ? "Look at all your badges! Keep collecting! 🏅" : "Complete lessons to start earning badges! 🎯"} size="sm" animation="idle" />
+        <Mascot message={earnedBadges.length > 0 ? (tDashMascot[2] ?? "Look at all your badges! Keep collecting! 🏅") : (tDashMascot[3] ?? "Complete lessons to start earning badges! 🎯")} size="sm" animation="idle" />
       </motion.div>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lesson-card text-center mb-6">
         <div className="relative w-24 h-24 mx-auto mb-3">
