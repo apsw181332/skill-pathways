@@ -8,12 +8,14 @@ import AuthPage from "@/components/AuthPage";
 import Onboarding, { type UserConfig } from "@/components/Onboarding";
 import Dashboard from "@/components/Dashboard";
 import LessonView from "@/components/LessonView";
+import PathComplete from "@/components/PathComplete";
 import AdminDashboard from "@/components/admin/AdminDashboard";
+import { COURSES } from "@/lib/courseData";
 import Tutorial from "@/components/Tutorial";
 import SettingsPage from "@/components/Settings";
 import ChatBot from "@/components/ChatBot";
 
-type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings";
+type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
 
 const Index = () => {
   const { user, isReady, signUp, signIn, signOut, resetPassword } = useAuth();
@@ -24,6 +26,7 @@ const Index = () => {
   const [activeLessonCategory, setActiveLessonCategory] = useState("tech");
   const [activeLessonId, setActiveLessonId] = useState(1);
   const [activeLessonReview, setActiveLessonReview] = useState(false);
+  const [completedCourse, setCompletedCourse] = useState<typeof COURSES[0] | null>(null);
   const [gems, setGems] = useState(0);
   const [extraLives, setExtraLives] = useState(0);
 
@@ -49,6 +52,7 @@ const Index = () => {
     if (!isReady || settingsLoading) return "landing";
     if (user) {
       if (state === "lesson") return "lesson";
+      if (state === "path-complete") return "path-complete";
       if (state === "settings") return "settings";
       if (!settings.onboarding_completed && state !== "dashboard") return "onboarding";
       if (settings.onboarding_completed && !settings.tutorial_completed && state === "tutorial") return "tutorial";
@@ -121,9 +125,38 @@ const Index = () => {
           <ChatBot />
         </>
       );
+    case "path-complete":
+      return completedCourse ? (
+        <PathComplete
+          course={completedCourse}
+          totalXp={0}
+          onContinue={() => { setCompletedCourse(null); setState("dashboard"); }}
+        />
+      ) : null;
     case "lesson":
       return (
-        <LessonView onBack={() => setState("dashboard")} userId={user?.id}
+        <LessonView onBack={async () => {
+          // Check if the user just completed the last lesson of a course
+          if (user && !activeLessonReview) {
+            const course = COURSES.find(c => c.id === activeLessonCategory);
+            if (course) {
+              const { data: progress } = await supabase.from("user_progress")
+                .select("lesson_id")
+                .eq("user_id", user.id)
+                .eq("category_id", activeLessonCategory)
+                .eq("completed", true);
+              const completedCount = progress?.length || 0;
+              if (completedCount >= course.lessons.length && settings.enrolled_courses.includes(activeLessonCategory)) {
+                // Path complete! Auto-unenroll and show completion page
+                await unenrollCourse(activeLessonCategory);
+                setCompletedCourse(course);
+                setState("path-complete");
+                return;
+              }
+            }
+          }
+          setState("dashboard");
+        }} userId={user?.id}
           categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
           extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
       );
