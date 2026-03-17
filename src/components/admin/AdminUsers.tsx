@@ -153,8 +153,30 @@ const AdminUsers = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
+        <Button variant="outline" size="sm" onClick={() => setShowLegend(!showLegend)} className="gap-1">
+          <Info className="w-3.5 h-3.5" /> Learning Code Legend
+        </Button>
         <span className="text-sm text-muted-foreground">{filtered.length} users</span>
       </div>
+
+      {showLegend && (
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Learning Code Legend (9 digits)</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            {LEARNING_CODE_CRITERIA.map((c, i) => (
+              <div key={i} className="flex items-start gap-2 bg-secondary/50 rounded-lg p-2">
+                <span className="font-mono font-bold text-primary">Pos {c.position}</span>
+                <div>
+                  <span className="font-medium text-foreground">{c.name}</span>
+                  <div className="text-muted-foreground">
+                    0={c.levels[0]}, 1={c.levels[1]}, 2={c.levels[2]}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
