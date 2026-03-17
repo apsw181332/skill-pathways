@@ -176,6 +176,7 @@ export type Database = {
       profiles: {
         Row: {
           accessibility: string[] | null
+          accessibility_modes: string[]
           avatar_url: string | null
           country: string | null
           created_at: string
@@ -184,6 +185,7 @@ export type Database = {
           gems: number
           id: string
           interests: string[] | null
+          language: string
           last_activity_date: string | null
           latitude: number | null
           learning_style: string | null
@@ -202,6 +204,7 @@ export type Database = {
         }
         Insert: {
           accessibility?: string[] | null
+          accessibility_modes?: string[]
           avatar_url?: string | null
           country?: string | null
           created_at?: string
@@ -210,6 +213,7 @@ export type Database = {
           gems?: number
           id?: string
           interests?: string[] | null
+          language?: string
           last_activity_date?: string | null
           latitude?: number | null
           learning_style?: string | null
@@ -228,6 +232,7 @@ export type Database = {
         }
         Update: {
           accessibility?: string[] | null
+          accessibility_modes?: string[]
           avatar_url?: string | null
           country?: string | null
           created_at?: string
@@ -236,6 +241,7 @@ export type Database = {
           gems?: number
           id?: string
           interests?: string[] | null
+          language?: string
           last_activity_date?: string | null
           latitude?: number | null
           learning_style?: string | null
