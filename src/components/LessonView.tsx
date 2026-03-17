@@ -6,6 +6,7 @@ import Mascot from "@/components/Mascot";
 import Confetti from "@/components/Confetti";
 import XpPopup from "@/components/XpPopup";
 import TreasureChest from "@/components/TreasureChest";
+import ReadAloudButton from "@/components/ReadAloudButton";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, type LessonStep } from "@/lib/courseData";
@@ -16,6 +17,7 @@ interface LessonViewProps {
   categoryId: string;
   lessonId: number;
   soundEnabled: boolean;
+  ttsEnabled?: boolean;
   extraLives: number;
   onUseExtraLife: () => void;
   isReview?: boolean;
@@ -70,7 +72,7 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraLives, onUseExtraLife, isReview = false }: LessonViewProps) => {
+const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false }: LessonViewProps) => {
   const lesson = getLessonContent(categoryId, lessonId);
   const steps = lesson?.steps || [];
 
@@ -419,19 +421,25 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, extraL
 
             {step.type === "info" && (
               <div className="lesson-card">
-                {step.image && <img src={step.image} alt={step.title} className="w-full h-48 object-cover rounded-lg mb-4" />}
+                {step.image && <img src={step.image} alt={`Illustration for ${step.title}`} className="w-full h-48 object-cover rounded-lg mb-4" />}
                 {step.video && (
                   <div className="w-full aspect-video rounded-lg overflow-hidden mb-4 bg-muted">
                     <iframe src={step.video} title={step.title} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                   </div>
                 )}
-                <p className="text-foreground leading-relaxed text-lg">{step.content}</p>
+                <div className="flex items-start gap-2">
+                  <p className="text-foreground leading-relaxed text-lg flex-1">{step.content}</p>
+                  {ttsEnabled && step.content && <ReadAloudButton text={step.content} size="sm" className="shrink-0 mt-1" />}
+                </div>
               </div>
             )}
 
             {step.type === "quiz" && shuffledQuiz && (
               <div>
-                <p className="text-foreground text-lg mb-6">{step.question}</p>
+                <div className="flex items-start gap-2 mb-6">
+                  <p className="text-foreground text-lg flex-1">{step.question}</p>
+                  {ttsEnabled && step.question && <ReadAloudButton text={step.question} size="sm" className="shrink-0 mt-1" />}
+                </div>
                 <div className="space-y-3">
                   {shuffledQuiz.options.map((opt, idx) => {
                     let borderClass = "";

@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
   Home, BookOpen, Trophy, User as UserIcon, Flame, Star,
   ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award, LogOut,
   Users, UserPlus, Check, X, Search, Settings as SettingsIcon, Plus, Minus,
-  Diamond, Heart, ShoppingBag, Target, MessageCircle, Gift, Send, ArrowLeft, RotateCcw
+  Diamond, Heart, ShoppingBag, Target, MessageCircle, Gift, Send, ArrowLeft, RotateCcw,
+  Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +90,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [giftAmount, setGiftAmount] = useState(0);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   const levelInfo = getXpProgress(xp);
@@ -105,12 +107,12 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   useEffect(() => {
     const fetchAll = async () => {
       const [profileRes, achieveRes, progressRes, lbRes] = await Promise.all([
-        supabase.from("profiles").select("xp, streak").eq("user_id", user.id).single(),
+        supabase.from("profiles").select("xp, streak, avatar_url").eq("user_id", user.id).single(),
         supabase.from("achievements").select("badge_id").eq("user_id", user.id),
         supabase.from("user_progress").select("category_id, lesson_id, completed").eq("user_id", user.id),
         supabase.from("profiles").select("user_id, display_name, xp, streak").order("xp", { ascending: false }).limit(50),
       ]);
-      if (profileRes.data) { setXp(profileRes.data.xp); setStreak(profileRes.data.streak); }
+      if (profileRes.data) { setXp(profileRes.data.xp); setStreak(profileRes.data.streak); setAvatarUrl((profileRes.data as any).avatar_url || null); }
       if (achieveRes.data) setEarnedBadges(achieveRes.data.map(a => a.badge_id));
       if (progressRes.data) {
         const progress: Record<string, number> = {};
@@ -690,14 +692,40 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     </>
   );
 
-  const renderProfile = () => (
+  const renderProfile = () => {
+    const fileInputRef = document.createElement("input");
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (error) { toast({ title: "Upload failed", description: error.message, variant: "destructive" }); return; }
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      await supabase.from("profiles").update({ avatar_url: urlData.publicUrl } as any).eq("user_id", user.id);
+      setAvatarUrl(urlData.publicUrl);
+      toast({ title: "Avatar updated! 📸" });
+    };
+
+    return (
     <>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <Mascot message={earnedBadges.length > 0 ? "Look at all your badges! Keep collecting! 🏅" : "Complete lessons to start earning badges! 🎯"} size="sm" animation="idle" />
       </motion.div>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lesson-card text-center mb-6">
-        <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
-          <img src={mascotImg} alt="Profile" className="w-14 h-14 object-contain" />
+        <div className="relative w-24 h-24 mx-auto mb-3">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Profile" className="w-24 h-24 rounded-full object-cover border-4 border-primary/20" />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+              <img src={mascotImg} alt="Profile" className="w-16 h-16 object-contain" />
+            </div>
+          )}
+          <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer shadow-md hover:scale-110 transition-transform">
+            <Camera className="w-4 h-4" />
+            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+          </label>
         </div>
         <h2 className="text-xl font-semibold text-foreground">{user.user_metadata?.display_name || user.email?.split("@")[0]}</h2>
         <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
@@ -808,6 +836,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       </Button>
     </>
   );
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">

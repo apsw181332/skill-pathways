@@ -12,7 +12,7 @@ import PathComplete from "@/components/PathComplete";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import { COURSES } from "@/lib/courseData";
 import Tutorial from "@/components/Tutorial";
-import SettingsPage from "@/components/Settings";
+import SettingsPage, { applyAccessibilityModes } from "@/components/Settings";
 import ChatBot from "@/components/ChatBot";
 
 type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
@@ -31,8 +31,11 @@ const Index = () => {
   const [extraLives, setExtraLives] = useState(0);
 
   useEffect(() => {
-    if (!settingsLoading) applyThemeColor(settings.theme_color);
-  }, [settings.theme_color, settingsLoading]);
+    if (!settingsLoading) {
+      applyThemeColor(settings.theme_color);
+      applyAccessibilityModes((settings as any).accessibility_modes || []);
+    }
+  }, [settings.theme_color, (settings as any).accessibility_modes, settingsLoading]);
 
   useEffect(() => {
     if (!user) return;
@@ -158,6 +161,7 @@ const Index = () => {
           setState("dashboard");
         }} userId={user?.id}
           categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
+          ttsEnabled={settings.tts_enabled}
           extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
       );
   }

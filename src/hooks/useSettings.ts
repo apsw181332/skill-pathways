@@ -4,17 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 export interface UserSettings {
   theme_color: string;
   sound_enabled: boolean;
+  tts_enabled: boolean;
   onboarding_completed: boolean;
   tutorial_completed: boolean;
   enrolled_courses: string[];
+  language: string;
+  accessibility_modes: string[];
 }
 
 const DEFAULTS: UserSettings = {
   theme_color: "blue",
   sound_enabled: true,
+  tts_enabled: false,
   onboarding_completed: false,
   tutorial_completed: false,
   enrolled_courses: [],
+  language: "en",
+  accessibility_modes: [],
 };
 
 export function useSettings(userId?: string) {
@@ -29,16 +35,19 @@ export function useSettings(userId?: string) {
     const fetchSettings = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("theme_color, sound_enabled, onboarding_completed, tutorial_completed, enrolled_courses")
+        .select("theme_color, sound_enabled, tts_enabled, onboarding_completed, tutorial_completed, enrolled_courses, language, accessibility_modes")
         .eq("user_id", userId)
         .single();
       if (data) {
         setSettings({
           theme_color: (data as any).theme_color || "blue",
           sound_enabled: (data as any).sound_enabled ?? true,
+          tts_enabled: (data as any).tts_enabled ?? false,
           onboarding_completed: (data as any).onboarding_completed ?? false,
           tutorial_completed: (data as any).tutorial_completed ?? false,
           enrolled_courses: (data as any).enrolled_courses || [],
+          language: (data as any).language || "en",
+          accessibility_modes: (data as any).accessibility_modes || [],
         });
       }
       setLoading(false);

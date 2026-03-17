@@ -1,83 +1,97 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* OpenDyslexic font */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+}
+
 @layer base {
   :root {
-    --background: 225 20% 97%;
-    --foreground: 225 20% 18%;
+    --background: 40 25% 96%;
+    --foreground: 220 15% 20%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 225 20% 18%;
+    --card: 40 20% 99%;
+    --card-foreground: 220 15% 20%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 225 20% 18%;
+    --popover: 40 20% 99%;
+    --popover-foreground: 220 15% 20%;
 
-    --primary: 230 58% 48%;
+    --primary: 165 50% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 225 15% 93%;
-    --secondary-foreground: 225 20% 18%;
+    --secondary: 40 18% 91%;
+    --secondary-foreground: 220 15% 20%;
 
-    --muted: 225 15% 93%;
-    --muted-foreground: 225 10% 50%;
+    --muted: 40 15% 91%;
+    --muted-foreground: 220 10% 48%;
 
-    --accent: 42 70% 62%;
-    --accent-foreground: 42 80% 20%;
+    --accent: 35 80% 58%;
+    --accent-foreground: 35 90% 18%;
 
-    --destructive: 0 60% 50%;
+    --destructive: 0 55% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 12% 87%;
-    --input: 225 12% 87%;
-    --ring: 230 58% 48%;
+    --border: 40 14% 86%;
+    --input: 40 14% 86%;
+    --ring: 165 50% 42%;
 
     --radius: 1rem;
     --radius-inner: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 40 20% 97%;
+    --sidebar-foreground: 220 10% 30%;
+    --sidebar-primary: 220 12% 16%;
+    --sidebar-primary-foreground: 40 20% 97%;
+    --sidebar-accent: 40 15% 94%;
+    --sidebar-accent-foreground: 220 12% 16%;
+    --sidebar-border: 40 14% 90%;
+    --sidebar-ring: 165 50% 42%;
 
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-swift: cubic-bezier(0.2, 0, 0, 1);
   }
 
   .dark {
-    --background: 225 25% 8%;
-    --foreground: 225 15% 90%;
+    --background: 220 18% 10%;
+    --foreground: 40 15% 90%;
 
-    --card: 225 25% 12%;
-    --card-foreground: 225 15% 90%;
+    --card: 220 18% 14%;
+    --card-foreground: 40 15% 90%;
 
-    --popover: 225 25% 12%;
-    --popover-foreground: 225 15% 90%;
+    --popover: 220 18% 14%;
+    --popover-foreground: 40 15% 90%;
 
-    --primary: 230 55% 60%;
+    --primary: 165 45% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 225 20% 18%;
-    --secondary-foreground: 225 15% 90%;
+    --secondary: 220 15% 20%;
+    --secondary-foreground: 40 15% 90%;
 
-    --muted: 225 20% 18%;
-    --muted-foreground: 225 10% 55%;
+    --muted: 220 15% 20%;
+    --muted-foreground: 220 10% 55%;
 
-    --accent: 42 65% 55%;
-    --accent-foreground: 42 80% 95%;
+    --accent: 35 70% 50%;
+    --accent-foreground: 35 90% 92%;
 
-    --destructive: 0 55% 45%;
+    --destructive: 0 50% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 20% 22%;
-    --input: 225 20% 22%;
-    --ring: 230 55% 60%;
+    --border: 220 15% 24%;
+    --input: 220 15% 24%;
+    --ring: 165 45% 50%;
   }
 
   * {
@@ -88,13 +102,61 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Nunito', 'Quicksand', system-ui, -apple-system, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 600;
-    letter-spacing: -0.03em;
+    font-family: 'Quicksand', 'Nunito', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     text-wrap: balance;
+  }
+
+  /* Dyslexia-friendly mode */
+  .dyslexic-mode body,
+  .dyslexic-mode {
+    font-family: 'OpenDyslexic', system-ui, sans-serif !important;
+    letter-spacing: 0.05em;
+    word-spacing: 0.15em;
+    line-height: 1.8 !important;
+  }
+  .dyslexic-mode h1, .dyslexic-mode h2, .dyslexic-mode h3,
+  .dyslexic-mode h4, .dyslexic-mode h5, .dyslexic-mode h6 {
+    font-family: 'OpenDyslexic', system-ui, sans-serif !important;
+  }
+
+  /* Colorblind mode - use underlines and patterns for emphasis instead of color alone */
+  .colorblind-mode .text-primary { text-decoration: underline; text-decoration-thickness: 2px; }
+  .colorblind-mode .text-destructive { font-style: italic; text-decoration: underline wavy; text-decoration-thickness: 2px; }
+  .colorblind-mode .text-accent { font-weight: 800; }
+  .colorblind-mode .border-primary { border-style: dashed !important; border-width: 3px !important; }
+  .colorblind-mode .border-destructive { border-style: dotted !important; border-width: 3px !important; }
+
+  /* ADHD mode - reduce animations, less clutter, larger tap targets */
+  .adhd-mode * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .adhd-mode .lesson-card {
+    padding: 1.5rem !important;
+  }
+  .adhd-mode button {
+    min-height: 48px;
+  }
+  .adhd-mode p, .adhd-mode span, .adhd-mode div {
+    line-height: 1.7 !important;
+  }
+
+  /* High contrast mode */
+  .high-contrast-mode {
+    --foreground: 0 0% 0%;
+    --background: 0 0% 100%;
+    --card: 0 0% 100%;
+    --border: 0 0% 0%;
+    --primary: 220 100% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 90%;
+    --muted-foreground: 0 0% 30%;
   }
 }
 
@@ -114,7 +176,7 @@
 
   .progress-fill {
     @apply h-1.5 rounded-full;
-    background: linear-gradient(90deg, hsl(var(--primary)), hsl(230 70% 65%));
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(165 60% 55%));
   }
 
   .thumb-bar {
