@@ -38,6 +38,14 @@ export const MISSIONS: Mission[] = [
   { id: "m15", title: "XP Legend", description: "Earn 1000 XP total", emoji: "👑", requirement: (s) => s.totalXp >= 1000, reward: 150 },
 ];
 
+// Title definitions - earned via missions, not purchased
+export const TITLE_REWARDS: Record<string, { title: string; missionId: string }> = {
+  "m5": { title: "Scholar", missionId: "m5" },
+  "m10": { title: "Champion", missionId: "m10" },
+  "m14": { title: "Legend", missionId: "m14" },
+  "m15": { title: "Grand Master", missionId: "m15" },
+};
+
 interface MissionsProps {
   stats: MissionStats;
   claimedMissions: string[];
@@ -45,6 +53,20 @@ interface MissionsProps {
 }
 
 const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
+  // Sort: claimable first, then unclaimed incomplete, then claimed
+  const sortedMissions = [...MISSIONS].sort((a, b) => {
+    const aClaimed = claimedMissions.includes(a.id);
+    const bClaimed = claimedMissions.includes(b.id);
+    const aCanClaim = !aClaimed && a.requirement(stats);
+    const bCanClaim = !bClaimed && b.requirement(stats);
+
+    if (aCanClaim && !bCanClaim) return -1;
+    if (!aCanClaim && bCanClaim) return 1;
+    if (aClaimed && !bClaimed) return 1;
+    if (!aClaimed && bClaimed) return -1;
+    return 0;
+  });
+
   return (
     <>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
@@ -54,9 +76,10 @@ const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
       <h2 className="text-xl font-semibold text-foreground mb-4">Missions</h2>
 
       <div className="space-y-3">
-        {MISSIONS.map((mission, i) => {
+        {sortedMissions.map((mission, i) => {
           const claimed = claimedMissions.includes(mission.id);
           const canClaim = !claimed && mission.requirement(stats);
+          const titleReward = TITLE_REWARDS[mission.id];
 
           return (
             <motion.div
@@ -79,8 +102,15 @@ const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
                   {claimed && <CheckCircle2 className="w-4 h-4 text-primary" />}
                 </div>
                 <div className="text-xs text-muted-foreground">{mission.description}</div>
-                <div className="flex items-center gap-1 mt-1 text-xs text-primary font-medium">
-                  <Diamond className="w-3 h-3" /> +{mission.reward} gems
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1 text-xs text-primary font-medium">
+                    <Diamond className="w-3 h-3" /> +{mission.reward} gems
+                  </div>
+                  {titleReward && (
+                    <span className="text-xs bg-accent/10 text-accent px-1.5 py-0.5 rounded-full">
+                      🏅 Unlocks "{titleReward.title}" title
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="shrink-0">

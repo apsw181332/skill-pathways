@@ -429,7 +429,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                 )}
                 <div className="flex items-start gap-2">
                   <p className="text-foreground leading-relaxed text-lg flex-1">{step.content}</p>
-                  {ttsEnabled && step.content && <ReadAloudButton text={step.content} size="sm" className="shrink-0 mt-1" />}
+                  {step.content && <ReadAloudButton text={step.content} size="sm" className="shrink-0 mt-1" />}
                 </div>
               </div>
             )}
@@ -438,7 +438,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
               <div>
                 <div className="flex items-start gap-2 mb-6">
                   <p className="text-foreground text-lg flex-1">{step.question}</p>
-                  {ttsEnabled && step.question && <ReadAloudButton text={step.question} size="sm" className="shrink-0 mt-1" />}
+                  {step.question && <ReadAloudButton text={step.question} size="sm" className="shrink-0 mt-1" />}
                 </div>
                 <div className="space-y-3">
                   {shuffledQuiz.options.map((opt, idx) => {

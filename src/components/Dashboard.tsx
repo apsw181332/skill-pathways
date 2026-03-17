@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import type { UserConfig } from "@/components/Onboarding";
 import Mascot from "@/components/Mascot";
 import GemShop from "@/components/GemShop";
-import Missions, { MISSIONS } from "@/components/Missions";
+import Missions, { MISSIONS, TITLE_REWARDS } from "@/components/Missions";
 import type { MissionStats } from "@/components/Missions";
 import mascotImg from "@/assets/mascot-penguin.png";
 import { getLevelForXp, getXpProgress, LEVELS } from "@/lib/levels";
@@ -98,7 +98,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
   const levelInfo = getXpProgress(xp);
   const greetingMsg = getGreeting(streak);
-  const myInviteCode = user.id.slice(0, 8).toUpperCase();
+  const [myInviteCode, setMyInviteCode] = useState(user.id.slice(0, 8).toUpperCase());
 
   const filteredCourses = COURSES.filter(c => {
     const matchesSearch = !searchQuery ||
@@ -110,13 +110,27 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   useEffect(() => {
     const fetchAll = async () => {
       const [profileRes, achieveRes, progressRes, lbRes] = await Promise.all([
-        supabase.from("profiles").select("xp, streak, avatar_url").eq("user_id", user.id).single(),
+        supabase.from("profiles").select("xp, streak, avatar_url, friend_code").eq("user_id", user.id).single(),
         supabase.from("achievements").select("badge_id").eq("user_id", user.id),
         supabase.from("user_progress").select("category_id, lesson_id, completed").eq("user_id", user.id),
         supabase.from("profiles").select("user_id, display_name, xp, streak").order("xp", { ascending: false }).limit(50),
       ]);
-      if (profileRes.data) { setXp(profileRes.data.xp); setStreak(profileRes.data.streak); setAvatarUrl((profileRes.data as any).avatar_url || null); }
-      if (achieveRes.data) setEarnedBadges(achieveRes.data.map(a => a.badge_id));
+      if (profileRes.data) {
+        setXp(profileRes.data.xp);
+        setStreak(profileRes.data.streak);
+        setAvatarUrl((profileRes.data as any).avatar_url || null);
+        if ((profileRes.data as any).friend_code) setMyInviteCode((profileRes.data as any).friend_code);
+      }
+      if (achieveRes.data) {
+        const badges = achieveRes.data.map(a => a.badge_id);
+        setEarnedBadges(badges);
+        // Load claimed missions from achievements (badge_id starts with "mission-")
+        const claimed = badges.filter(b => b.startsWith("mission-")).map(b => b.replace("mission-", ""));
+        setClaimedMissions(claimed);
+        // Load earned titles from achievements
+        const titles = badges.filter(b => b.startsWith("title-"));
+        setOwnedTitles(titles);
+      }
       if (progressRes.data) {
         const progress: Record<string, number> = {};
         let total = 0;
@@ -198,12 +212,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     return () => { supabase.removeChannel(channel); };
   }, [refreshSocialData, user.id]);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(`missions_${user.id}`);
-    if (stored) setClaimedMissions(JSON.parse(stored));
-    const titles = localStorage.getItem(`titles_${user.id}`);
-    if (titles) setOwnedTitles(JSON.parse(titles));
-  }, [user.id]);
+  // Missions and titles are now loaded from achievements in fetchAll above
 
   useEffect(() => {
     if (!chatFriend) { setChatMessages([]); return; }
@@ -255,8 +264,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     }
 
     setAddingFriend(true);
-    const code = inviteCode.trim().toLowerCase();
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name").ilike("user_id", `${code}%`);
+    const code = inviteCode.trim().toUpperCase();
+    
+    // Search by friend_code column
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name").eq("friend_code", code);
 
     if (!profiles || profiles.length === 0) {
       toast({ title: "User not found", description: "No user matches this invite code.", variant: "destructive" });
@@ -323,23 +334,33 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   };
 
   const handleClaimMission = async (missionId: string, reward: number) => {
+    // Persist to achievements table with "mission-" prefix
+    const { error } = await supabase.from("achievements").insert({ user_id: user.id, badge_id: `mission-${missionId}` });
+    if (error) {
+      // Already claimed (unique constraint or duplicate)
+      toast({ title: "Already claimed!", description: "This mission was already completed.", variant: "destructive" });
+      return;
+    }
     const newClaimed = [...claimedMissions, missionId];
     setClaimedMissions(newClaimed);
-    localStorage.setItem(`missions_${user.id}`, JSON.stringify(newClaimed));
     const { data: profile } = await supabase.from("profiles").select("gems").eq("user_id", user.id).single();
     if (profile) {
       await supabase.from("profiles").update({ gems: (profile as any).gems + reward } as any).eq("user_id", user.id);
     }
     toast({ title: `💎 +${reward} Gems!`, description: "Mission completed!" });
+
+    // Check if this mission unlocks a title
+    const titleReward = TITLE_REWARDS[missionId];
+    if (titleReward) {
+      const titleId = `title-${titleReward.title.toLowerCase().replace(/\s+/g, '-')}`;
+      await supabase.from("achievements").insert({ user_id: user.id, badge_id: titleId });
+      setOwnedTitles(prev => [...prev, titleId]);
+      toast({ title: `🏅 Title Unlocked!`, description: `You earned the "${titleReward.title}" title!` });
+    }
   };
 
   const handlePurchase = async (itemId: string, cost: number) => {
     const success = await onPurchase(itemId, cost);
-    if (success && itemId.startsWith("title-")) {
-      const newTitles = [...ownedTitles, itemId];
-      setOwnedTitles(newTitles);
-      localStorage.setItem(`titles_${user.id}`, JSON.stringify(newTitles));
-    }
     return success;
   };
 
