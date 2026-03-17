@@ -235,8 +235,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
   if (showCompletion && !showChest) {
     const elapsed = Date.now() - startTime;
     const accuracy = totalQuizzes > 0 ? Math.round((correctAnswers / totalQuizzes) * 100) : 100;
-    const tip = COMPLETION_TIPS[Math.floor(Math.random() * COMPLETION_TIPS.length)];
-    const msg = COMPLETION_MSGS[Math.floor(Math.random() * COMPLETION_MSGS.length)];
+    const tip = pickMsg(COMPLETION_TIPS, tFeedback?.tips);
+    const msg = pickMsg(COMPLETION_MSGS, tFeedback?.complete);
 
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
