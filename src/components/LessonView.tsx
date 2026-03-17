@@ -500,11 +500,11 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto px-6 py-6 w-full">
-        <motion.div key={`mascot-${currentStep}-${feedbackMascotMsg}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-6">
+        <motion.div key={`mascot-${currentStep}-${feedbackMascotMsg}-${paceWarning}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-6">
           <Mascot
-            message={feedbackMascotMsg || (tStep?.mascotMsg ?? step.mascotMsg)}
+            message={paceWarning || feedbackMascotMsg || (tStep?.mascotMsg ?? step.mascotMsg)}
             size="sm"
-            animation={feedbackMascotMsg ? (feedbackMascotMsg.includes("Nailed") || feedbackMascotMsg.includes("Brilliant") || feedbackMascotMsg.includes("fire") || feedbackMascotMsg.includes("Perfect") ? "celebrate" : "bounce") : "idle"}
+            animation={paceWarning ? "bounce" : feedbackMascotMsg ? (feedbackMascotMsg.includes("Nailed") || feedbackMascotMsg.includes("Brilliant") || feedbackMascotMsg.includes("fire") || feedbackMascotMsg.includes("Perfect") ? "celebrate" : "bounce") : "idle"}
           />
         </motion.div>
 
