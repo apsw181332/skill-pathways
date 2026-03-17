@@ -546,9 +546,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {enrolledCourses.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card text-center py-8">
           <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-foreground font-medium mb-1">No courses enrolled yet!</p>
-          <p className="text-sm text-muted-foreground mb-4">Head to the Learn tab to browse and enroll in courses.</p>
-          <Button onClick={() => setActiveTab("learn")} size="sm">Browse Courses</Button>
+          <p className="text-foreground font-medium mb-1">{t("home.no_courses")}</p>
+          <p className="text-sm text-muted-foreground mb-4">{t("home.browse")}</p>
+          <Button onClick={() => setActiveTab("learn")} size="sm">{t("home.browse_btn")}</Button>
         </motion.div>
       )}
     </>
