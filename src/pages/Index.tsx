@@ -12,7 +12,7 @@ import PathComplete from "@/components/PathComplete";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import { COURSES } from "@/lib/courseData";
 import Tutorial from "@/components/Tutorial";
-import SettingsPage from "@/components/Settings";
+import SettingsPage, { applyAccessibilityModes } from "@/components/Settings";
 import ChatBot from "@/components/ChatBot";
 
 type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
