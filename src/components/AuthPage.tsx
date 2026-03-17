@@ -127,9 +127,22 @@ const AuthPage = ({ onAuth, signUp, signIn, resetPassword }: AuthPageProps) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 className="pl-10"
               />
+            </div>
+          )}
+          {mode === "signup" && password.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex gap-1">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= strength.score ? strength.color : "bg-muted"}`} />
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className={`w-3.5 h-3.5 ${strength.score >= 3 ? "text-primary" : "text-muted-foreground"}`} />
+                <span className={`text-xs font-medium ${strength.score >= 3 ? "text-primary" : "text-muted-foreground"}`}>{strength.label}</span>
+              </div>
             </div>
           )}
 
