@@ -110,13 +110,27 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   useEffect(() => {
     const fetchAll = async () => {
       const [profileRes, achieveRes, progressRes, lbRes] = await Promise.all([
-        supabase.from("profiles").select("xp, streak, avatar_url").eq("user_id", user.id).single(),
+        supabase.from("profiles").select("xp, streak, avatar_url, friend_code").eq("user_id", user.id).single(),
         supabase.from("achievements").select("badge_id").eq("user_id", user.id),
         supabase.from("user_progress").select("category_id, lesson_id, completed").eq("user_id", user.id),
         supabase.from("profiles").select("user_id, display_name, xp, streak").order("xp", { ascending: false }).limit(50),
       ]);
-      if (profileRes.data) { setXp(profileRes.data.xp); setStreak(profileRes.data.streak); setAvatarUrl((profileRes.data as any).avatar_url || null); }
-      if (achieveRes.data) setEarnedBadges(achieveRes.data.map(a => a.badge_id));
+      if (profileRes.data) {
+        setXp(profileRes.data.xp);
+        setStreak(profileRes.data.streak);
+        setAvatarUrl((profileRes.data as any).avatar_url || null);
+        if ((profileRes.data as any).friend_code) setMyInviteCode((profileRes.data as any).friend_code);
+      }
+      if (achieveRes.data) {
+        const badges = achieveRes.data.map(a => a.badge_id);
+        setEarnedBadges(badges);
+        // Load claimed missions from achievements (badge_id starts with "mission-")
+        const claimed = badges.filter(b => b.startsWith("mission-")).map(b => b.replace("mission-", ""));
+        setClaimedMissions(claimed);
+        // Load earned titles from achievements
+        const titles = badges.filter(b => b.startsWith("title-"));
+        setOwnedTitles(titles);
+      }
       if (progressRes.data) {
         const progress: Record<string, number> = {};
         let total = 0;
