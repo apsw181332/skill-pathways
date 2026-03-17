@@ -15,6 +15,8 @@ import Tutorial from "@/components/Tutorial";
 import SettingsPage, { applyAccessibilityModes } from "@/components/Settings";
 import ChatBot from "@/components/ChatBot";
 import AISuggestion from "@/components/AISuggestion";
+import { getCountryCoords } from "@/lib/countries";
+import type { Locale } from "@/lib/i18n";
 
 type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
 
