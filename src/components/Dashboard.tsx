@@ -815,10 +815,22 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           { id: "profile" as const, icon: UserIcon, label: "Profile" },
         ].map(tab => {
           const Icon = tab.icon;
+          // Calculate claimable missions count for badge
+          const claimableCount = tab.id === "missions"
+            ? MISSIONS.filter((m, i) => {
+                const currentIdx = MISSIONS.findIndex(mi => !claimedMissions.includes(mi.id));
+                return i === currentIdx && !claimedMissions.includes(m.id) && m.requirement(missionStats);
+              }).length
+            : 0;
           return (
             <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSelectedCategory(null); }}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 transition-colors ${activeTab === tab.id ? "text-primary" : "text-muted-foreground"}`}>
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 transition-colors relative ${activeTab === tab.id ? "text-primary" : "text-muted-foreground"}`}>
               <Icon className="w-5 h-5" />
+              {claimableCount > 0 && (
+                <span className="absolute -top-1 right-0 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                  {claimableCount}
+                </span>
+              )}
               <span className="text-xs font-medium">{tab.label}</span>
             </button>
           );

@@ -125,9 +125,38 @@ const Index = () => {
           <ChatBot />
         </>
       );
+    case "path-complete":
+      return completedCourse ? (
+        <PathComplete
+          course={completedCourse}
+          totalXp={0}
+          onContinue={() => { setCompletedCourse(null); setState("dashboard"); }}
+        />
+      ) : null;
     case "lesson":
       return (
-        <LessonView onBack={() => setState("dashboard")} userId={user?.id}
+        <LessonView onBack={async () => {
+          // Check if the user just completed the last lesson of a course
+          if (user && !activeLessonReview) {
+            const course = COURSES.find(c => c.id === activeLessonCategory);
+            if (course) {
+              const { data: progress } = await supabase.from("user_progress")
+                .select("lesson_id")
+                .eq("user_id", user.id)
+                .eq("category_id", activeLessonCategory)
+                .eq("completed", true);
+              const completedCount = progress?.length || 0;
+              if (completedCount >= course.lessons.length && settings.enrolled_courses.includes(activeLessonCategory)) {
+                // Path complete! Auto-unenroll and show completion page
+                await unenrollCourse(activeLessonCategory);
+                setCompletedCourse(course);
+                setState("path-complete");
+                return;
+              }
+            }
+          }
+          setState("dashboard");
+        }} userId={user?.id}
           categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
           extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
       );
