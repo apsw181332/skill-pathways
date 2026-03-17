@@ -70,10 +70,14 @@ const Index = () => {
   const handleOnboardingComplete = async (userConfig: UserConfig) => {
     setConfig(userConfig);
     if (user) {
+      // Geocode country
+      const coords = userConfig.country ? getCountryCoords(userConfig.country) : null;
       await supabase.from("profiles").update({
         interests: userConfig.interests, learning_style: userConfig.learningStyle,
         accessibility: userConfig.accessibility, onboarding_completed: true,
         accessibility_modes: userConfig.accessibilityModes || [],
+        country: userConfig.country || null,
+        ...(coords ? { latitude: coords.lat, longitude: coords.lng } : {}),
       } as any).eq("user_id", user.id);
       await updateSetting("onboarding_completed", true);
       // Apply accessibility modes from onboarding immediately
