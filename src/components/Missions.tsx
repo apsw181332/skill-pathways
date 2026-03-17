@@ -20,7 +20,7 @@ export interface MissionStats {
   friendsCount: number;
 }
 
-const MISSIONS: Mission[] = [
+export const MISSIONS: Mission[] = [
   { id: "m1", title: "First Steps", description: "Complete your first lesson", emoji: "🐣", requirement: (s) => s.lessonsCompleted >= 1, reward: 10 },
   { id: "m2", title: "Getting Started", description: "Earn 50 XP", emoji: "⭐", requirement: (s) => s.totalXp >= 50, reward: 15 },
   { id: "m3", title: "Curious Mind", description: "Enroll in 2 courses", emoji: "📚", requirement: (s) => s.coursesEnrolled >= 2, reward: 20 },
