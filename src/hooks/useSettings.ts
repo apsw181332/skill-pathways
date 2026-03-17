@@ -4,17 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 export interface UserSettings {
   theme_color: string;
   sound_enabled: boolean;
+  tts_enabled: boolean;
   onboarding_completed: boolean;
   tutorial_completed: boolean;
   enrolled_courses: string[];
+  language: string;
+  accessibility_modes: string[];
 }
 
 const DEFAULTS: UserSettings = {
   theme_color: "blue",
   sound_enabled: true,
+  tts_enabled: false,
   onboarding_completed: false,
   tutorial_completed: false,
   enrolled_courses: [],
+  language: "en",
+  accessibility_modes: [],
 };
 
 export function useSettings(userId?: string) {
