@@ -108,6 +108,12 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
   // Treasure chest
   const [showChest, setShowChest] = useState(false);
 
+  // Reading pace tracking
+  const stepStartTime = useRef(Date.now());
+  const infoReadTimes = useRef<{ duration: number; contentLength: number }[]>([]);
+  const recentQuizResults = useRef<boolean[]>([]);
+  const [paceWarning, setPaceWarning] = useState<string | null>(null);
+
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
 
