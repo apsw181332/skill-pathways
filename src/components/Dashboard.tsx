@@ -869,7 +869,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         </div>
       )}
 
-      <h3 className="text-lg font-semibold text-foreground mb-3">Badges</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-3">{t("profile.badges")}</h3>
       <div className="grid grid-cols-2 gap-3 mb-6">
         {BADGE_DEFINITIONS.map((badge, i) => {
           const earned = earnedBadges.includes(badge.id);
