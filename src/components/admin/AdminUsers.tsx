@@ -310,6 +310,38 @@ const AdminUsers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Learning Code Dialog */}
+      <Dialog open={!!learningCodeUser} onOpenChange={(open) => !open && setLearningCodeUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Learning Profile — {learningCodeUser?.display_name || "User"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-1">Learning Code</p>
+              <p className="text-3xl font-mono font-bold text-primary tracking-widest">{learningCodeUser?.learning_code || "—"}</p>
+            </div>
+            {learningCodeUser?.learning_code && (
+              <div className="space-y-2">
+                {decodeLearningCode(learningCodeUser.learning_code).map((item, i) => (
+                  <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2">
+                    <span className="text-sm font-medium text-foreground">{item.name}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {[0, 1, 2].map(v => (
+                          <div key={v} className={`w-3 h-3 rounded-full ${v <= item.value ? "bg-primary" : "bg-border"}`} />
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted-foreground w-20 text-right">{item.label}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
