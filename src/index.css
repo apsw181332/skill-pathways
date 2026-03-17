@@ -131,6 +131,9 @@
   .mode-dyslexia {
     --background: 45 40% 94%;
     --card: 45 35% 97%;
+    --foreground: 220 20% 15%;
+    --muted-foreground: 220 15% 35%;
+    --border: 40 20% 75%;
   }
 
   /* 2. COLOUR BLINDNESS — patterns & text cues, no colour-only info */

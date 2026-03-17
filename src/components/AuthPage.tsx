@@ -1,10 +1,23 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Mail, Lock, UserPlus, LogIn } from "lucide-react";
+import { ArrowRight, Mail, Lock, UserPlus, LogIn, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import Mascot from "@/components/Mascot";
+
+function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return { score, label: "Weak", color: "bg-destructive" };
+  if (score <= 2) return { score, label: "Fair", color: "bg-accent" };
+  if (score <= 3) return { score, label: "Good", color: "bg-primary/70" };
+  return { score, label: "Strong", color: "bg-primary" };
+}
 
 interface AuthPageProps {
   onAuth: () => void;
@@ -27,8 +40,14 @@ const AuthPage = ({ onAuth, signUp, signIn, resetPassword }: AuthPageProps) => {
     forgot: "No worries! I'll help you reset your password. 📧",
   };
 
+  const strength = useMemo(() => getPasswordStrength(password), [password]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && strength.score < 2) {
+      toast({ title: "Password too weak", description: "Use at least 8 characters with uppercase, numbers, or symbols.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -108,9 +127,22 @@ const AuthPage = ({ onAuth, signUp, signIn, resetPassword }: AuthPageProps) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 className="pl-10"
               />
+            </div>
+          )}
+          {mode === "signup" && password.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex gap-1">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= strength.score ? strength.color : "bg-muted"}`} />
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className={`w-3.5 h-3.5 ${strength.score >= 3 ? "text-primary" : "text-muted-foreground"}`} />
+                <span className={`text-xs font-medium ${strength.score >= 3 ? "text-primary" : "text-muted-foreground"}`}>{strength.label}</span>
+              </div>
             </div>
           )}
 
