@@ -162,7 +162,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       const indexed = step.options.map((text, i) => ({ text, originalIndex: i }));
       const shuffled = shuffle(indexed);
       setShuffledQuiz({
-        options: shuffled.map(s => s.text),
+        originalIndices: shuffled.map(s => s.originalIndex),
         correctIndex: shuffled.findIndex(s => s.originalIndex === step.correct),
       });
     } else {
