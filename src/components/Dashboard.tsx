@@ -61,6 +61,7 @@ interface DashboardProps {
   gems: number;
   extraLives: number;
   onPurchase: (itemId: string, cost: number) => Promise<boolean>;
+  locale?: Locale;
 }
 
 interface FriendData { id: string; user_id: string; friend_id: string; status: string; }
