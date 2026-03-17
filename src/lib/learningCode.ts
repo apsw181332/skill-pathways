@@ -70,3 +70,92 @@ export function decodeLearningCode(code: string): { name: string; value: number;
     };
   });
 }
+
+/**
+ * Lesson performance metrics collected during a lesson session.
+ */
+export interface LessonMetrics {
+  /** Average seconds spent on "info" steps */
+  avgReadingTimeSec: number;
+  /** Total quiz accuracy 0-1 */
+  accuracy: number;
+  /** Number of quiz questions answered */
+  totalQuizzes: number;
+  /** Number of info steps viewed */
+  infoStepsCount: number;
+  /** Average content length (chars) of info steps */
+  avgContentLength: number;
+}
+
+/**
+ * Nudge the learning code toward observed behavior.
+ * Each call makes small adjustments (±1) to avoid wild swings.
+ * Only positions 1, 5, 6, 8 are adapted from lesson behavior.
+ */
+export function adaptLearningCode(currentCode: string, metrics: LessonMetrics): string {
+  if (!currentCode || currentCode.length !== 9) return currentCode;
+
+  const digits = currentCode.split("").map(d => {
+    const n = parseInt(d, 10);
+    return isNaN(n) ? 1 : n;
+  });
+
+  const clamp = (v: number) => Math.max(0, Math.min(2, v));
+
+  // Expected reading time: ~15 sec per 200 chars at moderate pace
+  const expectedReadSec = Math.max(5, (metrics.avgContentLength / 200) * 15);
+  const readRatio = metrics.avgReadingTimeSec / expectedReadSec;
+
+  // Position 1: Learning Speed — fast reader + high accuracy = fast learner
+  if (readRatio < 0.5 && metrics.accuracy >= 0.8) {
+    digits[0] = clamp(digits[0] + 1); // trending fast
+  } else if (readRatio > 1.5 && metrics.accuracy >= 0.7) {
+    digits[0] = clamp(digits[0] - 1); // trending thorough
+  }
+
+  // Position 5: Reading/Writing Preference — long reading time = high preference
+  if (metrics.avgReadingTimeSec > expectedReadSec * 1.3) {
+    digits[4] = clamp(digits[4] + 1);
+  } else if (metrics.avgReadingTimeSec < expectedReadSec * 0.5) {
+    digits[4] = clamp(digits[4] - 1);
+  }
+
+  // Position 6: Attention Span — fast reads + low accuracy = short attention
+  if (readRatio < 0.6 && metrics.accuracy < 0.5) {
+    digits[5] = clamp(digits[5] - 1); // short attention
+  } else if (readRatio >= 1.0 && metrics.accuracy >= 0.8) {
+    digits[5] = clamp(digits[5] + 1); // long attention
+  }
+
+  // Position 8: Content Complexity — high accuracy = can handle more complex content
+  if (metrics.accuracy >= 0.9 && metrics.totalQuizzes >= 3) {
+    digits[7] = clamp(digits[7] + 1);
+  } else if (metrics.accuracy < 0.4 && metrics.totalQuizzes >= 3) {
+    digits[7] = clamp(digits[7] - 1);
+  }
+
+  return digits.join("");
+}
+
+/**
+ * Determine if Pebble should intervene about reading pace.
+ * Returns a message or null.
+ */
+export function getReadingPaceIntervention(
+  readingTimeSec: number,
+  contentLength: number,
+  recentAccuracy: number
+): string | null {
+  const expectedSec = Math.max(5, (contentLength / 200) * 12);
+
+  // Fast reading + low accuracy → needs to slow down
+  if (readingTimeSec < expectedSec * 0.4 && recentAccuracy < 0.6) {
+    return "Whoa, slow down a little! 🐧 Take your time reading — you'll remember more and get better scores!";
+  }
+
+  if (readingTimeSec < expectedSec * 0.3) {
+    return "Hey! Try reading more carefully — the details matter for the quiz coming up! 📖";
+  }
+
+  return null;
+}

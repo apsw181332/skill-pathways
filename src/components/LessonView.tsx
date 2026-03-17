@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap, Heart, Diamond } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } fr
 import { getLessonContent, type LessonStep } from "@/lib/courseData";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
+import { adaptLearningCode, getReadingPaceIntervention } from "@/lib/learningCode";
 
 interface LessonViewProps {
   onBack: () => void;
@@ -106,6 +107,12 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
   // Treasure chest
   const [showChest, setShowChest] = useState(false);
+
+  // Reading pace tracking
+  const stepStartTime = useRef(Date.now());
+  const infoReadTimes = useRef<{ duration: number; contentLength: number }[]>([]);
+  const recentQuizResults = useRef<boolean[]>([]);
+  const [paceWarning, setPaceWarning] = useState<string | null>(null);
 
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
@@ -303,12 +310,13 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
     setTotalQuizzes(prev => prev + 1);
     if (idx === shuffledQuiz.correctIndex) {
       setCorrectAnswers(prev => prev + 1);
+      recentQuizResults.current.push(true);
       setFeedbackMascotMsg(CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]);
       triggerXp(15);
       if (soundEnabled) playCorrectSound();
     } else {
+      recentQuizResults.current.push(false);
       setFeedbackMascotMsg(WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]);
-      // No XP for wrong answers
       if (soundEnabled) playWrongSound();
       const newLives = lives - 1;
       setLives(newLives);
@@ -387,6 +395,25 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
   const handleNext = () => {
     if (soundEnabled) playClickSound();
+    setPaceWarning(null);
+
+    // Track reading time for info steps
+    const elapsed = (Date.now() - stepStartTime.current) / 1000;
+    if (step?.type === "info" && step.content) {
+      infoReadTimes.current.push({ duration: elapsed, contentLength: step.content.length });
+
+      // Check if Pebble should intervene about reading pace
+      const recentCorrect = recentQuizResults.current.slice(-3);
+      const recentAccuracy = recentCorrect.length > 0 ? recentCorrect.filter(Boolean).length / recentCorrect.length : 1;
+      const warning = getReadingPaceIntervention(elapsed, step.content.length, recentAccuracy);
+      if (warning) {
+        setPaceWarning(warning);
+        // Don't block, just show warning briefly
+      }
+    }
+
+    stepStartTime.current = Date.now();
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
       setSelectedAnswer(null);
@@ -395,10 +422,40 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       setDragSubmitted(false);
       setFeedbackMascotMsg(null);
     } else {
-      if (!isReview) saveLessonProgress(totalXp);
+      if (!isReview) {
+        saveLessonProgress(totalXp);
+        adaptUserLearningCode();
+      }
       setShowConfetti(true);
       if (soundEnabled) playSuccessSound();
       setShowCompletion(true);
+    }
+  };
+
+  /** After lesson completion, adapt the learning code based on observed behavior */
+  const adaptUserLearningCode = async () => {
+    if (!userId) return;
+    try {
+      const { data: profile } = await supabase.from("profiles").select("learning_code").eq("user_id", userId).single();
+      const currentCode = (profile as any)?.learning_code || "111111111";
+      const reads = infoReadTimes.current;
+      const avgReadTime = reads.length > 0 ? reads.reduce((s, r) => s + r.duration, 0) / reads.length : 15;
+      const avgContentLen = reads.length > 0 ? reads.reduce((s, r) => s + r.contentLength, 0) / reads.length : 200;
+      const accuracy = totalQuizzes > 0 ? correctAnswers / totalQuizzes : 1;
+
+      const newCode = adaptLearningCode(currentCode, {
+        avgReadingTimeSec: avgReadTime,
+        accuracy,
+        totalQuizzes,
+        infoStepsCount: reads.length,
+        avgContentLength: avgContentLen,
+      });
+
+      if (newCode !== currentCode) {
+        await supabase.from("profiles").update({ learning_code: newCode } as any).eq("user_id", userId);
+      }
+    } catch (err) {
+      console.error("Failed to adapt learning code:", err);
     }
   };
 
@@ -443,11 +500,11 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto px-6 py-6 w-full">
-        <motion.div key={`mascot-${currentStep}-${feedbackMascotMsg}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-6">
+        <motion.div key={`mascot-${currentStep}-${feedbackMascotMsg}-${paceWarning}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-6">
           <Mascot
-            message={feedbackMascotMsg || (tStep?.mascotMsg ?? step.mascotMsg)}
+            message={paceWarning || feedbackMascotMsg || (tStep?.mascotMsg ?? step.mascotMsg)}
             size="sm"
-            animation={feedbackMascotMsg ? (feedbackMascotMsg.includes("Nailed") || feedbackMascotMsg.includes("Brilliant") || feedbackMascotMsg.includes("fire") || feedbackMascotMsg.includes("Perfect") ? "celebrate" : "bounce") : "idle"}
+            animation={paceWarning ? "bounce" : feedbackMascotMsg ? (feedbackMascotMsg.includes("Nailed") || feedbackMascotMsg.includes("Brilliant") || feedbackMascotMsg.includes("fire") || feedbackMascotMsg.includes("Perfect") ? "celebrate" : "bounce") : "idle"}
           />
         </motion.div>
 
