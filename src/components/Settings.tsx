@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Brain, Languages } from "lucide-react";
+import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Languages } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import Mascot from "@/components/Mascot";
 import { type UserSettings, THEME_COLORS, applyThemeColor } from "@/hooks/useSettings";
+import { useTranslation, type Locale } from "@/lib/i18n";
 
 export const LANGUAGES = [
   { code: "en", label: "English", flag: "🇬🇧" },
