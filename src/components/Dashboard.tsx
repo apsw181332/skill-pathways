@@ -861,12 +861,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           { id: "profile" as const, icon: UserIcon, label: "Profile" },
         ].map(tab => {
           const Icon = tab.icon;
-          // Calculate claimable missions count for badge
           const claimableCount = tab.id === "missions"
-            ? MISSIONS.filter((m, i) => {
-                const currentIdx = MISSIONS.findIndex(mi => !claimedMissions.includes(mi.id));
-                return i === currentIdx && !claimedMissions.includes(m.id) && m.requirement(missionStats);
-              }).length
+            ? MISSIONS.filter((mission) => !claimedMissions.includes(mission.id) && mission.requirement(missionStats)).length
             : 0;
           return (
             <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSelectedCategory(null); }}

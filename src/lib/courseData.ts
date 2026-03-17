@@ -2997,6 +2997,203 @@ const RAW_COURSES: Course[] = [
   },
 ];
 
+const MIN_LESSONS_PER_COURSE = 5;
+const MIN_QUESTIONS_PER_LESSON = 7;
+
+const GENERATED_LESSON_TOPICS: Record<string, string[]> = {
+  languages: [
+    "Everyday Vocabulary",
+    "Listening and Pronunciation",
+    "Grammar in Context",
+    "Speaking with Confidence",
+    "Travel Conversations",
+  ],
+  gardening: [
+    "Soil and Containers",
+    "Watering and Sunlight",
+    "Planting for the Seasons",
+    "Natural Pest Control",
+    "Harvesting and Care",
+  ],
+};
+
+const GENERATED_QUESTION_TEMPLATES = [
+  {
+    title: "Core Idea Check",
+    question: (topic: string, course: string) => `Which habit best improves ${topic.toLowerCase()} in ${course.toLowerCase()}?`,
+    options: [
+      "Rushing through the basics without a clear routine",
+      "Practicing the core skill consistently in small steps",
+      "Waiting until you feel perfectly ready to begin",
+      "Skipping reflection and hoping it becomes automatic",
+    ],
+    explanation: (topic: string) => `Steady practice is the fastest way to build real confidence in ${topic.toLowerCase()}.`,
+    mascotMsg: "Small steps create big progress! 🚀",
+  },
+  {
+    title: "Best Next Step",
+    question: (topic: string) => `What should you do after learning the basics of ${topic.toLowerCase()}?`,
+    options: [
+      "Stop practicing once you understand the main idea",
+      "Apply the skill in a simple real-life situation soon",
+      "Memorize terms without testing yourself at all",
+      "Avoid mistakes by never trying it independently",
+    ],
+    explanation: (topic: string) => `Using ${topic.toLowerCase()} in real situations helps the lesson stick and builds confidence faster.`,
+    mascotMsg: "Use it in real life and it will stick! 🌟",
+  },
+  {
+    title: "Common Mistake",
+    question: (topic: string) => `Which mistake most often slows progress in ${topic.toLowerCase()}?`,
+    options: [
+      "Reviewing the essentials before moving on",
+      "Expecting instant mastery without regular practice",
+      "Breaking a big skill into smaller repeatable steps",
+      "Checking your understanding after each attempt",
+    ],
+    explanation: (topic: string) => `Progress in ${topic.toLowerCase()} comes from repetition and reflection, not instant perfection.`,
+    mascotMsg: "Consistency beats intensity every time! 🔑",
+  },
+  {
+    title: "Confidence Builder",
+    question: (topic: string) => `Which choice builds the most confidence with ${topic.toLowerCase()}?`,
+    options: [
+      "Only practicing when conditions feel completely perfect",
+      "Repeating short focused practice sessions every week",
+      "Avoiding feedback so your routine never feels challenged",
+      "Jumping between methods before one starts working",
+    ],
+    explanation: (topic: string) => `Regular focused practice makes ${topic.toLowerCase()} feel more natural over time.`,
+    mascotMsg: "Confidence comes from repetition! 💪",
+  },
+  {
+    title: "Real-World Scenario",
+    question: (topic: string) => `How can you apply ${topic.toLowerCase()} in everyday life?`,
+    options: [
+      "Wait until a major emergency forces you to use it",
+      "Look for a small low-pressure chance to try it today",
+      "Keep it theoretical and avoid practicing in real life",
+      "Assume one lesson is enough and never revisit it",
+    ],
+    explanation: (topic: string) => `Small real-life wins are the best way to turn ${topic.toLowerCase()} into a lasting skill.`,
+    mascotMsg: "Real life is the best practice field! 🎯",
+  },
+  {
+    title: "Retention Check",
+    question: (topic: string) => `What helps you remember ${topic.toLowerCase()} for the long term?`,
+    options: [
+      "Cramming once and never reviewing it again later",
+      "Reviewing key ideas and practicing them again later",
+      "Relying on luck to remember details when needed",
+      "Skipping the basics and hoping advanced tricks work",
+    ],
+    explanation: (topic: string) => `Review plus repetition helps move ${topic.toLowerCase()} from short-term memory into real skill.`,
+    mascotMsg: "Review is how learning sticks! 🧠",
+  },
+  {
+    title: "Mastery Signal",
+    question: (topic: string) => `How do you know you are improving at ${topic.toLowerCase()}?`,
+    options: [
+      "You can explain it clearly and use it with confidence",
+      "You avoid trying it unless someone is helping you",
+      "You memorize a few facts without practicing the skill",
+      "You switch methods every time the work feels hard",
+    ],
+    explanation: (topic: string) => `You really understand ${topic.toLowerCase()} when you can explain it simply and use it confidently.`,
+    mascotMsg: "If you can explain it, you know it! 🎓",
+  },
+] as const;
+
+function countLessonQuestions(steps: LessonStep[]): number {
+  return steps.filter((step) => step.type === "quiz").length;
+}
+
+function createGeneratedQuiz(course: Course, lesson: Lesson, index: number): LessonStep {
+  const template = GENERATED_QUESTION_TEMPLATES[index % GENERATED_QUESTION_TEMPLATES.length];
+  const topic = lesson.title;
+
+  return {
+    type: "quiz",
+    title: `${template.title} ${index + 1}`,
+    question: template.question(topic, course.label),
+    options: [...template.options],
+    correct: 1,
+    explanation: template.explanation(topic),
+    mascotMsg: template.mascotMsg,
+  };
+}
+
+function createGeneratedLesson(course: Course, lessonId: number, topic: string): Lesson {
+  const seedLesson: Lesson = {
+    id: lessonId,
+    title: topic,
+    description: `Build practical confidence in ${topic.toLowerCase()} with short guided practice.`,
+    steps: [],
+  };
+
+  return {
+    ...seedLesson,
+    steps: [
+      {
+        type: "info",
+        title: `Getting Started with ${topic}`,
+        content: `${topic} is one of the most useful parts of ${course.label.toLowerCase()}. Start small, stay consistent, and focus on one clear action at a time.`,
+        mascotMsg: "Let's make this skill feel easy and practical! ✨",
+      },
+      {
+        type: "info",
+        title: `${topic} in Real Life`,
+        content: `The fastest way to improve ${topic.toLowerCase()} is to use it in everyday situations. Short practice sessions and quick reflection build lasting confidence.`,
+        mascotMsg: "Practice turns knowledge into real skill! 🌍",
+      },
+      ...Array.from({ length: MIN_QUESTIONS_PER_LESSON }, (_, index) =>
+        createGeneratedQuiz(course, seedLesson, index)
+      ),
+    ],
+  };
+}
+
+function getGeneratedLessonTopic(course: Course, generatedIndex: number): string {
+  const presetTopics = GENERATED_LESSON_TOPICS[course.id];
+  if (presetTopics?.[generatedIndex]) return presetTopics[generatedIndex];
+
+  return `${course.label} Practice ${generatedIndex + 1}`;
+}
+
+function normalizeLesson(course: Course, lesson: Lesson): Lesson {
+  const existingQuestionCount = countLessonQuestions(lesson.steps);
+  const missingQuestions = Math.max(0, MIN_QUESTIONS_PER_LESSON - existingQuestionCount);
+
+  if (missingQuestions === 0) return lesson;
+
+  return {
+    ...lesson,
+    steps: [
+      ...lesson.steps,
+      ...Array.from({ length: missingQuestions }, (_, index) =>
+        createGeneratedQuiz(course, lesson, existingQuestionCount + index)
+      ),
+    ],
+  };
+}
+
+function normalizeCourse(course: Course): Course {
+  const lessons = course.lessons.map((lesson) => normalizeLesson(course, lesson));
+
+  while (lessons.length < MIN_LESSONS_PER_COURSE) {
+    const nextLessonId = lessons.length + 1;
+    const topic = getGeneratedLessonTopic(course, lessons.length - course.lessons.length);
+    lessons.push(createGeneratedLesson(course, nextLessonId, topic));
+  }
+
+  return {
+    ...course,
+    lessons,
+  };
+}
+
+export const COURSES: Course[] = RAW_COURSES.map((course) => normalizeCourse(course));
+
 export function getCourseById(id: string): Course | undefined {
   return COURSES.find(c => c.id === id);
 }
