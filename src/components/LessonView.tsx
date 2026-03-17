@@ -97,8 +97,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
   const [showCompletion, setShowCompletion] = useState(false);
   const [shuffledItems, setShuffledItems] = useState<{ id: string; text: string; order: number }[]>([]);
 
-  // Shuffled quiz options
-  const [shuffledQuiz, setShuffledQuiz] = useState<{ options: string[]; correctIndex: number } | null>(null);
+  // Shuffled quiz options — store original indices so we can map to translated text at render time
+  const [shuffledQuiz, setShuffledQuiz] = useState<{ originalIndices: number[]; correctIndex: number } | null>(null);
 
   // Lives system
   const [lives, setLives] = useState(3);

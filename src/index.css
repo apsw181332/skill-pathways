@@ -344,8 +344,9 @@
   form button, form input[type="submit"] {
     min-height: 44px;
   }
-  /* Exceptions for inline/icon elements */
-  th button, nav button, .inline-action, .skip-nav {
+  /* Exceptions for inline/icon elements and switches */
+  th button, nav button, .inline-action, .skip-nav,
+  button[role="switch"] {
     min-height: auto;
     min-width: auto;
   }
