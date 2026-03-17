@@ -5,9 +5,8 @@ import type { Locale } from "@/lib/i18n";
 // Cache translations to avoid repeated API calls
 const translationCache: Record<string, string[]> = {};
 
-function getCacheKey(texts: string[], locale: string): string {
-  // Use first 3 texts + locale as a lightweight cache key
-  return `${locale}:${texts.slice(0, 3).join("|").slice(0, 100)}`;
+function getCacheKey(texts: string[], locale: string, context: string): string {
+  return JSON.stringify({ locale, context, texts });
 }
 
 export function useTranslatedContent(
@@ -25,12 +24,12 @@ export function useTranslatedContent(
       return;
     }
 
-    const key = getCacheKey(texts, locale);
+    const key = getCacheKey(texts, locale, context);
     if (key === prevKey.current) return;
-    prevKey.current = key;
 
     // Check cache
     if (translationCache[key]) {
+      prevKey.current = key;
       setTranslated(translationCache[key]);
       return;
     }
@@ -41,20 +40,25 @@ export function useTranslatedContent(
         const { data, error } = await supabase.functions.invoke("translate-content", {
           body: { texts, targetLocale: locale, context },
         });
+
         if (!error && data?.translations?.length === texts.length) {
           translationCache[key] = data.translations;
+          prevKey.current = key;
           setTranslated(data.translations);
         } else {
+          prevKey.current = "";
           setTranslated(texts);
         }
       } catch {
+        prevKey.current = "";
         setTranslated(texts);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     doTranslate();
-  }, [texts, locale]);
+  }, [texts, locale, context]);
 
   return { translated, loading };
 }
