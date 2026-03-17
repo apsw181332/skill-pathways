@@ -334,23 +334,33 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   };
 
   const handleClaimMission = async (missionId: string, reward: number) => {
+    // Persist to achievements table with "mission-" prefix
+    const { error } = await supabase.from("achievements").insert({ user_id: user.id, badge_id: `mission-${missionId}` });
+    if (error) {
+      // Already claimed (unique constraint or duplicate)
+      toast({ title: "Already claimed!", description: "This mission was already completed.", variant: "destructive" });
+      return;
+    }
     const newClaimed = [...claimedMissions, missionId];
     setClaimedMissions(newClaimed);
-    localStorage.setItem(`missions_${user.id}`, JSON.stringify(newClaimed));
     const { data: profile } = await supabase.from("profiles").select("gems").eq("user_id", user.id).single();
     if (profile) {
       await supabase.from("profiles").update({ gems: (profile as any).gems + reward } as any).eq("user_id", user.id);
     }
     toast({ title: `💎 +${reward} Gems!`, description: "Mission completed!" });
+
+    // Check if this mission unlocks a title
+    const titleReward = TITLE_REWARDS[missionId];
+    if (titleReward) {
+      const titleId = `title-${titleReward.title.toLowerCase().replace(/\s+/g, '-')}`;
+      await supabase.from("achievements").insert({ user_id: user.id, badge_id: titleId });
+      setOwnedTitles(prev => [...prev, titleId]);
+      toast({ title: `🏅 Title Unlocked!`, description: `You earned the "${titleReward.title}" title!` });
+    }
   };
 
   const handlePurchase = async (itemId: string, cost: number) => {
     const success = await onPurchase(itemId, cost);
-    if (success && itemId.startsWith("title-")) {
-      const newTitles = [...ownedTitles, itemId];
-      setOwnedTitles(newTitles);
-      localStorage.setItem(`titles_${user.id}`, JSON.stringify(newTitles));
-    }
     return success;
   };
 
