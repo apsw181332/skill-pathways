@@ -4,6 +4,9 @@ import { Switch } from "@/components/ui/switch";
 import Mascot from "@/components/Mascot";
 import { type UserSettings, THEME_COLORS, applyThemeColor } from "@/hooks/useSettings";
 import { useTranslation, type Locale } from "@/lib/i18n";
+import { ACCESSIBILITY_MODES, applyAccessibilityModes } from "@/lib/accessibility";
+
+export { applyAccessibilityModes };
 
 export const LANGUAGES = [
   { code: "en", label: "English", flag: "🇬🇧" },
@@ -18,25 +21,11 @@ export const LANGUAGES = [
   { code: "ar", label: "العربية", flag: "🇸🇦" },
 ];
 
-export const ACCESSIBILITY_MODES = [
-  { id: "dyslexic", label: "Dyslexia-Friendly", description: "Uses OpenDyslexic font with wider spacing for easier reading", icon: "📖", cssClass: "dyslexic-mode" },
-  { id: "colorblind", label: "Colorblind-Friendly", description: "Adds patterns and text styles to differentiate elements without relying on color", icon: "🎨", cssClass: "colorblind-mode" },
-  { id: "adhd", label: "ADHD-Friendly", description: "Reduces animations, increases tap targets, and simplifies layout", icon: "🧠", cssClass: "adhd-mode" },
-  { id: "high-contrast", label: "High Contrast", description: "Maximum contrast between text and background for low vision", icon: "👁️", cssClass: "high-contrast-mode" },
-];
-
 interface SettingsProps {
   settings: UserSettings;
   onUpdate: <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => Promise<void>;
   onBack: () => void;
   locale?: Locale;
-}
-
-export function applyAccessibilityModes(modes: string[]) {
-  const root = document.documentElement;
-  ACCESSIBILITY_MODES.forEach(mode => {
-    root.classList.toggle(mode.cssClass, modes.includes(mode.id));
-  });
 }
 
 const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) => {
@@ -98,14 +87,14 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
           </div>
         </motion.div>
 
-        {/* Accessibility */}
+        {/* Accessibility — 18 modes */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Eye className="w-5 h-5 text-primary" />
             <h2 className="font-semibold text-foreground">{t("settings.accessibility")}</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-4">{t("settings.accessibility_desc")}</p>
-          <div className="space-y-3">
+          <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
             {ACCESSIBILITY_MODES.map(mode => {
               const isActive = ((settings as any).accessibility_modes || []).includes(mode.id);
               return (
@@ -116,7 +105,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
                     isActive ? "bg-primary/10 ring-2 ring-primary" : "bg-secondary hover:bg-secondary/80"
                   }`}
                 >
-                  <span className="text-2xl">{mode.icon}</span>
+                  <span className="text-xl shrink-0">{mode.icon}</span>
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-foreground text-sm">{mode.label}</span>
                     <p className="text-xs text-muted-foreground">{mode.description}</p>
