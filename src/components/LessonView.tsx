@@ -6,6 +6,7 @@ import Mascot from "@/components/Mascot";
 import Confetti from "@/components/Confetti";
 import XpPopup from "@/components/XpPopup";
 import TreasureChest from "@/components/TreasureChest";
+import ReadAloudButton from "@/components/ReadAloudButton";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, type LessonStep } from "@/lib/courseData";
@@ -16,6 +17,7 @@ interface LessonViewProps {
   categoryId: string;
   lessonId: number;
   soundEnabled: boolean;
+  ttsEnabled?: boolean;
   extraLives: number;
   onUseExtraLife: () => void;
   isReview?: boolean;
