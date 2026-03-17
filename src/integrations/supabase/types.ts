@@ -182,6 +182,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           enrolled_courses: string[]
+          friend_code: string | null
           gems: number
           id: string
           interests: string[] | null
@@ -210,6 +211,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           enrolled_courses?: string[]
+          friend_code?: string | null
           gems?: number
           id?: string
           interests?: string[] | null
@@ -238,6 +240,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           enrolled_courses?: string[]
+          friend_code?: string | null
           gems?: number
           id?: string
           interests?: string[] | null
