@@ -124,7 +124,7 @@ const Index = () => {
           <Dashboard config={config} onStartLesson={handleStartLesson} user={user!} onSignOut={handleSignOut}
             onOpenSettings={() => setState("settings")} enrolledCourses={settings.enrolled_courses}
             onEnroll={enrollCourse} onUnenroll={unenrollCourse}
-            gems={gems} extraLives={extraLives}
+            gems={gems} extraLives={extraLives} locale={(settings.language || "en") as Locale}
             onPurchase={async (itemId, cost) => {
               if (gems < cost) return false;
               const newGems = gems - cost;
