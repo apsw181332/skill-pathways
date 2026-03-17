@@ -26,6 +26,7 @@ const Index = () => {
   const [activeLessonCategory, setActiveLessonCategory] = useState("tech");
   const [activeLessonId, setActiveLessonId] = useState(1);
   const [activeLessonReview, setActiveLessonReview] = useState(false);
+  const [completedCourse, setCompletedCourse] = useState<typeof COURSES[0] | null>(null);
   const [gems, setGems] = useState(0);
   const [extraLives, setExtraLives] = useState(0);
 
