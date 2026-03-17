@@ -21,6 +21,7 @@ import { COURSES } from "@/lib/courseData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation, type Locale } from "@/lib/i18n";
+import { useTranslatedContent } from "@/hooks/useTranslation";
 
 const BADGE_DEFINITIONS = [
   { id: "first-lesson", label: "First Steps", emoji: "🐣", desc: "Complete your first lesson" },
