@@ -66,7 +66,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) 
           <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-semibold text-foreground">Settings</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t("settings.title")}</h1>
         </div>
       </header>
 
