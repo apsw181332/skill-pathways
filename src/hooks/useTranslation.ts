@@ -24,12 +24,12 @@ export function useTranslatedContent(
       return;
     }
 
-    const key = getCacheKey(texts, locale);
+    const key = getCacheKey(texts, locale, context);
     if (key === prevKey.current) return;
-    prevKey.current = key;
 
     // Check cache
     if (translationCache[key]) {
+      prevKey.current = key;
       setTranslated(translationCache[key]);
       return;
     }
@@ -40,20 +40,25 @@ export function useTranslatedContent(
         const { data, error } = await supabase.functions.invoke("translate-content", {
           body: { texts, targetLocale: locale, context },
         });
+
         if (!error && data?.translations?.length === texts.length) {
           translationCache[key] = data.translations;
+          prevKey.current = key;
           setTranslated(data.translations);
         } else {
+          prevKey.current = "";
           setTranslated(texts);
         }
       } catch {
+        prevKey.current = "";
         setTranslated(texts);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     doTranslate();
-  }, [texts, locale]);
+  }, [texts, locale, context]);
 
   return { translated, loading };
 }

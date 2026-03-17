@@ -39,40 +39,53 @@ ${JSON.stringify(texts)}`;
       });
     }
 
-    const response = await fetch("https://ai-gateway.lovable.dev/api/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          { role: "system", content: "You are a translation assistant. Return ONLY a valid JSON array of translated strings." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.1,
-      }),
-    });
+    const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+    let translations: string[] = texts;
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "[]";
-
-    // Parse JSON from response (might be wrapped in markdown code block)
-    let translations: string[];
     try {
-      const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      translations = JSON.parse(cleaned);
-    } catch {
-      translations = texts; // Fallback to original
+      const response = await fetch(GATEWAY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            { role: "system", content: "You are a translation assistant. Return ONLY a valid JSON array of translated strings." },
+            { role: "user", content: prompt },
+          ],
+          temperature: 0.1,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("translate-content gateway error:", response.status, errorText);
+      } else {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || "[]";
+
+        try {
+          const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+          const parsed = JSON.parse(cleaned);
+          if (Array.isArray(parsed) && parsed.length === texts.length) {
+            translations = parsed;
+          }
+        } catch {
+          translations = texts;
+        }
+      }
+    } catch (gatewayError) {
+      console.error("translate-content request failed:", gatewayError);
     }
 
     return new Response(JSON.stringify({ translations }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message, translations: [] }), {
-      status: 500,
+    console.error("translate-content error:", error);
+    return new Response(JSON.stringify({ translations: [] }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
