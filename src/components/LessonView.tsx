@@ -436,7 +436,10 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
 
             {step.type === "quiz" && shuffledQuiz && (
               <div>
-                <p className="text-foreground text-lg mb-6">{step.question}</p>
+                <div className="flex items-start gap-2 mb-6">
+                  <p className="text-foreground text-lg flex-1">{step.question}</p>
+                  {ttsEnabled && step.question && <ReadAloudButton text={step.question} size="sm" className="shrink-0 mt-1" />}
+                </div>
                 <div className="space-y-3">
                   {shuffledQuiz.options.map((opt, idx) => {
                     let borderClass = "";
