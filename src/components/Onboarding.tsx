@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Eye, Ear, Hand, Accessibility, Type, Contrast, Brain, Palette } from "lucide-react";
+import { ArrowRight, Eye, Ear, Hand, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import Mascot from "@/components/Mascot";
+import { COUNTRIES } from "@/lib/countries";
 
 const INTERESTS = [
   { id: "financial", label: "Financial Literacy", icon: "💰", desc: "Budgeting, investing, taxes" },
@@ -33,7 +35,7 @@ const MASCOT_MESSAGES = [
   "Pick what excites you! 🎯 We'll build your path together.",
   "Everyone learns differently — no wrong answers here! 🧠",
   "We want to make sure everything is comfortable for you! 🌈",
-  "Almost done! Let's finish setting up. 🎨",
+  "Tell us where you're from! 🌍 We love our global community.",
 ];
 
 interface OnboardingProps {
@@ -45,6 +47,8 @@ export interface UserConfig {
   learningStyle: string;
   accessibility: string[];
   accessibilityModes: string[];
+  country?: string;
+  city?: string;
 }
 
 const stepVariants = {
@@ -59,6 +63,9 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
   const [learningStyle, setLearningStyle] = useState("");
   const [disabilities, setDisabilities] = useState<string[]>([]);
   const [accessibility, setAccessibility] = useState<string[]>([]);
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  const [countrySearch, setCountrySearch] = useState("");
 
   const toggleInterest = (id: string) =>
     setInterests((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
@@ -74,20 +81,23 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
     });
   };
 
-  const canProceed = step === 0 ? interests.length > 0 : step === 1 ? !!learningStyle : true;
-  const totalSteps = 3;
+  const totalSteps = 4;
+  const canProceed = step === 0 ? interests.length > 0 : step === 1 ? !!learningStyle : step === 2 ? true : !!country;
+
+  const filteredCountries = countrySearch
+    ? COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase())).slice(0, 8)
+    : COUNTRIES.slice(0, 8);
 
   const handleNext = () => {
     if (step < totalSteps - 1) {
       setStep(step + 1);
     } else {
-      // Map disabilities to accessibility modes
       const accessibilityModes: string[] = [];
       disabilities.forEach(d => {
         const opt = DISABILITY_OPTIONS.find(o => o.id === d);
         if (opt?.mode) accessibilityModes.push(opt.mode);
       });
-      onComplete({ interests, learningStyle, accessibility, accessibilityModes });
+      onComplete({ interests, learningStyle, accessibility, accessibilityModes, country, city });
     }
   };
 
@@ -129,27 +139,15 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
 
       <AnimatePresence mode="wait">
         {step === 0 && (
-          <motion.div
-            key="interests"
-            variants={stepVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
-            className="w-full max-w-2xl"
-          >
+          <motion.div key="interests" variants={stepVariants} initial="enter" animate="center" exit="exit"
+            transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }} className="w-full max-w-2xl">
             <h1 className="text-3xl md:text-4xl font-semibold mb-2 text-foreground">What do you want to master?</h1>
             <p className="text-muted-foreground mb-8">Pick at least one skill area. You can always change this later.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {INTERESTS.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => toggleInterest(item.id)}
-                  className={`lesson-card text-left flex items-start gap-4 ${
-                    interests.includes(item.id) ? "border-primary shadow-md" : ""
-                  }`}
-                  aria-pressed={interests.includes(item.id)}
-                >
+                <button key={item.id} onClick={() => toggleInterest(item.id)}
+                  className={`lesson-card text-left flex items-start gap-4 ${interests.includes(item.id) ? "border-primary shadow-md" : ""}`}
+                  aria-pressed={interests.includes(item.id)}>
                   <span className="text-2xl mt-0.5">{item.icon}</span>
                   <div>
                     <span className="font-medium text-foreground">{item.label}</span>
@@ -162,29 +160,17 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         )}
 
         {step === 1 && (
-          <motion.div
-            key="learning"
-            variants={stepVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
-            className="w-full max-w-lg"
-          >
+          <motion.div key="learning" variants={stepVariants} initial="enter" animate="center" exit="exit"
+            transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }} className="w-full max-w-lg">
             <h1 className="text-3xl md:text-4xl font-semibold mb-2 text-foreground">How do you learn best?</h1>
             <p className="text-muted-foreground mb-8">We'll tailor your experience accordingly.</p>
             <div className="space-y-3">
               {LEARNING_STYLES.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <button
-                    key={item.id}
-                    onClick={() => setLearningStyle(item.id)}
-                    className={`lesson-card w-full text-left flex items-center gap-4 ${
-                      learningStyle === item.id ? "border-primary shadow-md" : ""
-                    }`}
-                    aria-pressed={learningStyle === item.id}
-                  >
+                  <button key={item.id} onClick={() => setLearningStyle(item.id)}
+                    className={`lesson-card w-full text-left flex items-center gap-4 ${learningStyle === item.id ? "border-primary shadow-md" : ""}`}
+                    aria-pressed={learningStyle === item.id}>
                     <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
                       <Icon className="w-5 h-5 text-foreground" />
                     </div>
@@ -200,15 +186,8 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         )}
 
         {step === 2 && (
-          <motion.div
-            key="disabilities"
-            variants={stepVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
-            className="w-full max-w-lg"
-          >
+          <motion.div key="disabilities" variants={stepVariants} initial="enter" animate="center" exit="exit"
+            transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }} className="w-full max-w-lg">
             <h1 className="text-3xl md:text-4xl font-semibold mb-2 text-foreground">Do you have any accessibility needs?</h1>
             <p className="text-muted-foreground mb-4">
               We want everyone to learn comfortably. Select any that apply — the website will automatically adjust for you. You can always change this in Settings.
@@ -217,14 +196,9 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
               {DISABILITY_OPTIONS.map((item) => {
                 const isSelected = disabilities.includes(item.id);
                 return (
-                  <button
-                    key={item.id}
-                    onClick={() => toggleDisability(item.id)}
-                    className={`lesson-card w-full text-left flex items-center gap-4 ${
-                      isSelected ? "border-primary shadow-md" : ""
-                    }`}
-                    aria-pressed={isSelected}
-                  >
+                  <button key={item.id} onClick={() => toggleDisability(item.id)}
+                    className={`lesson-card w-full text-left flex items-center gap-4 ${isSelected ? "border-primary shadow-md" : ""}`}
+                    aria-pressed={isSelected}>
                     <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
                       <span className="text-xl">{item.icon}</span>
                     </div>
@@ -238,6 +212,57 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
             </div>
           </motion.div>
         )}
+
+        {step === 3 && (
+          <motion.div key="location" variants={stepVariants} initial="enter" animate="center" exit="exit"
+            transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }} className="w-full max-w-lg">
+            <h1 className="text-3xl md:text-4xl font-semibold mb-2 text-foreground">Where are you from?</h1>
+            <p className="text-muted-foreground mb-6">
+              This helps us understand our global community. Country is required — city is optional.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary" /> Country <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  value={countrySearch}
+                  onChange={e => { setCountrySearch(e.target.value); if (country && !COUNTRIES.some(c => c.name === e.target.value)) setCountry(""); }}
+                  placeholder="Search for your country..."
+                  className="mb-2"
+                />
+                <div className="grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto">
+                  {filteredCountries.map(c => (
+                    <button
+                      key={c.name}
+                      onClick={() => { setCountry(c.name); setCountrySearch(c.name); }}
+                      className={`text-left px-3 py-2 rounded-xl text-sm transition-all ${
+                        country === c.name
+                          ? "bg-primary/10 text-primary ring-2 ring-primary font-semibold"
+                          : "bg-secondary text-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                  {filteredCountries.length === 0 && (
+                    <p className="col-span-2 text-sm text-muted-foreground py-4 text-center">No countries found. Try a different search.</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">City (optional)</label>
+                <Input
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  placeholder="e.g. London, Tokyo, New York..."
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       <div className="mt-10 w-full max-w-2xl flex justify-between items-center">
@@ -248,12 +273,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         ) : (
           <div />
         )}
-        <Button
-          onClick={handleNext}
-          disabled={!canProceed}
-          className="gap-2 px-6"
-          size="lg"
-        >
+        <Button onClick={handleNext} disabled={!canProceed} className="gap-2 px-6" size="lg">
           {step === totalSteps - 1 ? "Start Learning" : "Continue"}
           <ArrowRight className="w-4 h-4" />
         </Button>

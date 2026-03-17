@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Brain, Languages } from "lucide-react";
+import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Languages } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import Mascot from "@/components/Mascot";
 import { type UserSettings, THEME_COLORS, applyThemeColor } from "@/hooks/useSettings";
+import { useTranslation, type Locale } from "@/lib/i18n";
 
 export const LANGUAGES = [
   { code: "en", label: "English", flag: "🇬🇧" },
@@ -28,6 +29,7 @@ interface SettingsProps {
   settings: UserSettings;
   onUpdate: <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => Promise<void>;
   onBack: () => void;
+  locale?: Locale;
 }
 
 export function applyAccessibilityModes(modes: string[]) {
@@ -37,7 +39,8 @@ export function applyAccessibilityModes(modes: string[]) {
   });
 }
 
-const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
+const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) => {
+  const { t } = useTranslation(locale);
   const handleColorChange = (color: string) => {
     applyThemeColor(color);
     onUpdate("theme_color", color);
@@ -63,7 +66,7 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
           <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-semibold text-foreground">Settings</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t("settings.title")}</h1>
         </div>
       </header>
 
@@ -74,9 +77,9 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Globe className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-foreground">Language</h2>
+            <h2 className="font-semibold text-foreground">{t("settings.language")}</h2>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">Choose your preferred interface language.</p>
+          <p className="text-sm text-muted-foreground mb-4">{t("settings.language_desc")}</p>
           <div className="grid grid-cols-2 gap-2">
             {LANGUAGES.map(lang => (
               <button
@@ -99,9 +102,9 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Eye className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-foreground">Accessibility</h2>
+            <h2 className="font-semibold text-foreground">{t("settings.accessibility")}</h2>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">Enable modes that make learning more comfortable for you.</p>
+          <p className="text-sm text-muted-foreground mb-4">{t("settings.accessibility_desc")}</p>
           <div className="space-y-3">
             {ACCESSIBILITY_MODES.map(mode => {
               const isActive = ((settings as any).accessibility_modes || []).includes(mode.id);
@@ -129,9 +132,9 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Palette className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-foreground">Theme Color</h2>
+            <h2 className="font-semibold text-foreground">{t("settings.theme")}</h2>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">Change the accent color of buttons, links, and highlights.</p>
+          <p className="text-sm text-muted-foreground mb-4">{t("settings.theme_desc")}</p>
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
             {Object.entries(THEME_COLORS).map(([key, theme]) => (
               <button
@@ -154,8 +157,8 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
             <div className="flex items-center gap-3">
               {settings.sound_enabled ? <Volume2 className="w-5 h-5 text-primary" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
               <div>
-                <h2 className="font-semibold text-foreground">Sound Effects</h2>
-                <p className="text-sm text-muted-foreground">Play sounds for correct/wrong answers</p>
+                <h2 className="font-semibold text-foreground">{t("settings.sound")}</h2>
+                <p className="text-sm text-muted-foreground">{t("settings.sound_desc")}</p>
               </div>
             </div>
             <Switch checked={settings.sound_enabled} onCheckedChange={(v) => onUpdate("sound_enabled", v)} />
@@ -168,8 +171,8 @@ const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
             <div className="flex items-center gap-3">
               <Languages className="w-5 h-5 text-primary" />
               <div>
-                <h2 className="font-semibold text-foreground">Text-to-Speech</h2>
-                <p className="text-sm text-muted-foreground">Show read-aloud buttons on lesson text</p>
+                <h2 className="font-semibold text-foreground">{t("settings.tts")}</h2>
+                <p className="text-sm text-muted-foreground">{t("settings.tts_desc")}</p>
               </div>
             </div>
             <Switch checked={settings.tts_enabled} onCheckedChange={(v) => onUpdate("tts_enabled", v)} />

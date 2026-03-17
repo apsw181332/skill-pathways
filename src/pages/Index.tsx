@@ -15,6 +15,8 @@ import Tutorial from "@/components/Tutorial";
 import SettingsPage, { applyAccessibilityModes } from "@/components/Settings";
 import ChatBot from "@/components/ChatBot";
 import AISuggestion from "@/components/AISuggestion";
+import { getCountryCoords } from "@/lib/countries";
+import type { Locale } from "@/lib/i18n";
 
 type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
 
@@ -68,10 +70,14 @@ const Index = () => {
   const handleOnboardingComplete = async (userConfig: UserConfig) => {
     setConfig(userConfig);
     if (user) {
+      // Geocode country
+      const coords = userConfig.country ? getCountryCoords(userConfig.country) : null;
       await supabase.from("profiles").update({
         interests: userConfig.interests, learning_style: userConfig.learningStyle,
         accessibility: userConfig.accessibility, onboarding_completed: true,
         accessibility_modes: userConfig.accessibilityModes || [],
+        country: userConfig.country || null,
+        ...(coords ? { latitude: coords.lat, longitude: coords.lng } : {}),
       } as any).eq("user_id", user.id);
       await updateSetting("onboarding_completed", true);
       // Apply accessibility modes from onboarding immediately
@@ -111,14 +117,14 @@ const Index = () => {
     case "auth": return <AuthPage onAuth={handleAuth} signUp={signUp} signIn={signIn} resetPassword={resetPassword} />;
     case "onboarding": return <Onboarding onComplete={handleOnboardingComplete} />;
     case "tutorial": return <Tutorial onComplete={handleTutorialComplete} />;
-    case "settings": return <SettingsPage settings={settings} onUpdate={updateSetting} onBack={() => setState("dashboard")} />;
+    case "settings": return <SettingsPage settings={settings} onUpdate={updateSetting} onBack={() => setState("dashboard")} locale={(settings.language || "en") as Locale} />;
     case "dashboard":
       return (
         <>
           <Dashboard config={config} onStartLesson={handleStartLesson} user={user!} onSignOut={handleSignOut}
             onOpenSettings={() => setState("settings")} enrolledCourses={settings.enrolled_courses}
             onEnroll={enrollCourse} onUnenroll={unenrollCourse}
-            gems={gems} extraLives={extraLives}
+            gems={gems} extraLives={extraLives} locale={(settings.language || "en") as Locale}
             onPurchase={async (itemId, cost) => {
               if (gems < cost) return false;
               const newGems = gems - cost;

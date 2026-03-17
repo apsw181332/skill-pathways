@@ -20,6 +20,7 @@ import { getLevelForXp, getXpProgress, LEVELS } from "@/lib/levels";
 import { COURSES } from "@/lib/courseData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation, type Locale } from "@/lib/i18n";
 
 const BADGE_DEFINITIONS = [
   { id: "first-lesson", label: "First Steps", emoji: "🐣", desc: "Complete your first lesson" },
@@ -60,6 +61,7 @@ interface DashboardProps {
   gems: number;
   extraLives: number;
   onPurchase: (itemId: string, cost: number) => Promise<boolean>;
+  locale?: Locale;
 }
 
 interface FriendData { id: string; user_id: string; friend_id: string; status: string; }
@@ -67,7 +69,8 @@ interface ProfileData { id: string; user_id: string; display_name: string | null
 interface LeaderboardEntry { rank: number; name: string; xp: number; streak: number; userId: string; isUser: boolean; }
 interface ChatMessage { id: string; sender_id: string; receiver_id: string; content: string; gem_gift: number; created_at: string; }
 
-const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase }: DashboardProps) => {
+const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase, locale = "en" }: DashboardProps) => {
+  const { t } = useTranslation(locale);
   const [activeTab, setActiveTab] = useState<"home" | "learn" | "missions" | "shop" | "profile">("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -479,7 +482,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {/* Add friend by invite code */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-6">
         <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-          <UserPlus className="w-4 h-4 text-primary" /> Add Friend
+          <UserPlus className="w-4 h-4 text-primary" /> {t("home.add_friend")}
         </h3>
         <div className="flex gap-2 mb-2">
           <Input value={inviteCode} onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="Enter invite code..." className="flex-1 font-mono"
@@ -488,13 +491,13 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
             {addingFriend ? "..." : "Add"}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">Your code: <span className="font-mono font-semibold text-foreground">{myInviteCode}</span></p>
+        <p className="text-xs text-muted-foreground">{t("home.your_code")}: <span className="font-mono font-semibold text-foreground">{myInviteCode}</span></p>
       </motion.div>
 
       {/* Enrolled courses */}
       {enrolledCourses.length > 0 && (
         <>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Your Courses ({enrolledCourses.length}/3)</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-3">{t("home.your_courses")} ({enrolledCourses.length}/3)</h2>
           <div className="space-y-3 mb-6">
             {enrolledCourses.map(courseId => {
               const course = COURSES.find(c => c.id === courseId);
@@ -529,7 +532,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           onClick={() => onStartLesson(nextLesson.categoryId, nextLesson.lessonId)}
           className="lesson-card w-full text-left mb-6 group border-primary">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-primary">Continue learning</span>
+            <span className="text-sm font-medium text-primary">{t("home.continue")}</span>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
           </div>
           <h2 className="text-lg font-semibold text-foreground">{nextLesson.emoji} {nextLesson.title}</h2>
@@ -543,9 +546,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {enrolledCourses.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card text-center py-8">
           <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-foreground font-medium mb-1">No courses enrolled yet!</p>
-          <p className="text-sm text-muted-foreground mb-4">Head to the Learn tab to browse and enroll in courses.</p>
-          <Button onClick={() => setActiveTab("learn")} size="sm">Browse Courses</Button>
+          <p className="text-foreground font-medium mb-1">{t("home.no_courses")}</p>
+          <p className="text-sm text-muted-foreground mb-4">{t("home.browse")}</p>
+          <Button onClick={() => setActiveTab("learn")} size="sm">{t("home.browse_btn")}</Button>
         </motion.div>
       )}
     </>
@@ -678,7 +681,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search courses..." className="pl-10" />
           </div>
-          <h2 className="text-xl font-semibold text-foreground mb-4">All Courses ({filteredCourses.length})</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-4">{t("learn.title")} ({filteredCourses.length})</h2>
           <div className="space-y-3">
             {filteredCourses.map((course, i) => {
               const completed = categoryProgress[course.id] || 0;
@@ -803,7 +806,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       </motion.div>
 
       {/* Leaderboard */}
-      <h3 className="text-lg font-semibold text-foreground mb-3">Leaderboard</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-3">{t("profile.leaderboard")}</h3>
       {leaderboard.length > 0 ? (
         <div className="space-y-2 mb-6">
           {leaderboard.slice(0, 5).map((entry) => {
@@ -825,7 +828,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       ) : null}
 
       {/* Friends */}
-      <h3 className="text-lg font-semibold text-foreground mb-3">Friends ({friends.length})</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-3">{t("profile.friends")} ({friends.length})</h3>
       {pendingRequests.length > 0 && (
         <div className="mb-4">
           <p className="text-xs text-muted-foreground mb-2">Pending requests</p>
@@ -862,11 +865,11 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       ) : (
         <div className="lesson-card text-center py-6 mb-6">
           <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No friends yet — share your invite code!</p>
+          <p className="text-sm text-muted-foreground">{t("profile.no_friends")}</p>
         </div>
       )}
 
-      <h3 className="text-lg font-semibold text-foreground mb-3">Badges</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-3">{t("profile.badges")}</h3>
       <div className="grid grid-cols-2 gap-3 mb-6">
         {BADGE_DEFINITIONS.map((badge, i) => {
           const earned = earnedBadges.includes(badge.id);
@@ -883,10 +886,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       </div>
 
       <Button variant="outline" onClick={onOpenSettings} className="w-full gap-2 mb-3">
-        <SettingsIcon className="w-4 h-4" /> Settings
+        <SettingsIcon className="w-4 h-4" /> {t("profile.settings")}
       </Button>
       <Button variant="ghost" onClick={onSignOut} className="w-full text-muted-foreground hover:text-destructive gap-2">
-        <LogOut className="w-4 h-4" /> Sign out
+        <LogOut className="w-4 h-4" /> {t("profile.sign_out")}
       </Button>
     </>
   );
@@ -937,11 +940,11 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
       <div className="thumb-bar">
         {[
-          { id: "home" as const, icon: Home, label: "Home" },
-          { id: "learn" as const, icon: BookOpen, label: "Learn" },
-          { id: "missions" as const, icon: Target, label: "Missions" },
-          { id: "shop" as const, icon: ShoppingBag, label: "Shop" },
-          { id: "profile" as const, icon: UserIcon, label: "Profile" },
+          { id: "home" as const, icon: Home, label: t("nav.home") },
+          { id: "learn" as const, icon: BookOpen, label: t("nav.learn") },
+          { id: "missions" as const, icon: Target, label: t("nav.missions") },
+          { id: "shop" as const, icon: ShoppingBag, label: t("nav.shop") },
+          { id: "profile" as const, icon: UserIcon, label: t("nav.profile") },
         ].map(tab => {
           const Icon = tab.icon;
           const claimableCount = tab.id === "missions"
