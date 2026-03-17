@@ -52,6 +52,8 @@ const AdminUsers = () => {
   const [xpTarget, setXpTarget] = useState<UserProfile | null>(null);
   const [xpAmount, setXpAmount] = useState(100);
   const [xpLoading, setXpLoading] = useState(false);
+  const [learningCodeUser, setLearningCodeUser] = useState<UserProfile | null>(null);
+  const [showLegend, setShowLegend] = useState(false);
 
   const fetchUsers = async () => {
     const { data } = await supabase
