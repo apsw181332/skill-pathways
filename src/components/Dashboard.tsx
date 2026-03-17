@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -136,29 +136,62 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     return () => { supabase.removeChannel(channel); };
   }, [user.id]);
 
-  useEffect(() => {
-    const fetchFriends = async () => {
-      const [sent, received, pending] = await Promise.all([
-        supabase.from("friendships").select("*").eq("user_id", user.id).eq("status", "accepted"),
-        supabase.from("friendships").select("*").eq("friend_id", user.id).eq("status", "accepted"),
-        supabase.from("friendships").select("*").eq("friend_id", user.id).eq("status", "pending"),
-      ]);
-      const allFriends = [...(sent.data || []), ...(received.data || [])];
-      setFriends(allFriends);
-      setPendingRequests(pending.data || []);
-      const friendIds = allFriends.map(f => f.user_id === user.id ? f.friend_id : f.user_id);
-      const pendingIds = (pending.data || []).map(p => p.user_id);
-      if (friendIds.length > 0) {
-        const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level, id").in("user_id", friendIds);
-        if (data) { const map: Record<string, ProfileData> = {}; data.forEach(p => map[p.user_id] = p); setFriendProfiles(map); }
+  const refreshSocialData = useCallback(async () => {
+    const [sent, received, pending] = await Promise.all([
+      supabase.from("friendships").select("*").eq("user_id", user.id).eq("status", "accepted"),
+      supabase.from("friendships").select("*").eq("friend_id", user.id).eq("status", "accepted"),
+      supabase.from("friendships").select("*").eq("friend_id", user.id).eq("status", "pending"),
+    ]);
+
+    const allFriends = [...(sent.data || []), ...(received.data || [])] as FriendData[];
+    const pendingRows = (pending.data || []) as FriendData[];
+    setFriends(allFriends);
+    setPendingRequests(pendingRows);
+
+    const friendIds = [...new Set(allFriends.map((friend) => friend.user_id === user.id ? friend.friend_id : friend.user_id))];
+    const pendingIds = [...new Set(pendingRows.map((request) => request.user_id))];
+
+    if (friendIds.length > 0) {
+      const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level, id").in("user_id", friendIds);
+      if (data) {
+        const map: Record<string, ProfileData> = {};
+        data.forEach((profile) => {
+          map[profile.user_id] = profile;
+        });
+        setFriendProfiles(map);
       }
-      if (pendingIds.length > 0) {
-        const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level, id").in("user_id", pendingIds);
-        if (data) { const map: Record<string, ProfileData> = {}; data.forEach(p => map[p.user_id] = p); setPendingProfiles(map); }
+    } else {
+      setFriendProfiles({});
+    }
+
+    if (pendingIds.length > 0) {
+      const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level, id").in("user_id", pendingIds);
+      if (data) {
+        const map: Record<string, ProfileData> = {};
+        data.forEach((profile) => {
+          map[profile.user_id] = profile;
+        });
+        setPendingProfiles(map);
       }
-    };
-    fetchFriends();
+    } else {
+      setPendingProfiles({});
+    }
   }, [user.id]);
+
+  useEffect(() => {
+    refreshSocialData();
+
+    const channel = supabase.channel(`friendships-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, (payload) => {
+        const row = (payload.new || payload.old) as Partial<FriendData>;
+        if (row.user_id === user.id || row.friend_id === user.id) {
+          refreshSocialData();
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [refreshSocialData, user.id]);
 
   useEffect(() => {
     const stored = localStorage.getItem(`missions_${user.id}`);
@@ -167,9 +200,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     if (titles) setOwnedTitles(JSON.parse(titles));
   }, [user.id]);
 
-  // Load chat messages when chatFriend changes
   useEffect(() => {
     if (!chatFriend) { setChatMessages([]); return; }
+
     const loadMessages = async () => {
       const { data } = await supabase.from("friend_messages")
         .select("*")
@@ -178,87 +211,100 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         .limit(100);
       if (data) setChatMessages(data as ChatMessage[]);
     };
+
     loadMessages();
     const channel = supabase.channel(`chat-${chatFriend}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "friend_messages" }, (payload) => {
-        const msg = payload.new as ChatMessage;
-        if ((msg.sender_id === user.id && msg.receiver_id === chatFriend) || (msg.sender_id === chatFriend && msg.receiver_id === user.id)) {
-          setChatMessages(prev => [...prev, msg]);
+        const message = payload.new as ChatMessage;
+        if ((message.sender_id === user.id && message.receiver_id === chatFriend) || (message.sender_id === chatFriend && message.receiver_id === user.id)) {
+          setChatMessages((prev) => prev.some((entry) => entry.id === message.id) ? prev : [...prev, message]);
         }
       })
       .subscribe();
+
     return () => { supabase.removeChannel(channel); };
   }, [chatFriend, user.id]);
 
-  const handleAcceptFriend = async (id: string) => { await supabase.from("friendships").update({ status: "accepted" }).eq("id", id); setPendingRequests(prev => prev.filter(r => r.id !== id)); };
-  const handleRejectFriend = async (id: string) => { await supabase.from("friendships").update({ status: "rejected" }).eq("id", id); setPendingRequests(prev => prev.filter(r => r.id !== id)); };
+  const handleAcceptFriend = async (id: string) => {
+    const { error } = await supabase.from("friendships").update({ status: "accepted" }).eq("id", id);
+    if (error) {
+      toast({ title: "Could not accept request", description: error.message, variant: "destructive" });
+      return;
+    }
+    await refreshSocialData();
+  };
+
+  const handleRejectFriend = async (id: string) => {
+    const { error } = await supabase.from("friendships").update({ status: "rejected" }).eq("id", id);
+    if (error) {
+      toast({ title: "Could not reject request", description: error.message, variant: "destructive" });
+      return;
+    }
+    await refreshSocialData();
+  };
 
   const handleAddFriendByCode = async () => {
     if (!inviteCode.trim() || inviteCode.trim().length < 8) {
       toast({ title: "Invalid code", description: "Enter a valid 8-character invite code.", variant: "destructive" });
       return;
     }
+
     setAddingFriend(true);
     const code = inviteCode.trim().toLowerCase();
-    // Find user by invite code prefix
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name").ilike("user_id", `${code}%`);
+
     if (!profiles || profiles.length === 0) {
       toast({ title: "User not found", description: "No user matches this invite code.", variant: "destructive" });
       setAddingFriend(false);
       return;
     }
+
     const target = profiles[0];
     if (target.user_id === user.id) {
       toast({ title: "That's you!", description: "You can't add yourself as a friend.", variant: "destructive" });
       setAddingFriend(false);
       return;
     }
-    // Check if already friends or pending
+
     const { data: existing } = await supabase.from("friendships").select("id")
       .or(`and(user_id.eq.${user.id},friend_id.eq.${target.user_id}),and(user_id.eq.${target.user_id},friend_id.eq.${user.id})`);
+
     if (existing && existing.length > 0) {
       toast({ title: "Already connected", description: "You already have a friendship with this user." });
       setAddingFriend(false);
       return;
     }
+
     const { error } = await supabase.from("friendships").insert({ user_id: user.id, friend_id: target.user_id, status: "pending" });
     if (error) {
-      toast({ title: "Error", description: "Failed to send friend request.", variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to send friend request.", variant: "destructive" });
     } else {
       toast({ title: "Friend request sent! 🤝", description: `Request sent to ${target.display_name || "user"}.` });
       setInviteCode("");
+      await refreshSocialData();
     }
     setAddingFriend(false);
   };
 
   const handleSendMessage = async () => {
     if (!chatFriend || (!chatInput.trim() && giftAmount <= 0)) return;
-    const content = chatInput.trim() || (giftAmount > 0 ? `Sent you ${giftAmount} gems! 💎` : "");
-    if (!content) return;
 
-    if (giftAmount > 0) {
-      if (gems < giftAmount) {
-        toast({ title: "Not enough gems", variant: "destructive" });
-        return;
-      }
-      // Deduct gems from sender
-      const { data: myProfile } = await supabase.from("profiles").select("gems").eq("user_id", user.id).single();
-      if (myProfile) {
-        await supabase.from("profiles").update({ gems: (myProfile as any).gems - giftAmount } as any).eq("user_id", user.id);
-      }
-      // Add gems to receiver
-      const { data: friendProfile } = await supabase.from("profiles").select("gems").eq("user_id", chatFriend).single();
-      if (friendProfile) {
-        await supabase.from("profiles").update({ gems: (friendProfile as any).gems + giftAmount } as any).eq("user_id", chatFriend);
-      }
+    const { data, error } = await supabase.functions.invoke("friend-send-message", {
+      body: {
+        receiver_id: chatFriend,
+        content: chatInput.trim(),
+        gem_gift: giftAmount,
+      },
+    });
+
+    if (error || data?.error) {
+      toast({ title: "Could not send message", description: data?.error || error?.message || "Please try again.", variant: "destructive" });
+      return;
     }
 
-    await supabase.from("friend_messages").insert({
-      sender_id: user.id,
-      receiver_id: chatFriend,
-      content,
-      gem_gift: giftAmount,
-    } as any);
+    if (data?.message) {
+      setChatMessages((prev) => prev.some((entry) => entry.id === data.message.id) ? prev : [...prev, data.message as ChatMessage]);
+    }
 
     setChatInput("");
     setGiftAmount(0);
@@ -815,12 +861,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           { id: "profile" as const, icon: UserIcon, label: "Profile" },
         ].map(tab => {
           const Icon = tab.icon;
-          // Calculate claimable missions count for badge
           const claimableCount = tab.id === "missions"
-            ? MISSIONS.filter((m, i) => {
-                const currentIdx = MISSIONS.findIndex(mi => !claimedMissions.includes(mi.id));
-                return i === currentIdx && !claimedMissions.includes(m.id) && m.requirement(missionStats);
-              }).length
+            ? MISSIONS.filter((mission) => !claimedMissions.includes(mission.id) && mission.requirement(missionStats)).length
             : 0;
           return (
             <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSelectedCategory(null); }}

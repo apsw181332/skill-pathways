@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CheckCircle2, Circle, Lock, Diamond, Star, Flame, BookOpen, Trophy } from "lucide-react";
+import { CheckCircle2, Circle, Diamond } from "lucide-react";
 import Mascot from "@/components/Mascot";
 
 interface Mission {
@@ -8,7 +8,7 @@ interface Mission {
   description: string;
   emoji: string;
   requirement: (stats: MissionStats) => boolean;
-  reward: number; // gems
+  reward: number;
 }
 
 export interface MissionStats {
@@ -45,13 +45,10 @@ interface MissionsProps {
 }
 
 const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
-  // Find the current active mission (first unclaimed one)
-  const currentMissionIdx = MISSIONS.findIndex(m => !claimedMissions.includes(m.id));
-
   return (
     <>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <Mascot message="Complete missions one by one to earn gems! 💎" size="sm" animation="bounce" />
+        <Mascot message="Claim every reward you have earned — missions stack independently now! 💎" size="sm" animation="bounce" />
       </motion.div>
 
       <h2 className="text-xl font-semibold text-foreground mb-4">Missions</h2>
@@ -59,9 +56,7 @@ const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
       <div className="space-y-3">
         {MISSIONS.map((mission, i) => {
           const claimed = claimedMissions.includes(mission.id);
-          const isActive = i === currentMissionIdx;
-          const isLocked = i > currentMissionIdx && !claimed;
-          const isCompleted = !claimed && isActive && mission.requirement(stats);
+          const canClaim = !claimed && mission.requirement(stats);
 
           return (
             <motion.div
@@ -71,8 +66,8 @@ const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
               transition={{ delay: i * 0.04 }}
               className={`lesson-card flex items-center gap-4 py-4 ${
                 claimed ? "border-primary/20 bg-primary/5 opacity-70" :
-                isActive ? "border-primary" :
-                "opacity-40"
+                canClaim ? "border-primary" :
+                "opacity-70"
               }`}
             >
               <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center text-2xl shrink-0">
@@ -84,14 +79,14 @@ const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
                   {claimed && <CheckCircle2 className="w-4 h-4 text-primary" />}
                 </div>
                 <div className="text-xs text-muted-foreground">{mission.description}</div>
-                <div className="flex items-center gap-1 mt-1 text-xs text-cyan-500 font-medium">
+                <div className="flex items-center gap-1 mt-1 text-xs text-primary font-medium">
                   <Diamond className="w-3 h-3" /> +{mission.reward} gems
                 </div>
               </div>
               <div className="shrink-0">
                 {claimed ? (
                   <span className="text-xs text-primary font-medium">Done ✓</span>
-                ) : isCompleted ? (
+                ) : canClaim ? (
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => onClaim(mission.id, mission.reward)}
@@ -99,10 +94,8 @@ const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
                   >
                     Claim!
                   </motion.button>
-                ) : isActive ? (
-                  <Circle className="w-5 h-5 text-muted-foreground" />
                 ) : (
-                  <Lock className="w-4 h-4 text-muted-foreground" />
+                  <Circle className="w-5 h-5 text-muted-foreground" />
                 )}
               </div>
             </motion.div>
