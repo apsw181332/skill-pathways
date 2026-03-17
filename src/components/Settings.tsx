@@ -8,6 +8,8 @@ import Mascot from "@/components/Mascot";
 import { type UserSettings, THEME_COLORS, applyThemeColor } from "@/hooks/useSettings";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { ACCESSIBILITY_MODES, applyAccessibilityModes } from "@/lib/accessibility";
+import { useTranslatedContent } from "@/hooks/useTranslation";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
