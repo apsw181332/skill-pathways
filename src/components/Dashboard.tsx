@@ -551,62 +551,116 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     </>
   );
 
-  // Path map offsets for winding effect
-  const PATH_OFFSETS = [0, 40, 70, 40, 0, -40, -70, -40];
-
+  // Duolingo-style path with zigzag nodes
   const renderCoursePath = (course: typeof COURSES[0]) => {
     const completed = categoryProgress[course.id] || 0;
     const isEnrolled = enrolledCourses.includes(course.id);
+    const totalLessons = course.lessons.length;
+    const nodeSpacing = 90; // px between nodes vertically
+
+    // S-curve positions (percentage offsets from center)
+    const getOffsetX = (i: number) => {
+      const pattern = [0, 30, 50, 30, 0, -30, -50, -30];
+      return pattern[i % pattern.length];
+    };
 
     return (
-      <div className="relative flex flex-col items-center gap-0 py-4">
-        {/* Central line */}
-        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-border -translate-x-1/2 z-0" />
+      <div className="relative mx-auto" style={{ height: totalLessons * nodeSpacing + 60, maxWidth: 320 }}>
+        {/* SVG connecting lines */}
+        <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
+          {course.lessons.map((_, i) => {
+            if (i === 0) return null;
+            const x1 = 50 + getOffsetX(i - 1);
+            const y1 = (i - 1) * nodeSpacing + 40;
+            const x2 = 50 + getOffsetX(i);
+            const y2 = i * nodeSpacing + 40;
+            const isPast = i <= completed;
+            return (
+              <line key={`seg-${i}`}
+                x1={`${x1}%`} y1={y1} x2={`${x2}%`} y2={y2}
+                stroke={isPast ? "hsl(var(--primary))" : "hsl(var(--border))"}
+                strokeWidth="4" strokeLinecap="round"
+                strokeDasharray={isPast ? "none" : "8 6"}
+                opacity={isPast ? 1 : 0.5}
+              />
+            );
+          })}
+        </svg>
 
         {course.lessons.map((lesson, i) => {
           const isCompleted = i < completed;
           const isCurrent = i === completed;
-          const isLocked = i > completed;
-          const canPlay = (isCompleted || (isCurrent && isEnrolled));
-          const offset = PATH_OFFSETS[i % PATH_OFFSETS.length];
+          const canPlay = isCompleted || (isCurrent && isEnrolled);
+          const offsetX = getOffsetX(i);
+          const showMascot = isCurrent && isEnrolled;
+          const showChestIcon = i > 0 && i % 5 === 4;
 
           return (
-            <motion.div
+            <div
               key={lesson.id}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.08 }}
-              className="relative z-10 mb-8"
-              style={{ transform: `translateX(${offset}px)` }}
+              className="absolute flex flex-col items-center"
+              style={{
+                left: `${50 + offsetX}%`,
+                top: i * nodeSpacing + 10,
+                transform: "translateX(-50%)",
+                zIndex: isCurrent ? 20 : 10,
+              }}
             >
-              <button
+              {/* Mascot on current node */}
+              {showMascot && (
+                <motion.div
+                  initial={{ y: 0 }}
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -top-11 z-30"
+                >
+                  <img src={mascotImg} alt="Pebble" className="w-9 h-9 object-contain drop-shadow-md" />
+                </motion.div>
+              )}
+
+              {/* Treasure chest icon on every 5th */}
+              {showChestIcon && isCompleted && (
+                <div className="absolute -right-5 -top-1 text-base">🎁</div>
+              )}
+
+              <motion.button
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.05, type: "spring", stiffness: 400, damping: 20 }}
                 onClick={() => {
                   if (isCompleted) onStartLesson(course.id, lesson.id, true);
                   else if (isCurrent && isEnrolled) onStartLesson(course.id, lesson.id, false);
                 }}
                 disabled={!canPlay}
-                className={`w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 border-4 ${
-                  isCompleted ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/30" :
-                  isCurrent && isEnrolled ? "bg-primary border-primary text-primary-foreground ring-4 ring-primary/20 shadow-lg" :
-                  "bg-muted border-border text-muted-foreground"
-                } ${canPlay ? "cursor-pointer hover:scale-110" : "cursor-not-allowed opacity-60"}`}
+                className={`${isCurrent ? "w-[68px] h-[68px]" : "w-[60px] h-[60px]"} rounded-full flex items-center justify-center font-bold transition-all duration-200 border-[5px] ${
+                  isCompleted
+                    ? "bg-primary border-primary/80 text-primary-foreground shadow-lg shadow-primary/25"
+                    : isCurrent && isEnrolled
+                    ? "bg-primary border-primary text-primary-foreground ring-[6px] ring-primary/15 shadow-xl shadow-primary/30"
+                    : "bg-muted border-border text-muted-foreground opacity-50"
+                } ${canPlay ? "cursor-pointer hover:scale-110 active:scale-95" : "cursor-not-allowed"}`}
               >
                 {isCompleted ? <CheckCircle2 className="w-6 h-6" /> :
                  isCurrent ? <Star className="w-6 h-6" /> :
-                 <Lock className="w-5 h-5" />}
-              </button>
-              <div className="mt-2 text-center max-w-[140px]">
-                <p className="text-xs font-medium text-foreground leading-tight">{lesson.title}</p>
+                 <Lock className="w-4 h-4" />}
+              </motion.button>
+
+              <div className="mt-1.5 text-center max-w-[110px]">
+                <p className={`text-[11px] font-medium leading-tight ${!canPlay ? "text-muted-foreground/50" : "text-foreground"}`}>
+                  {lesson.title}
+                </p>
                 {isCompleted && (
-                  <p className="text-xs text-primary flex items-center justify-center gap-1 mt-0.5">
-                    <RotateCcw className="w-3 h-3" /> Review
-                  </p>
+                  <div className="flex justify-center gap-0.5 mt-0.5">
+                    {[1, 2, 3].map(s => (
+                      <Star key={s} className="w-2.5 h-2.5 text-accent" fill="currentColor" />
+                    ))}
+                  </div>
                 )}
                 {isCurrent && isEnrolled && (
-                  <p className="text-xs text-primary font-medium mt-0.5">Start →</p>
+                  <p className="text-[10px] text-primary font-semibold mt-0.5">Start →</p>
                 )}
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>
