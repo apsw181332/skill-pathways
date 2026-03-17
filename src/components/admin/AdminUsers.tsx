@@ -224,6 +224,19 @@ const AdminUsers = () => {
                       <td className="px-4 py-3 text-foreground font-medium">{user.xp.toLocaleString()}</td>
                       <td className="px-4 py-3 text-foreground">{user.streak} 🔥</td>
                       <td className="px-4 py-3 text-foreground">{user.country || "—"}</td>
+                      <td className="px-4 py-3">
+                        {user.learning_code ? (
+                          <button
+                            onClick={() => setLearningCodeUser(user)}
+                            className="font-mono text-xs bg-secondary px-2 py-1 rounded text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                            title="Click to view decoded learning profile"
+                          >
+                            {user.learning_code}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(user.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1">
