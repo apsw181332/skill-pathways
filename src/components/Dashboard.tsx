@@ -69,7 +69,8 @@ interface ProfileData { id: string; user_id: string; display_name: string | null
 interface LeaderboardEntry { rank: number; name: string; xp: number; streak: number; userId: string; isUser: boolean; }
 interface ChatMessage { id: string; sender_id: string; receiver_id: string; content: string; gem_gift: number; created_at: string; }
 
-const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase }: DashboardProps) => {
+const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase, locale = "en" }: DashboardProps) => {
+  const { t } = useTranslation(locale);
   const [activeTab, setActiveTab] = useState<"home" | "learn" | "missions" | "shop" | "profile">("home");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
