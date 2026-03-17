@@ -865,7 +865,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       ) : (
         <div className="lesson-card text-center py-6 mb-6">
           <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No friends yet — share your invite code!</p>
+          <p className="text-sm text-muted-foreground">{t("profile.no_friends")}</p>
         </div>
       )}
 
