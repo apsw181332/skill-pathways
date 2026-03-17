@@ -29,6 +29,7 @@ interface SettingsProps {
   settings: UserSettings;
   onUpdate: <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => Promise<void>;
   onBack: () => void;
+  locale?: Locale;
 }
 
 export function applyAccessibilityModes(modes: string[]) {
