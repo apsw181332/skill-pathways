@@ -886,10 +886,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       </div>
 
       <Button variant="outline" onClick={onOpenSettings} className="w-full gap-2 mb-3">
-        <SettingsIcon className="w-4 h-4" /> Settings
+        <SettingsIcon className="w-4 h-4" /> {t("profile.settings")}
       </Button>
       <Button variant="ghost" onClick={onSignOut} className="w-full text-muted-foreground hover:text-destructive gap-2">
-        <LogOut className="w-4 h-4" /> Sign out
+        <LogOut className="w-4 h-4" /> {t("profile.sign_out")}
       </Button>
     </>
   );
