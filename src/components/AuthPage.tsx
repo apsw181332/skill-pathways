@@ -40,8 +40,14 @@ const AuthPage = ({ onAuth, signUp, signIn, resetPassword }: AuthPageProps) => {
     forgot: "No worries! I'll help you reset your password. 📧",
   };
 
+  const strength = useMemo(() => getPasswordStrength(password), [password]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && strength.score < 2) {
+      toast({ title: "Password too weak", description: "Use at least 8 characters with uppercase, numbers, or symbols.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "signup") {
