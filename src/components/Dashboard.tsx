@@ -532,7 +532,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           onClick={() => onStartLesson(nextLesson.categoryId, nextLesson.lessonId)}
           className="lesson-card w-full text-left mb-6 group border-primary">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-primary">Continue learning</span>
+            <span className="text-sm font-medium text-primary">{t("home.continue")}</span>
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
           </div>
           <h2 className="text-lg font-semibold text-foreground">{nextLesson.emoji} {nextLesson.title}</h2>
