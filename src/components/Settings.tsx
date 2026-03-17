@@ -214,7 +214,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           </div>
           <p className="text-sm text-muted-foreground mb-4">{t("settings.accessibility_desc")}</p>
           <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-            {ACCESSIBILITY_MODES.map(mode => {
+            {ACCESSIBILITY_MODES.map((mode, idx) => {
               const isActive = ((settings as any).accessibility_modes || []).includes(mode.id);
               return (
                 <button
@@ -226,8 +226,8 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
                 >
                   <span className="text-xl shrink-0">{mode.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <span className="font-medium text-foreground text-sm">{mode.label}</span>
-                    <p className="text-xs text-muted-foreground">{mode.description}</p>
+                    <span className="font-medium text-foreground text-sm">{getAccessLabel(idx)}</span>
+                    <p className="text-xs text-muted-foreground">{getAccessDesc(idx)}</p>
                   </div>
                   <Switch checked={isActive} onCheckedChange={() => toggleAccessibilityMode(mode.id)} />
                 </button>
