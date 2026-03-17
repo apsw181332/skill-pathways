@@ -2997,7 +2997,7 @@ const RAW_COURSES: Course[] = [
   },
 ];
 
-const MIN_LESSONS_PER_COURSE = 5;
+const MIN_LESSONS_PER_COURSE = 10;
 const MIN_QUESTIONS_PER_LESSON = 7;
 
 const GENERATED_LESSON_TOPICS: Record<string, string[]> = {

@@ -31,8 +31,11 @@ const Index = () => {
   const [extraLives, setExtraLives] = useState(0);
 
   useEffect(() => {
-    if (!settingsLoading) applyThemeColor(settings.theme_color);
-  }, [settings.theme_color, settingsLoading]);
+    if (!settingsLoading) {
+      applyThemeColor(settings.theme_color);
+      applyAccessibilityModes((settings as any).accessibility_modes || []);
+    }
+  }, [settings.theme_color, (settings as any).accessibility_modes, settingsLoading]);
 
   useEffect(() => {
     if (!user) return;
