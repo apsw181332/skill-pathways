@@ -52,6 +52,7 @@ const Index = () => {
     if (!isReady || settingsLoading) return "landing";
     if (user) {
       if (state === "lesson") return "lesson";
+      if (state === "path-complete") return "path-complete";
       if (state === "settings") return "settings";
       if (!settings.onboarding_completed && state !== "dashboard") return "onboarding";
       if (settings.onboarding_completed && !settings.tutorial_completed && state === "tutorial") return "tutorial";
