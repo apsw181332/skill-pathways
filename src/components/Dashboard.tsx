@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
   Home, BookOpen, Trophy, User as UserIcon, Flame, Star,
   ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award, LogOut,
   Users, UserPlus, Check, X, Search, Settings as SettingsIcon, Plus, Minus,
-  Diamond, Heart, ShoppingBag, Target, MessageCircle, Gift, Send, ArrowLeft, RotateCcw
+  Diamond, Heart, ShoppingBag, Target, MessageCircle, Gift, Send, ArrowLeft, RotateCcw,
+  Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
