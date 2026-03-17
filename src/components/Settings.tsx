@@ -40,6 +40,14 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
   const { t } = useTranslation(locale);
   const { toast } = useToast();
 
+  // Translate accessibility mode labels and descriptions
+  const accessibilityTexts = useMemo(() =>
+    ACCESSIBILITY_MODES.flatMap(m => [m.label, m.description]),
+  []);
+  const { translated: tAccessibility } = useTranslatedContent(accessibilityTexts, locale, "accessibility settings labels");
+  const getAccessLabel = (i: number) => tAccessibility[i * 2] ?? ACCESSIBILITY_MODES[i].label;
+  const getAccessDesc = (i: number) => tAccessibility[i * 2 + 1] ?? ACCESSIBILITY_MODES[i].description;
+
   // Display name state
   const [displayName, setDisplayName] = useState("");
   const [nameLoading, setNameLoading] = useState(false);
