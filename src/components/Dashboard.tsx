@@ -806,7 +806,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       </motion.div>
 
       {/* Leaderboard */}
-      <h3 className="text-lg font-semibold text-foreground mb-3">Leaderboard</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-3">{t("profile.leaderboard")}</h3>
       {leaderboard.length > 0 ? (
         <div className="space-y-2 mb-6">
           {leaderboard.slice(0, 5).map((entry) => {
