@@ -15,7 +15,7 @@ import Tutorial from "@/components/Tutorial";
 import SettingsPage from "@/components/Settings";
 import ChatBot from "@/components/ChatBot";
 
-type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings";
+type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
 
 const Index = () => {
   const { user, isReady, signUp, signIn, signOut, resetPassword } = useAuth();
