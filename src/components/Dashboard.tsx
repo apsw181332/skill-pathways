@@ -98,7 +98,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
   const levelInfo = getXpProgress(xp);
   const greetingMsg = getGreeting(streak);
-  const myInviteCode = user.id.slice(0, 8).toUpperCase();
+  const [myInviteCode, setMyInviteCode] = useState(user.id.slice(0, 8).toUpperCase());
 
   const filteredCourses = COURSES.filter(c => {
     const matchesSearch = !searchQuery ||
