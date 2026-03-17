@@ -39,7 +39,8 @@ export function applyAccessibilityModes(modes: string[]) {
   });
 }
 
-const Settings = ({ settings, onUpdate, onBack }: SettingsProps) => {
+const Settings = ({ settings, onUpdate, onBack, locale = "en" }: SettingsProps) => {
+  const { t } = useTranslation(locale);
   const handleColorChange = (color: string) => {
     applyThemeColor(color);
     onUpdate("theme_color", color);
