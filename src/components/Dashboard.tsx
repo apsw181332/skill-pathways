@@ -212,12 +212,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     return () => { supabase.removeChannel(channel); };
   }, [refreshSocialData, user.id]);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(`missions_${user.id}`);
-    if (stored) setClaimedMissions(JSON.parse(stored));
-    const titles = localStorage.getItem(`titles_${user.id}`);
-    if (titles) setOwnedTitles(JSON.parse(titles));
-  }, [user.id]);
+  // Missions and titles are now loaded from achievements in fetchAll above
 
   useEffect(() => {
     if (!chatFriend) { setChatMessages([]); return; }
