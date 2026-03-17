@@ -940,11 +940,11 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
       <div className="thumb-bar">
         {[
-          { id: "home" as const, icon: Home, label: "Home" },
-          { id: "learn" as const, icon: BookOpen, label: "Learn" },
-          { id: "missions" as const, icon: Target, label: "Missions" },
-          { id: "shop" as const, icon: ShoppingBag, label: "Shop" },
-          { id: "profile" as const, icon: UserIcon, label: "Profile" },
+          { id: "home" as const, icon: Home, label: t("nav.home") },
+          { id: "learn" as const, icon: BookOpen, label: t("nav.learn") },
+          { id: "missions" as const, icon: Target, label: t("nav.missions") },
+          { id: "shop" as const, icon: ShoppingBag, label: t("nav.shop") },
+          { id: "profile" as const, icon: UserIcon, label: t("nav.profile") },
         ].map(tab => {
           const Icon = tab.icon;
           const claimableCount = tab.id === "missions"
