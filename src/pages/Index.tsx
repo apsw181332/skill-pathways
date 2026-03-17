@@ -117,7 +117,7 @@ const Index = () => {
     case "auth": return <AuthPage onAuth={handleAuth} signUp={signUp} signIn={signIn} resetPassword={resetPassword} />;
     case "onboarding": return <Onboarding onComplete={handleOnboardingComplete} />;
     case "tutorial": return <Tutorial onComplete={handleTutorialComplete} />;
-    case "settings": return <SettingsPage settings={settings} onUpdate={updateSetting} onBack={() => setState("dashboard")} />;
+    case "settings": return <SettingsPage settings={settings} onUpdate={updateSetting} onBack={() => setState("dashboard")} locale={(settings.language || "en") as Locale} />;
     case "dashboard":
       return (
         <>
