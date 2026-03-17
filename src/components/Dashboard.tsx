@@ -960,10 +960,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         {activeTab === "home" && renderHome()}
         {activeTab === "learn" && renderLearn()}
         {activeTab === "missions" && (
-          <Missions stats={missionStats} claimedMissions={claimedMissions} onClaim={handleClaimMission} />
+          <Missions stats={missionStats} claimedMissions={claimedMissions} onClaim={handleClaimMission} locale={locale} />
         )}
         {activeTab === "shop" && (
-          <GemShop gems={gems} extraLives={extraLives} ownedTitles={ownedTitles} onPurchase={handlePurchase} />
+          <GemShop gems={gems} extraLives={extraLives} ownedTitles={ownedTitles} onPurchase={handlePurchase} locale={locale} />
         )}
         {activeTab === "profile" && renderProfile()}
       </main>

@@ -1,6 +1,9 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Circle, Diamond } from "lucide-react";
 import Mascot from "@/components/Mascot";
+import { useTranslatedContent } from "@/hooks/useTranslation";
+import type { Locale } from "@/lib/i18n";
 
 interface Mission {
   id: string;
@@ -50,11 +53,47 @@ interface MissionsProps {
   stats: MissionStats;
   claimedMissions: string[];
   onClaim: (missionId: string, reward: number) => void;
+  locale?: Locale;
 }
 
-const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
+const Missions = ({ stats, claimedMissions, onClaim, locale = "en" }: MissionsProps) => {
+  // Collect all translatable texts: mascot msg + titles + descriptions
+  const textsToTranslate = useMemo(() => {
+    const texts = [
+      "Claim every reward you have earned — missions stack independently now! 💎",
+      "Missions",
+      ...MISSIONS.flatMap(m => [m.title, m.description]),
+    ];
+    // Also title reward labels
+    Object.values(TITLE_REWARDS).forEach(tr => {
+      texts.push(`Unlocks "${tr.title}" title`);
+    });
+    texts.push("Done ✓", "Claim!");
+    return texts;
+  }, []);
+
+  const { translated: tTexts } = useTranslatedContent(textsToTranslate, locale, "missions page UI");
+
+  // Helper to get translated text by index
+  const tMascot = tTexts[0];
+  const tMissionsHeader = tTexts[1];
+  // Missions start at index 2, each mission has 2 entries (title, description)
+  const getMissionTitle = (i: number) => tTexts[2 + i * 2] ?? MISSIONS[i].title;
+  const getMissionDesc = (i: number) => tTexts[2 + i * 2 + 1] ?? MISSIONS[i].description;
+  // Title rewards start after missions (2 + 15*2 = 32)
+  const titleRewardKeys = Object.keys(TITLE_REWARDS);
+  const getTitleRewardLabel = (missionId: string) => {
+    const idx = titleRewardKeys.indexOf(missionId);
+    if (idx === -1) return null;
+    return tTexts[32 + idx] ?? `Unlocks "${TITLE_REWARDS[missionId].title}" title`;
+  };
+  const tDone = tTexts[32 + titleRewardKeys.length] ?? "Done ✓";
+  const tClaim = tTexts[32 + titleRewardKeys.length + 1] ?? "Claim!";
+
   // Sort: claimable first, then unclaimed incomplete, then claimed
   const sortedMissions = [...MISSIONS].sort((a, b) => {
+    const aIdx = MISSIONS.indexOf(a);
+    const bIdx = MISSIONS.indexOf(b);
     const aClaimed = claimedMissions.includes(a.id);
     const bClaimed = claimedMissions.includes(b.id);
     const aCanClaim = !aClaimed && a.requirement(stats);
@@ -70,13 +109,14 @@ const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
   return (
     <>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <Mascot message="Claim every reward you have earned — missions stack independently now! 💎" size="sm" animation="bounce" />
+        <Mascot message={tMascot} size="sm" animation="bounce" />
       </motion.div>
 
-      <h2 className="text-xl font-semibold text-foreground mb-4">Missions</h2>
+      <h2 className="text-xl font-semibold text-foreground mb-4">{tMissionsHeader}</h2>
 
       <div className="space-y-3">
         {sortedMissions.map((mission, i) => {
+          const origIdx = MISSIONS.indexOf(mission);
           const claimed = claimedMissions.includes(mission.id);
           const canClaim = !claimed && mission.requirement(stats);
           const titleReward = TITLE_REWARDS[mission.id];
@@ -98,31 +138,31 @@ const Missions = ({ stats, claimedMissions, onClaim }: MissionsProps) => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-foreground">{mission.title}</span>
+                  <span className="font-medium text-foreground">{getMissionTitle(origIdx)}</span>
                   {claimed && <CheckCircle2 className="w-4 h-4 text-primary" />}
                 </div>
-                <div className="text-xs text-muted-foreground">{mission.description}</div>
+                <div className="text-xs text-muted-foreground">{getMissionDesc(origIdx)}</div>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="flex items-center gap-1 text-xs text-primary font-medium">
                     <Diamond className="w-3 h-3" /> +{mission.reward} gems
                   </div>
                   {titleReward && (
                     <span className="text-xs bg-accent/10 text-accent px-1.5 py-0.5 rounded-full">
-                      🏅 Unlocks "{titleReward.title}" title
+                      🏅 {getTitleRewardLabel(mission.id)}
                     </span>
                   )}
                 </div>
               </div>
               <div className="shrink-0">
                 {claimed ? (
-                  <span className="text-xs text-primary font-medium">Done ✓</span>
+                  <span className="text-xs text-primary font-medium">{tDone}</span>
                 ) : canClaim ? (
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => onClaim(mission.id, mission.reward)}
                     className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium"
                   >
-                    Claim!
+                    {tClaim}
                   </motion.button>
                 ) : (
                   <Circle className="w-5 h-5 text-muted-foreground" />

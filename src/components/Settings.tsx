@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Languages, User, Lock, Check, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -8,6 +8,8 @@ import Mascot from "@/components/Mascot";
 import { type UserSettings, THEME_COLORS, applyThemeColor } from "@/hooks/useSettings";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { ACCESSIBILITY_MODES, applyAccessibilityModes } from "@/lib/accessibility";
+import { useTranslatedContent } from "@/hooks/useTranslation";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +39,14 @@ interface SettingsProps {
 const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: SettingsProps) => {
   const { t } = useTranslation(locale);
   const { toast } = useToast();
+
+  // Translate accessibility mode labels and descriptions
+  const accessibilityTexts = useMemo(() =>
+    ACCESSIBILITY_MODES.flatMap(m => [m.label, m.description]),
+  []);
+  const { translated: tAccessibility } = useTranslatedContent(accessibilityTexts, locale, "accessibility settings labels");
+  const getAccessLabel = (i: number) => tAccessibility[i * 2] ?? ACCESSIBILITY_MODES[i].label;
+  const getAccessDesc = (i: number) => tAccessibility[i * 2 + 1] ?? ACCESSIBILITY_MODES[i].description;
 
   // Display name state
   const [displayName, setDisplayName] = useState("");
@@ -204,7 +214,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           </div>
           <p className="text-sm text-muted-foreground mb-4">{t("settings.accessibility_desc")}</p>
           <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-            {ACCESSIBILITY_MODES.map(mode => {
+            {ACCESSIBILITY_MODES.map((mode, idx) => {
               const isActive = ((settings as any).accessibility_modes || []).includes(mode.id);
               return (
                 <button
@@ -216,8 +226,8 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
                 >
                   <span className="text-xl shrink-0">{mode.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <span className="font-medium text-foreground text-sm">{mode.label}</span>
-                    <p className="text-xs text-muted-foreground">{mode.description}</p>
+                    <span className="font-medium text-foreground text-sm">{getAccessLabel(idx)}</span>
+                    <p className="text-xs text-muted-foreground">{getAccessDesc(idx)}</p>
                   </div>
                   <Switch checked={isActive} onCheckedChange={() => toggleAccessibilityMode(mode.id)} />
                 </button>
