@@ -606,7 +606,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                         className={`lesson-card flex items-center gap-3 py-3 min-h-[44px] ${isCorrect ? "border-primary" : isWrong ? "border-destructive" : ""}`}>
                         <span className="w-6 h-6 rounded-md bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground">{idx + 1}</span>
                         <span className="text-foreground">{item.text}</span>
-                        {!dragSubmitted && <button onClick={() => handleOrderItem(id)} className="ml-auto text-muted-foreground hover:text-destructive text-xs min-h-[44px] min-w-[44px] flex items-center justify-center">Remove</button>}
+                        {!dragSubmitted && <button onClick={() => handleOrderItem(id)} className="ml-auto text-muted-foreground hover:text-destructive text-xs min-h-[44px] min-w-[44px] flex items-center justify-center">{t("lesson.remove")}</button>}
                         {dragSubmitted && isCorrect && <CheckCircle2 className="w-4 h-4 text-primary ml-auto" />}
                         {dragSubmitted && isWrong && <XCircle className="w-4 h-4 text-destructive ml-auto" />}
                       </motion.div>
