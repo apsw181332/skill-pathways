@@ -709,7 +709,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           </motion.div>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search courses..." className="pl-10" />
+            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t("learn.search")} className="pl-10" />
           </div>
           <h2 className="text-xl font-semibold text-foreground mb-4">{t("learn.title")} ({filteredCourses.length})</h2>
           <div className="space-y-3">
