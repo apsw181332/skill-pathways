@@ -487,17 +487,17 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         <div className="lesson-card flex flex-col items-center py-4">
           <Flame className="w-5 h-5 text-destructive mb-1" />
           <div className="text-lg font-semibold text-foreground xp-counter">{streak}</div>
-          <div className="text-xs text-muted-foreground">Streak</div>
+          <div className="text-xs text-muted-foreground">{t("general.streak")}</div>
         </div>
         <div className="lesson-card flex flex-col items-center py-4">
           <Star className="w-5 h-5 text-accent mb-1" />
           <div className="text-lg font-semibold text-foreground xp-counter">{xp}</div>
-          <div className="text-xs text-muted-foreground">XP</div>
+          <div className="text-xs text-muted-foreground">{t("general.xp")}</div>
         </div>
         <div className="lesson-card flex flex-col items-center py-4">
           <Diamond className="w-5 h-5 text-cyan-500 mb-1" />
           <div className="text-lg font-semibold text-foreground xp-counter">{gems}</div>
-          <div className="text-xs text-muted-foreground">Gems</div>
+          <div className="text-xs text-muted-foreground">{t("general.gems")}</div>
         </div>
       </motion.div>
 
