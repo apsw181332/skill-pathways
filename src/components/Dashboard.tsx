@@ -106,13 +106,20 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     "Complete lessons to start earning badges! 🎯",
   ], [greetingMsgEn]);
   const { translated: tDashMascot } = useTranslatedContent(dashboardMascotTexts, locale, "dashboard mascot messages");
+
+  // Translate course names and descriptions
+  const courseTexts = useMemo(() => COURSES.flatMap(c => [c.label, c.description]), []);
+  const { translated: tCourseTexts } = useTranslatedContent(courseTexts, locale, "course names and descriptions");
+  const getCourseName = (idx: number) => tCourseTexts[idx * 2] ?? COURSES[idx]?.label ?? "";
+  const getCourseDesc = (idx: number) => tCourseTexts[idx * 2 + 1] ?? COURSES[idx]?.description ?? "";
   const greetingMsg = tDashMascot[0] ?? greetingMsgEn;
   const [myInviteCode, setMyInviteCode] = useState(user.id.slice(0, 8).toUpperCase());
 
-  const filteredCourses = COURSES.filter(c => {
+  const filteredCourses = COURSES.map((c, i) => ({ ...c, tLabel: getCourseName(i), tDesc: getCourseDesc(i) })).filter(c => {
     const matchesSearch = !searchQuery ||
-      c.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.description.toLowerCase().includes(searchQuery.toLowerCase());
+      c.tLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.tDesc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.label.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
 
@@ -532,6 +539,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
             {enrolledCourses.map(courseId => {
               const course = COURSES.find(c => c.id === courseId);
               if (!course) return null;
+              const courseIdx = COURSES.findIndex(c => c.id === courseId);
+              const tLabel = getCourseName(courseIdx);
               const completed = categoryProgress[courseId] || 0;
               const total = course.lessons.length;
               return (
@@ -540,7 +549,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                   className="lesson-card w-full text-left flex items-center gap-4 group">
                   <span className="text-2xl">{course.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <span className="font-medium text-foreground">{course.label}</span>
+                    <span className="font-medium text-foreground">{tLabel || course.label}</span>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden">
                         <div className="progress-fill h-full" style={{ width: `${(completed / total) * 100}%` }} />
@@ -723,10 +732,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                     <span className="text-2xl">{course.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{course.label}</span>
+                        <span className="font-medium text-foreground">{course.tLabel || course.label}</span>
                         {isEnrolled && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{t("learn.enrolled")}</span>}
                       </div>
-                      <p className="text-sm text-muted-foreground">{course.description}</p>
+                      <p className="text-sm text-muted-foreground">{course.tDesc || course.description}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden">
                           <div className="progress-fill h-full" style={{ width: `${(completed / course.lessons.length) * 100}%` }} />
@@ -752,19 +761,22 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           <button onClick={() => setSelectedCategory(null)} className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">{t("learn.back")}</button>
           {(() => {
             const course = COURSES.find(c => c.id === selectedCategory);
+            const courseIdx = COURSES.findIndex(c => c.id === selectedCategory);
             const isEnrolled = enrolledCourses.includes(selectedCategory);
             if (!course) return null;
+            const tLabel = getCourseName(courseIdx);
+            const tDesc = getCourseDesc(courseIdx);
             return (
               <>
                 <div className="flex items-center justify-between mb-2">
-                  <h1 className="text-2xl font-semibold text-foreground">{course.emoji} {course.label}</h1>
+                  <h1 className="text-2xl font-semibold text-foreground">{course.emoji} {tLabel || course.label}</h1>
                   {!isEnrolled && (
                     <Button size="sm" onClick={() => handleEnroll(course.id)} className="gap-1">
                        <Plus className="w-4 h-4" /> {t("learn.enroll")}
                     </Button>
                   )}
                 </div>
-                <p className="text-muted-foreground mb-2">{course.description}</p>
+                <p className="text-muted-foreground mb-2">{tDesc || course.description}</p>
                 {course.image && <img src={course.image} alt={course.label} className="w-full h-40 object-cover rounded-xl mb-4" />}
 
                 {/* Path Map */}

@@ -2997,37 +2997,37 @@ const RAW_COURSES: Course[] = [
   },
 ];
 
-const MIN_LESSONS_PER_COURSE = 10;
+const MIN_LESSONS_PER_COURSE = 15;
 const MIN_QUESTIONS_PER_LESSON = 7;
 
 const GENERATED_LESSON_TOPICS: Record<string, string[]> = {
-  tech: ["Privacy Settings Deep Dive", "Safe Online Shopping", "Understanding Cookies & Tracking", "Managing Digital Accounts", "Avoiding Tech Support Scams"],
-  financial: ["Understanding Taxes", "Insurance Essentials", "Setting Financial Goals", "Debt Strategies", "Retirement Planning Basics"],
-  health: ["Understanding Nutrition Labels", "Building an Exercise Routine", "Hydration Habits", "Managing Chronic Stress", "Preventive Health Checkups"],
-  career: ["Time Management at Work", "Workplace Communication", "Professional Growth Plans", "Handling Feedback", "Building a Portfolio"],
-  cooking: ["Meal Planning Basics", "Kitchen Safety Tips", "Understanding Flavor Profiles", "Batch Cooking Strategies", "Eating on a Budget"],
-  social: ["Active Listening Skills", "Managing Social Anxiety", "Building Trust", "Handling Disagreements", "Making New Friends"],
-  home: ["Deep Cleaning Routines", "Basic Home Repairs", "Organizing Small Spaces", "Energy Saving Tips", "Pest Prevention"],
-  everyday: ["Daily Planning Routines", "Digital Minimalism", "Grocery Shopping Tips", "Managing Personal Admin", "Building Good Habits"],
-  legal: ["Understanding Contracts", "Tenant Rights Essentials", "Consumer Protection Laws", "Small Claims Court", "Privacy Rights Online"],
-  environment: ["Reducing Plastic Waste", "Sustainable Shopping", "Home Composting", "Water Conservation", "Understanding Carbon Footprints"],
-  safety: ["Home Fire Safety", "Emergency Kit Building", "First Aid Basics Review", "Online Safety Refresher", "Travel Safety Planning"],
-  communication: ["Email Writing Skills", "Public Speaking Basics", "Giving Clear Instructions", "Written Tone and Voice", "Cross-Cultural Communication"],
-  photography: ["Composition Rules", "Natural Lighting", "Editing Basics", "Portrait Tips", "Landscape Photography"],
-  music: ["Reading Sheet Music", "Rhythm and Timing", "Ear Training Basics", "Chord Progressions", "Practicing Effectively"],
-  gardening: ["Soil and Containers", "Watering and Sunlight", "Planting for the Seasons", "Natural Pest Control", "Harvesting and Care", "Companion Planting", "Indoor Herb Gardens", "Composting for Gardens"],
-  parenting: ["Setting Boundaries", "Positive Reinforcement", "Managing Screen Time", "Teaching Responsibility", "Handling Tantrums"],
-  travel: ["Packing Efficiently", "Budget Travel Tips", "Navigating Airports", "Cultural Etiquette", "Travel Health Prep"],
-  pets: ["Choosing the Right Pet", "Basic Training Tips", "Pet Nutrition Essentials", "Veterinary Care Schedule", "Pet-Proofing Your Home"],
-  mindfulness: ["Breathing Techniques", "Body Scan Practice", "Mindful Eating", "Journaling for Clarity", "Gratitude Practices"],
-  automotive: ["Tire Maintenance", "Understanding Dashboard Lights", "Basic Engine Care", "Fuel Efficiency Tips", "Seasonal Car Prep"],
-  sewing: ["Threading a Needle", "Basic Stitches Guide", "Hemming and Repairs", "Reading Patterns", "Fabric Selection"],
+  tech: ["Privacy Settings Deep Dive", "Safe Online Shopping", "Understanding Cookies & Tracking", "Managing Digital Accounts", "Avoiding Tech Support Scams", "Browser Security Features", "Cloud Storage Safety", "Social Media Privacy", "Recognizing Malware"],
+  financial: ["Understanding Taxes", "Insurance Essentials", "Setting Financial Goals", "Debt Strategies", "Retirement Planning Basics", "Emergency Funds", "Credit Score Management", "Investment Basics", "Smart Spending Habits"],
+  health: ["Understanding Nutrition Labels", "Building an Exercise Routine", "Hydration Habits", "Managing Chronic Stress", "Preventive Health Checkups", "Sleep Hygiene", "Mental Health Basics", "Stretching and Flexibility", "Healthy Meal Prep"],
+  career: ["Time Management at Work", "Workplace Communication", "Professional Growth Plans", "Handling Feedback", "Building a Portfolio", "Interview Preparation", "Networking at Work", "Email Professionalism", "Goal Setting Techniques"],
+  cooking: ["Meal Planning Basics", "Kitchen Safety Tips", "Understanding Flavor Profiles", "Batch Cooking Strategies", "Eating on a Budget", "Knife Skills Overview", "Reading Recipes", "Food Storage Best Practices", "Healthy Substitutions"],
+  social: ["Active Listening Skills", "Managing Social Anxiety", "Building Trust", "Handling Disagreements", "Making New Friends", "Setting Boundaries", "Empathy in Action", "Group Conversation Skills", "Online Communication Etiquette"],
+  home: ["Deep Cleaning Routines", "Basic Home Repairs", "Organizing Small Spaces", "Energy Saving Tips", "Pest Prevention", "Laundry Best Practices", "Kitchen Organization", "Seasonal Home Maintenance", "Home Safety Checks"],
+  everyday: ["Daily Planning Routines", "Digital Minimalism", "Grocery Shopping Tips", "Managing Personal Admin", "Building Good Habits", "Decluttering Methods", "Time Blocking Techniques", "Self-Care Routines", "Morning Routine Design"],
+  legal: ["Understanding Contracts", "Tenant Rights Essentials", "Consumer Protection Laws", "Small Claims Court", "Privacy Rights Online", "Employment Rights Basics", "Insurance Claims Process", "Understanding Warranties", "Digital Privacy Laws"],
+  environment: ["Reducing Plastic Waste", "Sustainable Shopping", "Home Composting", "Water Conservation", "Understanding Carbon Footprints", "Eco-Friendly Cleaning", "Sustainable Fashion", "Reducing Food Waste", "Green Transportation"],
+  safety: ["Home Fire Safety", "Emergency Kit Building", "First Aid Basics Review", "Online Safety Refresher", "Travel Safety Planning", "Personal Safety Awareness", "Natural Disaster Prep", "Child Safety Basics", "Workplace Safety"],
+  communication: ["Email Writing Skills", "Public Speaking Basics", "Giving Clear Instructions", "Written Tone and Voice", "Cross-Cultural Communication", "Presentation Structure", "Active Feedback Skills", "Difficult Conversations", "Non-Verbal Communication"],
+  photography: ["Composition Rules", "Natural Lighting", "Editing Basics", "Portrait Tips", "Landscape Photography", "Color Theory in Photos", "Smartphone Photography", "Telling Stories with Photos", "Photo Organization"],
+  music: ["Reading Sheet Music", "Rhythm and Timing", "Ear Training Basics", "Chord Progressions", "Practicing Effectively", "Music Theory Fundamentals", "Singing Techniques", "Instrument Care", "Finding Your Musical Style"],
+  gardening: ["Soil and Containers", "Watering and Sunlight", "Planting for the Seasons", "Natural Pest Control", "Harvesting and Care", "Companion Planting", "Indoor Herb Gardens", "Composting for Gardens", "Container Gardening Tips"],
+  parenting: ["Setting Boundaries", "Positive Reinforcement", "Managing Screen Time", "Teaching Responsibility", "Handling Tantrums", "Encouraging Creativity", "Building Emotional Intelligence", "Family Communication", "Age-Appropriate Chores"],
+  travel: ["Packing Efficiently", "Budget Travel Tips", "Navigating Airports", "Cultural Etiquette", "Travel Health Prep", "Solo Travel Safety", "Travel Insurance Basics", "Finding Local Experiences", "Managing Travel Budgets"],
+  pets: ["Choosing the Right Pet", "Basic Training Tips", "Pet Nutrition Essentials", "Veterinary Care Schedule", "Pet-Proofing Your Home", "Exercise for Pets", "Pet Grooming Basics", "Understanding Pet Behavior", "Traveling with Pets"],
+  mindfulness: ["Breathing Techniques", "Body Scan Practice", "Mindful Eating", "Journaling for Clarity", "Gratitude Practices", "Walking Meditation", "Stress Response Management", "Digital Detox Methods", "Mindful Communication"],
+  automotive: ["Tire Maintenance", "Understanding Dashboard Lights", "Basic Engine Care", "Fuel Efficiency Tips", "Seasonal Car Prep", "Car Cleaning Basics", "Understanding Insurance", "Road Trip Preparation", "Emergency Roadside Kit"],
+  sewing: ["Threading a Needle", "Basic Stitches Guide", "Hemming and Repairs", "Reading Patterns", "Fabric Selection", "Button Replacement", "Simple Alterations", "Sewing Machine Basics", "Upcycling Projects"],
   languages: ["Everyday Vocabulary", "Listening and Pronunciation", "Grammar in Context", "Speaking with Confidence", "Travel Conversations", "Reading Comprehension", "Writing Sentences", "Cultural Phrases", "Numbers and Dates"],
-  "digital-tools": ["Spreadsheet Basics", "Presentation Skills", "Cloud Collaboration", "Document Formatting", "Video Conferencing Tips"],
-  negotiation: ["Preparation Strategies", "Finding Common Ground", "Handling Pushback", "Win-Win Outcomes", "Salary Negotiation"],
-  "mental-models": ["First Principles Thinking", "Inversion Method", "Second-Order Effects", "Opportunity Cost", "Pareto Principle"],
-  networking: ["Elevator Pitch Practice", "Following Up Effectively", "LinkedIn Best Practices", "Event Networking Tips", "Building Genuine Connections"],
-  moving: ["Decluttering Before Moving", "Packing Room by Room", "Utility Setup Checklist", "Moving Day Timeline", "Settling Into a New Place"],
+  "digital-tools": ["Spreadsheet Basics", "Presentation Skills", "Cloud Collaboration", "Document Formatting", "Video Conferencing Tips", "File Organization", "Password Management Tools", "Task Management Apps", "Digital Note-Taking"],
+  negotiation: ["Preparation Strategies", "Finding Common Ground", "Handling Pushback", "Win-Win Outcomes", "Salary Negotiation", "Setting Walk-Away Points", "Reading Body Language", "Building Rapport", "Following Up After Negotiations"],
+  "mental-models": ["First Principles Thinking", "Inversion Method", "Second-Order Effects", "Opportunity Cost", "Pareto Principle", "Circle of Competence", "Confirmation Bias Awareness", "Systems Thinking", "Decision Frameworks"],
+  networking: ["Elevator Pitch Practice", "Following Up Effectively", "LinkedIn Best Practices", "Event Networking Tips", "Building Genuine Connections", "Online Community Building", "Mentorship Seeking", "Information Interviews", "Professional Brand Building"],
+  moving: ["Decluttering Before Moving", "Packing Room by Room", "Utility Setup Checklist", "Moving Day Timeline", "Settling Into a New Place", "Budget Moving Tips", "Address Change Checklist", "Storage Solutions", "Meeting New Neighbors"],
   taxes: ["Filing Your Tax Return", "Understanding Deductions", "Self-Employment Taxes", "Tax-Advantaged Accounts", "Avoiding Common Tax Errors"],
   insurance: ["Health Insurance Basics", "Auto Insurance Guide", "Renter's Insurance", "Life Insurance Options", "Comparing Policy Quotes"],
   writing: ["Finding Your Voice", "Structuring Arguments", "Editing and Revising", "Writing for the Web", "Creative Writing Prompts"],
@@ -3148,25 +3148,100 @@ function createGeneratedLesson(course: Course, lessonId: number, topic: string):
     steps: [],
   };
 
+  // Build steps with info sections interspersed between questions
+  const steps: LessonStep[] = [
+    {
+      type: "info",
+      title: `Getting Started with ${topic}`,
+      content: `${topic} is one of the most useful parts of ${course.label.toLowerCase()}. In this lesson, you'll learn the fundamentals — what it is, why it matters, and how to get started with practical steps you can use right away.`,
+      mascotMsg: "Let's make this skill feel easy and practical! ✨",
+    },
+    {
+      type: "info",
+      title: `Why ${topic} Matters`,
+      content: `Understanding ${topic.toLowerCase()} gives you real confidence in everyday situations. People who practice this skill report feeling more prepared, more independent, and less stressed when challenges come up. The key is starting small and building from there.`,
+      mascotMsg: "Knowledge is power — let's build yours! 💪",
+    },
+  ];
+
+  // Add questions with info sections every 2-3 questions
+  for (let i = 0; i < MIN_QUESTIONS_PER_LESSON; i++) {
+    // Add an info step every 2 questions (after questions 2, 4, 6)
+    if (i > 0 && i % 2 === 0 && i < MIN_QUESTIONS_PER_LESSON - 1) {
+      const infoTopics = [
+        {
+          title: `Key Principles of ${topic}`,
+          content: `Here's what experts agree on: the best approach to ${topic.toLowerCase()} involves three things — consistency (doing it regularly), reflection (thinking about what works), and adaptation (adjusting your approach based on results). Even small improvements compound over time.`,
+          mascotMsg: "Remember these principles — they'll help with the next questions! 📖",
+        },
+        {
+          title: `Common Mistakes in ${topic}`,
+          content: `Many people struggle with ${topic.toLowerCase()} because they try to do too much at once, skip the basics, or give up when results aren't immediate. The biggest mistake? Not starting at all. The second biggest? Not asking for help when stuck.`,
+          mascotMsg: "Learning from others' mistakes saves you time! 🎯",
+        },
+        {
+          title: `Practical Tips for ${topic}`,
+          content: `Here are actionable tips: (1) Set a specific time to practice ${topic.toLowerCase()} each week. (2) Start with the easiest version and work up. (3) Track your progress — even a simple checklist helps. (4) Teach what you learn to someone else — it solidifies understanding.`,
+          mascotMsg: "These tips will directly help with the questions coming up! 💡",
+        },
+      ];
+      const infoStep = infoTopics[Math.floor(i / 2) % infoTopics.length];
+      steps.push({ type: "info", ...infoStep });
+    }
+    steps.push(createGeneratedQuiz(course, seedLesson, i));
+  }
+
   return {
     ...seedLesson,
-    steps: [
-      {
+    steps,
+  };
+}
+
+/**
+ * Create a summary/review lesson that consolidates learning from the previous 4 lessons.
+ */
+function createSummaryLesson(course: Course, lessonId: number, reviewStart: number, reviewEnd: number): Lesson {
+  const reviewedLessons = course.lessons.slice(reviewStart, reviewEnd);
+  const topicNames = reviewedLessons.map(l => l.title).join(", ");
+
+  const summarySteps: LessonStep[] = [
+    {
+      type: "info",
+      title: `Review: Lessons ${reviewStart + 1}–${reviewEnd}`,
+      content: `Great job completing these lessons! Let's review what you've learned about: ${topicNames}. This summary will help lock the knowledge into long-term memory. Research shows that spaced review is one of the most effective learning techniques.`,
+      mascotMsg: "Review time! Let's make sure everything sticks! 🧠",
+    },
+    {
+      type: "info",
+      title: "Key Takeaways",
+      content: `Across these lessons, you've learned practical skills in ${course.label.toLowerCase()}. The common thread? Start with the basics, practice regularly, learn from mistakes, and apply what you know in real situations. These principles apply to every topic you've covered.`,
+      mascotMsg: "Connecting the dots makes learning stronger! 🔗",
+    },
+  ];
+
+  // Generate review questions referencing the covered topics
+  const seedLesson: Lesson = {
+    id: lessonId,
+    title: `Summary: Lessons ${reviewStart + 1}–${reviewEnd}`,
+    description: `Review and consolidate what you learned in lessons ${reviewStart + 1} through ${reviewEnd}.`,
+    steps: [],
+  };
+
+  for (let i = 0; i < MIN_QUESTIONS_PER_LESSON; i++) {
+    if (i > 0 && i % 3 === 0) {
+      summarySteps.push({
         type: "info",
-        title: `Getting Started with ${topic}`,
-        content: `${topic} is one of the most useful parts of ${course.label.toLowerCase()}. Start small, stay consistent, and focus on one clear action at a time.`,
-        mascotMsg: "Let's make this skill feel easy and practical! ✨",
-      },
-      {
-        type: "info",
-        title: `${topic} in Real Life`,
-        content: `The fastest way to improve ${topic.toLowerCase()} is to use it in everyday situations. Short practice sessions and quick reflection build lasting confidence.`,
-        mascotMsg: "Practice turns knowledge into real skill! 🌍",
-      },
-      ...Array.from({ length: MIN_QUESTIONS_PER_LESSON }, (_, index) =>
-        createGeneratedQuiz(course, seedLesson, index)
-      ),
-    ],
+        title: `Reflection Point`,
+        content: `Think about how the topics you've reviewed connect to each other. In ${course.label.toLowerCase()}, skills build on each other — what you learned early on supports what comes later. Can you see the connections?`,
+        mascotMsg: "Making connections strengthens your understanding! 🌟",
+      });
+    }
+    summarySteps.push(createGeneratedQuiz(course, seedLesson, i));
+  }
+
+  return {
+    ...seedLesson,
+    steps: summarySteps,
   };
 }
 
@@ -3197,10 +3272,20 @@ function normalizeLesson(course: Course, lesson: Lesson): Lesson {
 function normalizeCourse(course: Course): Course {
   const lessons = course.lessons.map((lesson) => normalizeLesson(course, lesson));
 
+  // Add generated lessons until we have at least MIN_LESSONS_PER_COURSE
+  let generatedCount = 0;
   while (lessons.length < MIN_LESSONS_PER_COURSE) {
     const nextLessonId = lessons.length + 1;
-    const topic = getGeneratedLessonTopic(course, lessons.length - course.lessons.length);
-    lessons.push(createGeneratedLesson(course, nextLessonId, topic));
+
+    // Every 5th lesson (positions 5, 10, 15) should be a summary lesson
+    if (lessons.length > 0 && lessons.length % 5 === 4) {
+      const reviewStart = Math.max(0, lessons.length - 4);
+      lessons.push(createSummaryLesson(course, nextLessonId, reviewStart, lessons.length));
+    } else {
+      const topic = getGeneratedLessonTopic(course, generatedCount);
+      lessons.push(createGeneratedLesson(course, nextLessonId, topic));
+      generatedCount++;
+    }
   }
 
   return {
