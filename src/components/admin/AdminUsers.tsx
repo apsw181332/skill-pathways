@@ -324,19 +324,29 @@ const AdminUsers = () => {
             </div>
             {learningCodeUser?.learning_code && (
               <div className="space-y-2">
-                {decodeLearningCode(learningCodeUser.learning_code).map((item, i) => (
-                  <div key={i} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2">
-                    <span className="text-sm font-medium text-foreground">{item.name}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-0.5">
-                        {[0, 1, 2].map(v => (
-                          <div key={v} className={`w-3 h-3 rounded-full ${v <= item.value ? "bg-primary" : "bg-border"}`} />
-                        ))}
+                {decodeLearningCode(learningCodeUser.learning_code).map((item, i) => {
+                  const adaptation = ADAPTATION_EFFECTS[item.name]?.[item.value];
+                  return (
+                    <div key={i} className="bg-secondary/50 rounded-lg px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">{item.name}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-0.5">
+                            {[0, 1, 2].map(v => (
+                              <div key={v} className={`w-3 h-3 rounded-full ${v <= item.value ? "bg-primary" : "bg-border"}`} />
+                            ))}
+                          </div>
+                          <span className="text-xs text-muted-foreground w-20 text-right">{item.label}</span>
+                        </div>
                       </div>
-                      <span className="text-xs text-muted-foreground w-20 text-right">{item.label}</span>
+                      {adaptation && (
+                        <p className="text-[11px] text-primary/80 mt-1 leading-snug">
+                          ⚙️ {adaptation}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
