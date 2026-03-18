@@ -114,6 +114,14 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
   const infoReadTimes = useRef<{ duration: number; contentLength: number }[]>([]);
   const recentQuizResults = useRef<boolean[]>([]);
   const [paceWarning, setPaceWarning] = useState<string | null>(null);
+  const [userLearningCode, setUserLearningCode] = useState<string | null>(null);
+
+  // Fetch learning code on mount
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from("profiles").select("learning_code").eq("user_id", userId).single()
+      .then(({ data }) => { if (data) setUserLearningCode((data as any).learning_code || null); });
+  }, [userId]);
 
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
