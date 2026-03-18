@@ -830,9 +830,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
       {/* Invite code */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card text-center mb-6 border-primary/30">
-        <p className="text-sm text-muted-foreground mb-1">Your Invite Code</p>
+        <p className="text-sm text-muted-foreground mb-1">{t("profile.invite_code")}</p>
         <p className="text-2xl font-mono font-bold text-foreground tracking-widest">{myInviteCode}</p>
-        <p className="text-xs text-muted-foreground mt-1">Share with friends to connect!</p>
+        <p className="text-xs text-muted-foreground mt-1">{t("profile.share")}</p>
       </motion.div>
 
       {/* Leaderboard */}
