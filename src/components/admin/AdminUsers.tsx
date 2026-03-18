@@ -40,6 +40,55 @@ interface UserProfile {
 
 type SortKey = "xp" | "streak" | "created_at" | "display_name";
 
+/** Describes what the AI content adapter does for each learning code digit value */
+const ADAPTATION_EFFECTS: Record<string, Record<number, string>> = {
+  "Learning Speed": {
+    0: "Content paced slowly with extra detail and repetition for thorough understanding",
+    1: "Standard content pacing with balanced detail",
+    2: "Content streamlined and concise for fast consumption",
+  },
+  "Visual Preference": {
+    0: "Text-focused content with minimal visual aids",
+    1: "Balanced mix of text and visual elements",
+    2: "Rich visual metaphors, diagrams, and imagery added to content",
+  },
+  "Auditory Preference": {
+    0: "Text-based learning approach with no audio emphasis",
+    1: "Standard content with optional audio features",
+    2: "Audio explanations and discussion-style presentation emphasized",
+  },
+  "Kinesthetic Preference": {
+    0: "Observation-based content delivery",
+    1: "Balanced theory and practice approach",
+    2: "Hands-on 'try this' action steps and interactive exercises added",
+  },
+  "Reading/Writing Preference": {
+    0: "Concise bullet points and summaries used",
+    1: "Standard reading-length content sections",
+    2: "Detailed written explanations with note-taking prompts",
+  },
+  "Attention Span": {
+    0: "Bite-sized chunks with frequent breaks and bullet-point format",
+    1: "Moderate-length content sections",
+    2: "Extended in-depth content for sustained focus sessions",
+  },
+  "Social Learning": {
+    0: "Independent self-paced activities emphasized",
+    1: "Mix of solo and collaborative elements",
+    2: "Discussion prompts and collaborative exercises added",
+  },
+  "Content Complexity": {
+    0: "Simple everyday language with basic real-life examples",
+    1: "Moderate complexity with clear explanations",
+    2: "Advanced concepts with nuanced, in-depth content",
+  },
+  "Accessibility Needs": {
+    0: "Standard content presentation",
+    1: "Some accessibility adjustments (clearer language, simpler layouts)",
+    2: "Significant adaptations (simplified language, high-contrast cues, step-by-step breakdowns)",
+  },
+};
+
 const AdminUsers = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [search, setSearch] = useState("");

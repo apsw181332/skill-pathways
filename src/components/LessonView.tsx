@@ -636,6 +636,14 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
             )}
           </motion.div>
         </AnimatePresence>
+
+        {/* PebbleTip - contextual penguin helper */}
+        <PebbleTip
+          learningCode={userLearningCode}
+          stepType={step.type as "info" | "quiz" | "drag"}
+          question={step.question}
+          recentAccuracy={totalQuizzes > 0 ? correctAnswers / totalQuizzes : 1}
+        />
       </main>
 
       <div className="sticky bottom-0 bg-background border-t border-border p-4">

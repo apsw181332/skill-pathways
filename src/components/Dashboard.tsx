@@ -909,7 +909,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
               <span className="text-3xl">{badge.emoji}</span>
               <p className="font-medium text-foreground text-sm mt-2">{badge.label}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{badge.desc}</p>
-              {earned && <span className="inline-block mt-2 text-xs text-primary font-medium">Earned ✓</span>}
+              {earned && <span className="inline-block mt-2 text-xs text-primary font-medium">{t("missions.done")}</span>}
             </motion.div>
           );
         })}
