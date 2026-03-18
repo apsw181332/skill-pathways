@@ -253,7 +253,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
           <Mascot message={msg} size="md" animation="celebrate" />
           <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">
-            {isReview ? "Review Complete! 📖" : "Lesson Complete! 🎉"}
+            {isReview ? t("lesson.review_complete") : t("lesson.complete")}
           </h2>
           <p className="text-muted-foreground mb-4">{lesson?.title}</p>
           <div className="flex justify-center gap-2 mb-6">
@@ -265,30 +265,30 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
             <div className="lesson-card py-4">
               <Clock className="w-5 h-5 text-primary mx-auto mb-2" />
               <div className="text-lg font-semibold text-foreground">{fmtTime(elapsed)}</div>
-              <div className="text-xs text-muted-foreground">Time</div>
+              <div className="text-xs text-muted-foreground">{t("lesson.time")}</div>
             </div>
             <div className="lesson-card py-4">
               <Zap className="w-5 h-5 text-accent mx-auto mb-2" />
-              <div className="text-lg font-semibold text-foreground">{isReview ? "0" : totalXp} XP</div>
-              <div className="text-xs text-muted-foreground">{isReview ? "Review" : "Earned"}</div>
+              <div className="text-lg font-semibold text-foreground">{isReview ? "0" : totalXp} {t("general.xp")}</div>
+              <div className="text-xs text-muted-foreground">{isReview ? t("lesson.review") : t("lesson.earned")}</div>
             </div>
             <div className="lesson-card py-4">
               <Target className="w-5 h-5 text-primary mx-auto mb-2" />
               <div className="text-lg font-semibold text-foreground">{accuracy}%</div>
-              <div className="text-xs text-muted-foreground">Accuracy</div>
+              <div className="text-xs text-muted-foreground">{t("lesson.accuracy")}</div>
             </div>
           </div>
           <div className="lesson-card text-left mb-6 border-primary/30">
-            <p className="text-sm font-medium text-primary mb-1">💡 Pebble's Tip</p>
+            <p className="text-sm font-medium text-primary mb-1">💡 {t("lesson.pebble_tip")}</p>
             <p className="text-sm text-muted-foreground">{tip}</p>
           </div>
           {isReview ? (
             <Button onClick={onBack} className="w-full gap-2" size="lg">
-              Back to Dashboard
+              {t("lesson.back")}
             </Button>
           ) : (
             <Button onClick={() => setShowChest(true)} className="w-full gap-2" size="lg">
-              <Diamond className="w-4 h-4" /> Open Treasure Chest! 🎁
+              <Diamond className="w-4 h-4" /> {t("lesson.open_chest")}
             </Button>
           )}
         </motion.div>
