@@ -3272,10 +3272,20 @@ function normalizeLesson(course: Course, lesson: Lesson): Lesson {
 function normalizeCourse(course: Course): Course {
   const lessons = course.lessons.map((lesson) => normalizeLesson(course, lesson));
 
+  // Add generated lessons until we have at least MIN_LESSONS_PER_COURSE
+  let generatedCount = 0;
   while (lessons.length < MIN_LESSONS_PER_COURSE) {
     const nextLessonId = lessons.length + 1;
-    const topic = getGeneratedLessonTopic(course, lessons.length - course.lessons.length);
-    lessons.push(createGeneratedLesson(course, nextLessonId, topic));
+
+    // Every 5th lesson (positions 5, 10, 15) should be a summary lesson
+    if (lessons.length > 0 && lessons.length % 5 === 4) {
+      const reviewStart = Math.max(0, lessons.length - 4);
+      lessons.push(createSummaryLesson(course, nextLessonId, reviewStart, lessons.length));
+    } else {
+      const topic = getGeneratedLessonTopic(course, generatedCount);
+      lessons.push(createGeneratedLesson(course, nextLessonId, topic));
+      generatedCount++;
+    }
   }
 
   return {
