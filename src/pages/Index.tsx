@@ -149,7 +149,7 @@ const Index = () => {
       case "settings": return <SettingsPage settings={settings} onUpdate={updateSetting} onBack={() => handleStateChange("dashboard")} locale={currentLocale} userId={user?.id} />;
       case "dashboard":
         return (
-          <TranslationLoader locale={currentLocale} onReady={() => setTranslationsReady(true)}>
+          <>
             <Dashboard config={config} onStartLesson={handleStartLesson} user={user!} onSignOut={handleSignOut}
               onOpenSettings={() => handleStateChange("settings")} enrolledCourses={settings.enrolled_courses}
               onEnroll={enrollCourse} onUnenroll={unenrollCourse}
@@ -167,7 +167,7 @@ const Index = () => {
             />
             <ChatBot />
             <AISuggestion userId={user!.id} enrolledCourses={settings.enrolled_courses} onEnroll={enrollCourse} />
-          </TranslationLoader>
+          </>
         );
       case "path-complete":
         return completedCourse ? (
