@@ -724,7 +724,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-foreground">{course.label}</span>
-                        {isEnrolled && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Enrolled</span>}
+                        {isEnrolled && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{t("learn.enrolled")}</span>}
                       </div>
                       <p className="text-sm text-muted-foreground">{course.description}</p>
                       <div className="flex items-center gap-2 mt-1">
