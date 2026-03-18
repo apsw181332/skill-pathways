@@ -3250,6 +3250,10 @@ function createSummaryLesson(course: Course, lessonId: number, reviewStart: numb
   };
 }
 
+function countLessonQuestions(steps: LessonStep[]): number {
+  return steps.filter((step) => step.type === "quiz").length;
+}
+
 function getGeneratedLessonTopic(course: Course, generatedIndex: number): string {
   const presetTopics = GENERATED_LESSON_TOPICS[course.id];
   if (presetTopics?.[generatedIndex]) return presetTopics[generatedIndex];
