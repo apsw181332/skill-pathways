@@ -17,6 +17,7 @@ import { adaptLearningCode, getReadingPaceIntervention } from "@/lib/learningCod
 
 interface LessonViewProps {
   onBack: () => void;
+  onNextLesson?: (categoryId: string, lessonId: number) => void;
   userId?: string;
   categoryId: string;
   lessonId: number;
