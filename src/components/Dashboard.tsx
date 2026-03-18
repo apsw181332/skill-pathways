@@ -749,7 +749,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         </>
       ) : (
         <>
-          <button onClick={() => setSelectedCategory(null)} className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">← Back to courses</button>
+          <button onClick={() => setSelectedCategory(null)} className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">{t("learn.back")}</button>
           {(() => {
             const course = COURSES.find(c => c.id === selectedCategory);
             const isEnrolled = enrolledCourses.includes(selectedCategory);
