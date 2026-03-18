@@ -200,7 +200,32 @@ const Index = () => {
             }
             setState("dashboard");
             setTimeout(() => setIsTransitioning(false), 400);
-          }} userId={user?.id}
+          }}
+            onNextLesson={async (catId, nextLessonId) => {
+              // Check if path is now complete
+              if (user) {
+                const course = COURSES.find(c => c.id === catId);
+                if (course) {
+                  const { data: progress } = await supabase.from("user_progress")
+                    .select("lesson_id")
+                    .eq("user_id", user.id)
+                    .eq("category_id", catId)
+                    .eq("completed", true);
+                  const completedCount = progress?.length || 0;
+                  if (completedCount >= course.lessons.length && settings.enrolled_courses.includes(catId)) {
+                    setIsTransitioning(true);
+                    await unenrollCourse(catId);
+                    setCompletedCourse(course);
+                    setState("path-complete");
+                    setTimeout(() => setIsTransitioning(false), 400);
+                    return;
+                  }
+                }
+              }
+              // Advance to next lesson with transition
+              handleStartLesson(catId, nextLessonId);
+            }}
+            userId={user?.id}
             categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
             ttsEnabled={settings.tts_enabled} locale={currentLocale}
             extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
