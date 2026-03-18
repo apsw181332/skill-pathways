@@ -760,7 +760,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                   <h1 className="text-2xl font-semibold text-foreground">{course.emoji} {course.label}</h1>
                   {!isEnrolled && (
                     <Button size="sm" onClick={() => handleEnroll(course.id)} className="gap-1">
-                      <Plus className="w-4 h-4" /> Enroll
+                       <Plus className="w-4 h-4" /> {t("learn.enroll")}
                     </Button>
                   )}
                 </div>
