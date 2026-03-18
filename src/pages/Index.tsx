@@ -18,7 +18,6 @@ import ChatBot from "@/components/ChatBot";
 import AISuggestion from "@/components/AISuggestion";
 import { getCountryCoords } from "@/lib/countries";
 import { generateLearningCode } from "@/lib/learningCode";
-import TranslationLoader from "@/components/TranslationLoader";
 import PageTransition from "@/components/PageTransition";
 import type { Locale } from "@/lib/i18n";
 
@@ -149,7 +148,7 @@ const Index = () => {
       case "settings": return <SettingsPage settings={settings} onUpdate={updateSetting} onBack={() => handleStateChange("dashboard")} locale={currentLocale} userId={user?.id} />;
       case "dashboard":
         return (
-          <TranslationLoader locale={currentLocale} onReady={() => setTranslationsReady(true)}>
+          <>
             <Dashboard config={config} onStartLesson={handleStartLesson} user={user!} onSignOut={handleSignOut}
               onOpenSettings={() => handleStateChange("settings")} enrolledCourses={settings.enrolled_courses}
               onEnroll={enrollCourse} onUnenroll={unenrollCourse}
@@ -167,7 +166,7 @@ const Index = () => {
             />
             <ChatBot />
             <AISuggestion userId={user!.id} enrolledCourses={settings.enrolled_courses} onEnroll={enrollCourse} />
-          </TranslationLoader>
+          </>
         );
       case "path-complete":
         return completedCourse ? (
@@ -201,7 +200,32 @@ const Index = () => {
             }
             setState("dashboard");
             setTimeout(() => setIsTransitioning(false), 400);
-          }} userId={user?.id}
+          }}
+            onNextLesson={async (catId, nextLessonId) => {
+              // Check if path is now complete
+              if (user) {
+                const course = COURSES.find(c => c.id === catId);
+                if (course) {
+                  const { data: progress } = await supabase.from("user_progress")
+                    .select("lesson_id")
+                    .eq("user_id", user.id)
+                    .eq("category_id", catId)
+                    .eq("completed", true);
+                  const completedCount = progress?.length || 0;
+                  if (completedCount >= course.lessons.length && settings.enrolled_courses.includes(catId)) {
+                    setIsTransitioning(true);
+                    await unenrollCourse(catId);
+                    setCompletedCourse(course);
+                    setState("path-complete");
+                    setTimeout(() => setIsTransitioning(false), 400);
+                    return;
+                  }
+                }
+              }
+              // Advance to next lesson with transition
+              handleStartLesson(catId, nextLessonId);
+            }}
+            userId={user?.id}
             categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
             ttsEnabled={settings.tts_enabled} locale={currentLocale}
             extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />

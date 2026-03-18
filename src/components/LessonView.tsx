@@ -10,13 +10,14 @@ import ReadAloudButton from "@/components/ReadAloudButton";
 import PebbleTip from "@/components/PebbleTip";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
-import { getLessonContent, type LessonStep } from "@/lib/courseData";
+import { getLessonContent, COURSES, type LessonStep } from "@/lib/courseData";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
 import { adaptLearningCode, getReadingPaceIntervention } from "@/lib/learningCode";
 
 interface LessonViewProps {
   onBack: () => void;
+  onNextLesson?: (categoryId: string, lessonId: number) => void;
   userId?: string;
   categoryId: string;
   lessonId: number;
@@ -77,7 +78,7 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en" }: LessonViewProps) => {
+const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en" }: LessonViewProps) => {
   const { t } = useTranslation(locale);
   const lesson = getLessonContent(categoryId, lessonId);
   const steps = lesson?.steps || [];
@@ -305,6 +306,16 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
             const { data: profile } = await supabase.from("profiles").select("gems").eq("user_id", userId).single();
             if (profile) {
               await supabase.from("profiles").update({ gems: (profile as any).gems + gems } as any).eq("user_id", userId);
+            }
+          }
+          // Auto-advance to next lesson if available
+          const course = COURSES.find(c => c.id === categoryId);
+          if (course && onNextLesson) {
+            const currentIndex = course.lessons.findIndex(l => l.id === lessonId);
+            const nextLesson = course.lessons[currentIndex + 1];
+            if (nextLesson) {
+              onNextLesson(categoryId, nextLesson.id);
+              return;
             }
           }
           onBack();

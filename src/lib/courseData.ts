@@ -3034,161 +3034,166 @@ const GENERATED_LESSON_TOPICS: Record<string, string[]> = {
   voting: ["Understanding Ballot Measures", "Voter ID Requirements", "Mail-In Voting Process", "Primary vs General Elections", "Running for Local Office"],
 };
 
-const GENERATED_QUESTION_TEMPLATES = [
-  {
-    title: "Core Idea Check",
-    question: (topic: string, course: string) => `Which habit best improves ${topic.toLowerCase()} in ${course.toLowerCase()}?`,
-    options: [
-      "Rushing through the basics without a clear routine",
-      "Practicing the core skill consistently in small steps",
-      "Waiting until you feel perfectly ready to begin",
-      "Skipping reflection and hoping it becomes automatic",
+// Topic-specific knowledge banks: each course has real factual questions
+// that teach actual knowledge, not meta-learning tips
+const COURSE_KNOWLEDGE_BANKS: Record<string, { info: { title: string; content: string; mascotMsg: string }[]; questions: { title: string; question: string; options: string[]; correct: number; explanation: string; mascotMsg: string }[] }> = {
+  tech: {
+    info: [
+      { title: "How Cookies Work", content: "Cookies are small text files websites store on your device. First-party cookies remember your login and preferences. Third-party cookies track you across websites for advertising. You can block third-party cookies in your browser settings without breaking most sites.", mascotMsg: "Understanding cookies helps you control your privacy! 🍪" },
+      { title: "How VPNs Work", content: "A VPN (Virtual Private Network) encrypts your internet traffic and routes it through a server in another location. This hides your IP address from websites and prevents your ISP from seeing what you browse. Free VPNs often sell your data — paid ones like Mullvad or ProtonVPN are safer.", mascotMsg: "VPNs add a layer of privacy! 🔐" },
+      { title: "What is Encryption?", content: "Encryption scrambles data so only authorized parties can read it. HTTPS encrypts data between your browser and websites — look for the padlock icon. End-to-end encryption (used by Signal, WhatsApp) means even the service provider can't read your messages.", mascotMsg: "Encryption keeps your data safe! 🔒" },
     ],
-    explanation: (topic: string) => `Steady practice is the fastest way to build real confidence in ${topic.toLowerCase()}.`,
-    mascotMsg: "Small steps create big progress! 🚀",
-  },
-  {
-    title: "Best Next Step",
-    question: (topic: string) => `What should you do after learning the basics of ${topic.toLowerCase()}?`,
-    options: [
-      "Stop practicing once you understand the main idea",
-      "Apply the skill in a simple real-life situation soon",
-      "Memorize terms without testing yourself at all",
-      "Avoid mistakes by never trying it independently",
+    questions: [
+      { title: "Cookie Knowledge", question: "What is the purpose of a third-party cookie?", options: ["To remember your password on a website", "To track your activity across multiple websites for advertising", "To make websites load faster on your device", "To store your shopping cart items securely"], correct: 1, explanation: "Third-party cookies are placed by advertisers and analytics companies to track your browsing across different websites to build a profile for targeted ads.", mascotMsg: "Now you know what's tracking you! 🕵️" },
+      { title: "HTTPS Security", question: "What does the padlock icon in your browser's address bar mean?", options: ["The website is government-approved and verified", "The connection between you and the website is encrypted", "The website has no viruses or malware at all", "The website is free to use without any charges"], correct: 1, explanation: "The padlock means HTTPS is active — your data is encrypted in transit. It does NOT mean the website itself is trustworthy, just that the connection is secure.", mascotMsg: "Padlock = encrypted connection! 🔒" },
+      { title: "Two-Factor Authentication", question: "Why is SMS-based 2FA less secure than an authenticator app?", options: ["SMS messages are too slow to arrive in time", "SMS can be intercepted through SIM-swapping attacks", "Authenticator apps cost more money to use", "SMS only works on smartphones, not older phones"], correct: 1, explanation: "Attackers can hijack your phone number through SIM-swapping (convincing your carrier to transfer your number). Authenticator apps generate codes locally on your device, making them much harder to intercept.", mascotMsg: "Use authenticator apps when possible! 📱" },
+      { title: "Browser Privacy", question: "What does 'incognito mode' actually do?", options: ["Makes you completely anonymous on the internet", "Prevents your browser from saving local history and cookies", "Hides your IP address from all websites you visit", "Encrypts all your internet traffic automatically"], correct: 1, explanation: "Incognito mode only prevents your browser from saving history, cookies, and form data locally. Your ISP, employer, and websites can still see your activity.", mascotMsg: "Incognito isn't invisible! 👻" },
+      { title: "Software Updates", question: "Why are software updates important for security?", options: ["They always add new features you'll want", "They patch known vulnerabilities that hackers can exploit", "They make your device run faster every time", "They're only needed for old devices over 5 years old"], correct: 1, explanation: "Updates fix security vulnerabilities. When a bug is discovered, hackers race to exploit it before users update. Delaying updates leaves you exposed to known attacks.", mascotMsg: "Update promptly — it's your best defense! 🛡️" },
+      { title: "Public WiFi Risks", question: "What is the main danger of using public WiFi?", options: ["It's always slower than mobile data connections", "Attackers on the same network can intercept unencrypted data", "It uses more battery than mobile data", "Public WiFi always has viruses built into it"], correct: 1, explanation: "On public WiFi, attackers can use 'man-in-the-middle' attacks to intercept data sent over unencrypted connections. Use HTTPS sites and a VPN to stay safe.", mascotMsg: "Be careful on public networks! ☕" },
+      { title: "Malware Types", question: "What is ransomware?", options: ["Software that slows your computer to make you buy upgrades", "Malware that encrypts your files and demands payment to unlock them", "A virus that sends spam emails from your account", "A program that shows unwanted advertisements on your screen"], correct: 1, explanation: "Ransomware encrypts your files and demands a ransom (usually cryptocurrency) to decrypt them. Prevention: keep backups, don't open suspicious attachments, keep software updated.", mascotMsg: "Backups are your best ransomware defense! 💾" },
     ],
-    explanation: (topic: string) => `Using ${topic.toLowerCase()} in real situations helps the lesson stick and builds confidence faster.`,
-    mascotMsg: "Use it in real life and it will stick! 🌟",
   },
-  {
-    title: "Common Mistake",
-    question: (topic: string) => `Which mistake most often slows progress in ${topic.toLowerCase()}?`,
-    options: [
-      "Reviewing the essentials before moving on",
-      "Expecting instant mastery without regular practice",
-      "Breaking a big skill into smaller repeatable steps",
-      "Checking your understanding after each attempt",
+  financial: {
+    info: [
+      { title: "How Taxes Actually Work", content: "Income tax uses brackets — you don't pay the highest rate on ALL your income. If the first $10,000 is taxed at 10% and the next $30,000 at 12%, earning $40,000 means you pay $1,000 + $3,600 = $4,600 total, not $4,800 (12% of everything). This is called marginal tax rates.", mascotMsg: "Tax brackets aren't as scary as they seem! 💡" },
+      { title: "How to File Your Taxes", content: "Most people can file taxes for free using IRS Free File (income under $79,000). You'll need your W-2 from employers, 1099s for freelance/investment income, and receipts for deductions. File by April 15 or request an extension. The standard deduction for 2024 is $14,600 for singles.", mascotMsg: "Filing taxes is easier than you think! 📋" },
+      { title: "What is Compound Interest?", content: "Compound interest means earning interest on your interest. $1,000 at 7% annual return: Year 1 = $1,070, Year 2 = $1,145 (not just $1,140). After 30 years, it becomes $7,612! The Rule of 72: divide 72 by the interest rate to find how many years it takes to double your money. At 7%, money doubles every ~10 years.", mascotMsg: "Compound interest is the 8th wonder of the world! ✨" },
     ],
-    explanation: (topic: string) => `Progress in ${topic.toLowerCase()} comes from repetition and reflection, not instant perfection.`,
-    mascotMsg: "Consistency beats intensity every time! 🔑",
-  },
-  {
-    title: "Confidence Builder",
-    question: (topic: string) => `Which choice builds the most confidence with ${topic.toLowerCase()}?`,
-    options: [
-      "Only practicing when conditions feel completely perfect",
-      "Repeating short focused practice sessions every week",
-      "Avoiding feedback so your routine never feels challenged",
-      "Jumping between methods before one starts working",
+    questions: [
+      { title: "Tax Brackets", question: "If you earn $50,000 and the tax bracket for income over $40,000 is 22%, how is that 22% applied?", options: ["To your entire $50,000 income", "Only to the $10,000 above the $40,000 threshold", "To your income minus deductions only", "To your gross income before any calculations"], correct: 1, explanation: "Tax brackets are marginal — the 22% rate only applies to income ABOVE $40,000. Your first $40,000 is taxed at the lower rates for those brackets.", mascotMsg: "Marginal rates are key to understanding taxes! 📊" },
+      { title: "Standard Deduction", question: "What does a 'tax deduction' do?", options: ["Directly reduces the amount of tax you owe dollar-for-dollar", "Reduces your taxable income before your tax is calculated", "Gives you a refund from the government every year", "Eliminates your requirement to file a tax return"], correct: 1, explanation: "Deductions reduce your taxable income. If you earn $50,000 and take a $14,600 standard deduction, you're only taxed on $35,400. Tax credits, by contrast, directly reduce your tax bill.", mascotMsg: "Deductions lower your taxable income! 💰" },
+      { title: "Emergency Fund", question: "Where should you keep your emergency fund?", options: ["Invested in stocks for maximum growth potential", "In a high-yield savings account for easy access", "In cash hidden at home for immediate availability", "In a certificate of deposit locked for 5 years"], correct: 1, explanation: "A high-yield savings account offers 4-5% interest while keeping money FDIC-insured and accessible within 1-2 days. Stocks are too volatile, CDs lock money away, and cash earns nothing.", mascotMsg: "Accessible and earning interest — that's the sweet spot! 🏦" },
+      { title: "Debt Payoff", question: "What is the 'avalanche method' of paying off debt?", options: ["Paying off the smallest balance first for quick wins", "Paying off the highest interest rate debt first to save money", "Paying equal amounts to all debts simultaneously", "Only making minimum payments on all debts"], correct: 1, explanation: "The avalanche method targets the highest-interest debt first while making minimums on others. This saves the most money over time. The 'snowball' method (smallest balance first) is psychologically easier but costs more in interest.", mascotMsg: "High interest first saves you the most! 📉" },
+      { title: "Retirement Accounts", question: "What is the key benefit of a Roth IRA vs a Traditional IRA?", options: ["Roth IRA contributions reduce your taxes today", "Roth IRA withdrawals in retirement are completely tax-free", "Roth IRA has no contribution limits at all", "Roth IRA can only hold government bonds"], correct: 1, explanation: "Roth IRA contributions are made with after-tax money, so withdrawals in retirement (including all growth) are tax-free. Traditional IRA gives a tax break now but you pay taxes when you withdraw.", mascotMsg: "Pay taxes now, enjoy tax-free growth later! 🌱" },
+      { title: "Index Funds", question: "Why do financial experts often recommend index funds for beginners?", options: ["They guarantee you'll never lose any money invested", "They provide broad diversification at very low fees", "They always beat the stock market every single year", "They are only available to wealthy investors"], correct: 1, explanation: "Index funds track a market index (like S&P 500), giving you instant diversification across hundreds of companies with fees often under 0.1%. Over 15+ years, they outperform most actively managed funds.", mascotMsg: "Low fees + diversification = smart investing! 📈" },
+      { title: "W-4 Form", question: "What does the W-4 form control?", options: ["How much tax your employer withholds from each paycheck", "Whether you qualify for a tax refund or not", "Your total annual tax bill from the IRS", "Which tax bracket you fall into for the year"], correct: 1, explanation: "The W-4 tells your employer how much federal income tax to withhold from each paycheck. Claim fewer allowances = more withheld (bigger refund). More allowances = less withheld (bigger paychecks, but may owe at tax time).", mascotMsg: "Adjust your W-4 to control your paycheck! 💵" },
     ],
-    explanation: (topic: string) => `Regular focused practice makes ${topic.toLowerCase()} feel more natural over time.`,
-    mascotMsg: "Confidence comes from repetition! 💪",
   },
-  {
-    title: "Real-World Scenario",
-    question: (topic: string) => `How can you apply ${topic.toLowerCase()} in everyday life?`,
-    options: [
-      "Wait until a major emergency forces you to use it",
-      "Look for a small low-pressure chance to try it today",
-      "Keep it theoretical and avoid practicing in real life",
-      "Assume one lesson is enough and never revisit it",
+  health: {
+    info: [
+      { title: "How Calories Actually Work", content: "A calorie is a unit of energy. Your body burns calories just existing (BMR — Basal Metabolic Rate). An average adult's BMR is 1,400-1,800 cal/day. Total daily expenditure (TDEE) includes activity. To lose weight: eat below TDEE. To gain: eat above. 1 pound of fat ≈ 3,500 calories.", mascotMsg: "Calories are energy, not enemies! ⚡" },
+      { title: "How Muscles Grow", content: "When you exercise, you create tiny tears in muscle fibers. During rest, your body repairs these tears, making muscles slightly bigger and stronger. This is why rest days are essential — muscles grow during recovery, not during the workout itself. Aim for 48 hours between training the same muscle group.", mascotMsg: "Rest is when the magic happens! 💪" },
+      { title: "How Sleep Stages Work", content: "Sleep has 4 stages in 90-minute cycles. Stage 1-2: light sleep. Stage 3: deep sleep (physical repair, immune function). REM: dreaming, memory consolidation, emotional processing. You need 4-6 full cycles per night. Waking mid-cycle causes grogginess — try to time your alarm to the end of a cycle.", mascotMsg: "Sleep cycles explain why 7.5 hours can feel better than 8! 😴" },
     ],
-    explanation: (topic: string) => `Small real-life wins are the best way to turn ${topic.toLowerCase()} into a lasting skill.`,
-    mascotMsg: "Real life is the best practice field! 🎯",
-  },
-  {
-    title: "Retention Check",
-    question: (topic: string) => `What helps you remember ${topic.toLowerCase()} for the long term?`,
-    options: [
-      "Cramming once and never reviewing it again later",
-      "Reviewing key ideas and practicing them again later",
-      "Relying on luck to remember details when needed",
-      "Skipping the basics and hoping advanced tricks work",
+    questions: [
+      { title: "Heart Rate Zones", question: "What heart rate zone is best for burning fat during exercise?", options: ["Maximum effort zone (90-100% max HR)", "Moderate intensity zone (60-70% max HR)", "Resting heart rate zone (below 50% max HR)", "Heart rate doesn't affect fat burning at all"], correct: 1, explanation: "At 60-70% of max heart rate, your body primarily uses fat for fuel. Higher intensity burns more total calories but a lower percentage from fat. For max HR estimate: 220 minus your age.", mascotMsg: "Moderate effort burns fat efficiently! 🏃" },
+      { title: "Protein Needs", question: "How much protein does an active adult need daily?", options: ["0.2g per pound of body weight per day", "0.7-1.0g per pound of body weight per day", "3g per pound of body weight per day", "Protein amount doesn't matter for active people"], correct: 1, explanation: "Active adults need 0.7-1.0g protein per pound of body weight. A 150lb person needs ~105-150g daily. Good sources: chicken (31g/4oz), eggs (6g each), Greek yogurt (17g/cup), lentils (18g/cup).", mascotMsg: "Protein builds and repairs your body! 🥩" },
+      { title: "Hydration Facts", question: "How can you tell if you're properly hydrated?", options: ["You never feel thirsty throughout the entire day", "Your urine is pale straw to light yellow in color", "You drink exactly 8 glasses of water no matter what", "Your lips never feel dry or chapped at all"], correct: 1, explanation: "Pale straw-colored urine indicates good hydration. Dark yellow = dehydrated. Clear = possibly over-hydrated. Water needs vary by weight, activity, and climate — 8 glasses is a rough starting point, not a rule.", mascotMsg: "Your urine color is the best hydration indicator! 💧" },
+      { title: "Stretching Science", question: "When is static stretching (holding a stretch) most beneficial?", options: ["Before exercise as your primary warm-up activity", "After exercise when muscles are warm and pliable", "Static stretching should never be done at any time", "It doesn't matter when — the timing has no effect"], correct: 1, explanation: "Static stretching is best after exercise. Before exercise, use dynamic stretching (leg swings, arm circles) to warm up. Static stretching cold muscles can temporarily reduce strength and power.", mascotMsg: "Dynamic before, static after! 🧘" },
+      { title: "BMI Limitations", question: "Why is BMI (Body Mass Index) considered an incomplete health measure?", options: ["It's too complicated to calculate for most people", "It doesn't distinguish between muscle mass and fat mass", "It only works for people under 30 years old", "It was designed only for use in hospitals"], correct: 1, explanation: "BMI only uses height and weight. A muscular athlete could have a 'overweight' BMI despite having low body fat. Better measures include waist-to-hip ratio, body fat percentage, and overall fitness markers.", mascotMsg: "BMI tells part of the story, not all of it! 📏" },
+      { title: "Vitamin D", question: "Why is Vitamin D deficiency so common?", options: ["Vitamin D doesn't exist in any foods we commonly eat", "Most people don't get enough sunlight and few foods are rich in it", "Vitamin D supplements have been banned in most countries", "Our bodies stopped producing Vitamin D through evolution"], correct: 1, explanation: "Your skin makes Vitamin D from UVB sunlight, but office work, sunscreen, and northern latitudes limit this. Few foods are naturally rich in it (fatty fish, egg yolks). 10-15 min of midday sun or 1000-2000 IU supplement is recommended.", mascotMsg: "The sunshine vitamin needs attention! ☀️" },
+      { title: "Sleep Debt", question: "Can you 'catch up' on lost sleep over the weekend?", options: ["Yes, sleeping extra on weekends fully reverses all effects", "Partially — it helps, but chronic sleep debt causes lasting damage", "No, lost sleep can never be recovered in any way", "Sleep debt is a myth — it doesn't actually accumulate"], correct: 1, explanation: "One bad night can be recovered, but chronic sleep deprivation (weeks of <6 hours) causes lasting cognitive impairment, insulin resistance, and immune dysfunction that weekend sleep-ins can't fully reverse.", mascotMsg: "Consistent sleep beats catch-up sleep! 🌙" },
     ],
-    explanation: (topic: string) => `Review plus repetition helps move ${topic.toLowerCase()} from short-term memory into real skill.`,
-    mascotMsg: "Review is how learning sticks! 🧠",
   },
-  {
-    title: "Mastery Signal",
-    question: (topic: string) => `How do you know you are improving at ${topic.toLowerCase()}?`,
-    options: [
-      "You can explain it clearly and use it with confidence",
-      "You avoid trying it unless someone is helping you",
-      "You memorize a few facts without practicing the skill",
-      "You switch methods every time the work feels hard",
+  career: {
+    info: [
+      { title: "How ATS Systems Work", content: "Most companies use Applicant Tracking Systems (ATS) to filter resumes before a human sees them. The ATS scans for keywords matching the job description. Use exact phrases from the posting, avoid fancy formatting (tables, graphics), and save as .docx or PDF. About 75% of resumes are rejected by ATS before reaching a recruiter.", mascotMsg: "Beat the robot before impressing the human! 🤖" },
+      { title: "The STAR Interview Method", content: "STAR stands for Situation, Task, Action, Result. When answering behavioral questions ('Tell me about a time...'), describe the Situation, your specific Task, the Actions you took, and the measurable Result. Example: 'In my last role (S), I was asked to reduce customer complaints (T). I created a feedback system (A), which reduced complaints by 40% in 3 months (R).'", mascotMsg: "STAR = structured, impressive answers! ⭐" },
+      { title: "Salary Negotiation Basics", content: "Research market salary on Glassdoor/Levels.fyi before negotiating. Never give your number first — ask for the range. When they offer, counter 10-15% higher. Always negotiate — 73% of employers expect it. If salary is fixed, negotiate benefits: remote days, signing bonus, vacation, professional development budget.", mascotMsg: "You're leaving money on the table if you don't negotiate! 💰" },
     ],
-    explanation: (topic: string) => `You really understand ${topic.toLowerCase()} when you can explain it simply and use it confidently.`,
-    mascotMsg: "If you can explain it, you know it! 🎓",
+    questions: [
+      { title: "Resume Keywords", question: "Why should you tailor your resume for each job application?", options: ["To make your resume look different each time you apply", "To match ATS keywords from the specific job description", "To fill up more pages and look more experienced", "Tailoring resumes is unnecessary — one version works for all"], correct: 1, explanation: "ATS systems score resumes based on keyword matches to the job description. Using exact phrases like 'project management' (if it's in the posting) dramatically increases your chances of getting past the initial filter.", mascotMsg: "Match the job posting's language! 🎯" },
+      { title: "Interview Prep", question: "What should you research before a job interview?", options: ["Only the salary range for the position you applied for", "The company's products, recent news, culture, and your interviewer", "Just the job title and basic company name", "Nothing — it's better to show genuine curiosity by asking"], correct: 1, explanation: "Research the company's mission, recent press releases, products, Glassdoor reviews, and LinkedIn profiles of interviewers. This lets you ask informed questions and show genuine interest — a top factor in hiring decisions.", mascotMsg: "Preparation shows you care! 📚" },
+      { title: "Email Etiquette", question: "What's the ideal length for a professional email?", options: ["As long as needed — more detail is always better", "5 sentences or fewer for most professional emails", "Exactly one sentence to show you're busy and efficient", "At least 3 paragraphs to show thoroughness"], correct: 1, explanation: "The 5-sentence rule: busy professionals skim emails. Lead with your ask or key point, provide brief context, and end with a clear next step. Save detailed information for attachments or meetings.", mascotMsg: "Brevity is professional! ✉️" },
+      { title: "LinkedIn Optimization", question: "What is the most important section of your LinkedIn profile?", options: ["The number of connections you've accumulated", "Your headline and summary — they appear in search results", "The endorsements section with skill validations", "Your profile photo and background banner image"], correct: 1, explanation: "Your headline (120 chars) appears in every search result and connection request. Instead of just your job title, use: 'Role | Expertise | Value Proposition' e.g., 'Marketing Manager | B2B SaaS | Driving 3x pipeline growth'.", mascotMsg: "Your headline is your billboard! 📢" },
+      { title: "Networking", question: "What is the best way to follow up after meeting someone at a networking event?", options: ["Wait several months to see if they contact you first", "Send a personalized LinkedIn request within 24-48 hours", "Add them on all social media platforms immediately", "Call them every day until they respond to you"], correct: 1, explanation: "Connect within 48 hours while they still remember you. Reference something specific from your conversation. Offer value before asking for anything. A simple 'Great chatting about [topic] — I'd love to stay connected' works well.", mascotMsg: "Follow up fast with a personal touch! 🤝" },
+      { title: "Performance Reviews", question: "How should you prepare for a performance review?", options: ["Just show up and listen to what your manager says", "Document your achievements with specific metrics throughout the year", "Only focus on areas where you need improvement", "Ask your coworkers to speak on your behalf instead"], correct: 1, explanation: "Keep a 'brag document' throughout the year: projects completed, metrics improved, positive feedback received, skills learned. Concrete examples ('increased revenue by $50K') are far more persuasive than vague claims.", mascotMsg: "Track your wins all year long! 📊" },
+      { title: "Remote Work", question: "What is the biggest challenge of remote work according to research?", options: ["Not having access to a computer at home", "Communication gaps and feelings of isolation", "Working fewer hours than in-office employees", "Remote workers earn less than in-office workers"], correct: 1, explanation: "Studies show remote workers often work MORE hours, not fewer. The main challenges are isolation, communication gaps, and blurred work-life boundaries. Solutions: regular video check-ins, dedicated workspace, firm end-of-day routines.", mascotMsg: "Intentional communication makes remote work succeed! 💻" },
+    ],
   },
-] as const;
+};
 
-function countLessonQuestions(steps: LessonStep[]): number {
-  return steps.filter((step) => step.type === "quiz").length;
+// Default knowledge bank for courses without specific content
+const DEFAULT_KNOWLEDGE_BANK = {
+  info: [
+    { title: "Core Concepts", content: "Every skill has foundational concepts you need to understand before the details make sense. We'll cover these essentials with practical examples you can apply immediately.", mascotMsg: "Let's build a strong foundation! 🧱" },
+    { title: "Common Pitfalls", content: "Understanding what NOT to do is just as important as knowing what to do. We'll cover the most frequent mistakes and how to avoid them.", mascotMsg: "Learn from others' mistakes! ⚠️" },
+    { title: "Practical Application", content: "Knowledge only becomes useful when you apply it. We'll focus on real-world scenarios and actionable steps you can take right away.", mascotMsg: "Let's put knowledge into action! 🎯" },
+  ],
+  questions: [] as { title: string; question: string; options: string[]; correct: number; explanation: string; mascotMsg: string }[],
+};
+
+function getKnowledgeBank(courseId: string) {
+  return COURSE_KNOWLEDGE_BANKS[courseId] || DEFAULT_KNOWLEDGE_BANK;
 }
 
 function createGeneratedQuiz(course: Course, lesson: Lesson, index: number): LessonStep {
-  const template = GENERATED_QUESTION_TEMPLATES[index % GENERATED_QUESTION_TEMPLATES.length];
-  const topic = lesson.title;
+  const bank = getKnowledgeBank(course.id);
+  
+  // Use course-specific questions if available
+  if (bank.questions.length > 0) {
+    const q = bank.questions[index % bank.questions.length];
+    return {
+      type: "quiz",
+      title: q.title,
+      question: q.question,
+      options: [...q.options],
+      correct: q.correct,
+      explanation: q.explanation,
+      mascotMsg: q.mascotMsg,
+    };
+  }
 
+  // Fallback: topic-specific generated questions (still about real knowledge)
+  const topic = lesson.title;
+  const fallbackQuestions = [
+    { title: `${topic} Fundamentals`, question: `What is the most important principle of ${topic.toLowerCase()}?`, options: [`Understanding the core terminology and definitions first`, `Knowing the key steps and when to apply them correctly`, `Memorizing rules without understanding the reasoning behind them`, `Avoiding any practice until you've read everything about it`], correct: 1, explanation: `In ${topic.toLowerCase()}, knowing the key steps and when to apply them is what separates knowledge from real competence.`, mascotMsg: "Understanding the 'when' is as important as the 'how'! 💡" },
+    { title: `${topic} in Practice`, question: `What makes someone effective at ${topic.toLowerCase()}?`, options: [`Having expensive tools or resources available at all times`, `Consistently applying the basics correctly in real situations`, `Reading about it extensively without ever trying it yourself`, `Only doing it when conditions are absolutely perfect`], correct: 1, explanation: `Mastery of ${topic.toLowerCase()} comes from consistently applying fundamentals. The basics done well beat advanced techniques done poorly.`, mascotMsg: "Consistency with basics beats occasional brilliance! 🌟" },
+  ];
+
+  const template = fallbackQuestions[index % fallbackQuestions.length];
   return {
     type: "quiz",
-    title: `${template.title} ${index + 1}`,
-    question: template.question(topic, course.label),
+    title: template.title,
+    question: template.question,
     options: [...template.options],
-    correct: 1,
-    explanation: template.explanation(topic),
+    correct: template.correct,
+    explanation: template.explanation,
     mascotMsg: template.mascotMsg,
   };
 }
 
 function createGeneratedLesson(course: Course, lessonId: number, topic: string): Lesson {
+  const bank = getKnowledgeBank(course.id);
+  
   const seedLesson: Lesson = {
     id: lessonId,
     title: topic,
-    description: `Build practical confidence in ${topic.toLowerCase()} with short guided practice.`,
+    description: `Learn practical knowledge about ${topic.toLowerCase()} with real facts and actionable steps.`,
     steps: [],
   };
 
-  // Build steps with info sections interspersed between questions
-  const steps: LessonStep[] = [
-    {
-      type: "info",
-      title: `Getting Started with ${topic}`,
-      content: `${topic} is one of the most useful parts of ${course.label.toLowerCase()}. In this lesson, you'll learn the fundamentals — what it is, why it matters, and how to get started with practical steps you can use right away.`,
-      mascotMsg: "Let's make this skill feel easy and practical! ✨",
-    },
-    {
-      type: "info",
-      title: `Why ${topic} Matters`,
-      content: `Understanding ${topic.toLowerCase()} gives you real confidence in everyday situations. People who practice this skill report feeling more prepared, more independent, and less stressed when challenges come up. The key is starting small and building from there.`,
-      mascotMsg: "Knowledge is power — let's build yours! 💪",
-    },
-  ];
+  const steps: LessonStep[] = [];
+  
+  // Start with topic-specific info from knowledge bank
+  const bankInfos = bank.info;
+  steps.push({
+    type: "info",
+    title: `What is ${topic}?`,
+    content: bankInfos.length > 0 
+      ? bankInfos[lessonId % bankInfos.length].content
+      : `${topic} is a practical skill within ${course.label.toLowerCase()} that you'll use in real life. In this lesson, you'll learn specific facts, techniques, and steps — not just theory, but actionable knowledge you can use today.`,
+    mascotMsg: bankInfos.length > 0 ? bankInfos[lessonId % bankInfos.length].mascotMsg : `Let's learn real ${topic.toLowerCase()} skills! ✨`,
+  });
 
-  // Add questions with info sections every 2-3 questions
+  // Add questions interspersed with info sections
   for (let i = 0; i < MIN_QUESTIONS_PER_LESSON; i++) {
-    // Add an info step every 2 questions (after questions 2, 4, 6)
+    // Add an info step every 2 questions
     if (i > 0 && i % 2 === 0 && i < MIN_QUESTIONS_PER_LESSON - 1) {
-      const infoTopics = [
-        {
-          title: `Key Principles of ${topic}`,
-          content: `Here's what experts agree on: the best approach to ${topic.toLowerCase()} involves three things — consistency (doing it regularly), reflection (thinking about what works), and adaptation (adjusting your approach based on results). Even small improvements compound over time.`,
-          mascotMsg: "Remember these principles — they'll help with the next questions! 📖",
-        },
-        {
-          title: `Common Mistakes in ${topic}`,
-          content: `Many people struggle with ${topic.toLowerCase()} because they try to do too much at once, skip the basics, or give up when results aren't immediate. The biggest mistake? Not starting at all. The second biggest? Not asking for help when stuck.`,
-          mascotMsg: "Learning from others' mistakes saves you time! 🎯",
-        },
-        {
-          title: `Practical Tips for ${topic}`,
-          content: `Here are actionable tips: (1) Set a specific time to practice ${topic.toLowerCase()} each week. (2) Start with the easiest version and work up. (3) Track your progress — even a simple checklist helps. (4) Teach what you learn to someone else — it solidifies understanding.`,
-          mascotMsg: "These tips will directly help with the questions coming up! 💡",
-        },
-      ];
-      const infoStep = infoTopics[Math.floor(i / 2) % infoTopics.length];
-      steps.push({ type: "info", ...infoStep });
+      const infoIdx = Math.floor(i / 2) % bankInfos.length;
+      if (bankInfos.length > 0) {
+        const info = bankInfos[(infoIdx + lessonId) % bankInfos.length];
+        steps.push({ type: "info", title: info.title, content: info.content, mascotMsg: info.mascotMsg });
+      } else {
+        steps.push({
+          type: "info",
+          title: `Key Facts About ${topic}`,
+          content: `Here are important details about ${topic.toLowerCase()} that directly relate to the questions you'll answer. Pay attention to specific numbers, steps, and techniques — they'll be tested next.`,
+          mascotMsg: "These facts will help with the next questions! 📖",
+        });
+      }
     }
-    steps.push(createGeneratedQuiz(course, seedLesson, i));
+    steps.push(createGeneratedQuiz(course, seedLesson, (i + lessonId * 3) % Math.max(1, bank.questions.length || 2)));
   }
 
   return {
@@ -3243,6 +3248,10 @@ function createSummaryLesson(course: Course, lessonId: number, reviewStart: numb
     ...seedLesson,
     steps: summarySteps,
   };
+}
+
+function countLessonQuestions(steps: LessonStep[]): number {
+  return steps.filter((step) => step.type === "quiz").length;
 }
 
 function getGeneratedLessonTopic(course: Course, generatedIndex: number): string {
