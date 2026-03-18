@@ -821,10 +821,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           <span className="font-semibold text-foreground">Level {levelInfo.current.level}</span>
         </div>
         <div className="flex justify-center gap-4 mt-4">
-          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{xp}</div><div className="text-xs text-muted-foreground">XP</div></div>
-          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{streak}</div><div className="text-xs text-muted-foreground">Streak</div></div>
-          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{gems}</div><div className="text-xs text-muted-foreground">Gems</div></div>
-          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{earnedBadges.length}</div><div className="text-xs text-muted-foreground">Badges</div></div>
+          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{xp}</div><div className="text-xs text-muted-foreground">{t("general.xp")}</div></div>
+          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{streak}</div><div className="text-xs text-muted-foreground">{t("general.streak")}</div></div>
+          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{gems}</div><div className="text-xs text-muted-foreground">{t("general.gems")}</div></div>
+          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{earnedBadges.length}</div><div className="text-xs text-muted-foreground">{t("general.badges")}</div></div>
         </div>
       </motion.div>
 
