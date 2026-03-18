@@ -848,7 +848,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                   {rankEmojis[entry.rank] || `#${entry.rank}`}
                 </div>
                 <div className="flex-1">
-                  <span className={`font-medium text-sm ${entry.isUser ? "text-primary" : "text-foreground"}`}>{entry.isUser ? "You" : entry.name}</span>
+                  <span className={`font-medium text-sm ${entry.isUser ? "text-primary" : "text-foreground"}`}>{entry.isUser ? t("general.you") : entry.name}</span>
                   <span className="text-xs text-muted-foreground ml-2">{lvl.emoji} {entry.xp} XP</span>
                 </div>
               </div>
