@@ -3148,25 +3148,100 @@ function createGeneratedLesson(course: Course, lessonId: number, topic: string):
     steps: [],
   };
 
+  // Build steps with info sections interspersed between questions
+  const steps: LessonStep[] = [
+    {
+      type: "info",
+      title: `Getting Started with ${topic}`,
+      content: `${topic} is one of the most useful parts of ${course.label.toLowerCase()}. In this lesson, you'll learn the fundamentals — what it is, why it matters, and how to get started with practical steps you can use right away.`,
+      mascotMsg: "Let's make this skill feel easy and practical! ✨",
+    },
+    {
+      type: "info",
+      title: `Why ${topic} Matters`,
+      content: `Understanding ${topic.toLowerCase()} gives you real confidence in everyday situations. People who practice this skill report feeling more prepared, more independent, and less stressed when challenges come up. The key is starting small and building from there.`,
+      mascotMsg: "Knowledge is power — let's build yours! 💪",
+    },
+  ];
+
+  // Add questions with info sections every 2-3 questions
+  for (let i = 0; i < MIN_QUESTIONS_PER_LESSON; i++) {
+    // Add an info step every 2 questions (after questions 2, 4, 6)
+    if (i > 0 && i % 2 === 0 && i < MIN_QUESTIONS_PER_LESSON - 1) {
+      const infoTopics = [
+        {
+          title: `Key Principles of ${topic}`,
+          content: `Here's what experts agree on: the best approach to ${topic.toLowerCase()} involves three things — consistency (doing it regularly), reflection (thinking about what works), and adaptation (adjusting your approach based on results). Even small improvements compound over time.`,
+          mascotMsg: "Remember these principles — they'll help with the next questions! 📖",
+        },
+        {
+          title: `Common Mistakes in ${topic}`,
+          content: `Many people struggle with ${topic.toLowerCase()} because they try to do too much at once, skip the basics, or give up when results aren't immediate. The biggest mistake? Not starting at all. The second biggest? Not asking for help when stuck.`,
+          mascotMsg: "Learning from others' mistakes saves you time! 🎯",
+        },
+        {
+          title: `Practical Tips for ${topic}`,
+          content: `Here are actionable tips: (1) Set a specific time to practice ${topic.toLowerCase()} each week. (2) Start with the easiest version and work up. (3) Track your progress — even a simple checklist helps. (4) Teach what you learn to someone else — it solidifies understanding.`,
+          mascotMsg: "These tips will directly help with the questions coming up! 💡",
+        },
+      ];
+      const infoStep = infoTopics[Math.floor(i / 2) % infoTopics.length];
+      steps.push({ type: "info", ...infoStep });
+    }
+    steps.push(createGeneratedQuiz(course, seedLesson, i));
+  }
+
   return {
     ...seedLesson,
-    steps: [
-      {
+    steps,
+  };
+}
+
+/**
+ * Create a summary/review lesson that consolidates learning from the previous 4 lessons.
+ */
+function createSummaryLesson(course: Course, lessonId: number, reviewStart: number, reviewEnd: number): Lesson {
+  const reviewedLessons = course.lessons.slice(reviewStart, reviewEnd);
+  const topicNames = reviewedLessons.map(l => l.title).join(", ");
+
+  const summarySteps: LessonStep[] = [
+    {
+      type: "info",
+      title: `Review: Lessons ${reviewStart + 1}–${reviewEnd}`,
+      content: `Great job completing these lessons! Let's review what you've learned about: ${topicNames}. This summary will help lock the knowledge into long-term memory. Research shows that spaced review is one of the most effective learning techniques.`,
+      mascotMsg: "Review time! Let's make sure everything sticks! 🧠",
+    },
+    {
+      type: "info",
+      title: "Key Takeaways",
+      content: `Across these lessons, you've learned practical skills in ${course.label.toLowerCase()}. The common thread? Start with the basics, practice regularly, learn from mistakes, and apply what you know in real situations. These principles apply to every topic you've covered.`,
+      mascotMsg: "Connecting the dots makes learning stronger! 🔗",
+    },
+  ];
+
+  // Generate review questions referencing the covered topics
+  const seedLesson: Lesson = {
+    id: lessonId,
+    title: `Summary: Lessons ${reviewStart + 1}–${reviewEnd}`,
+    description: `Review and consolidate what you learned in lessons ${reviewStart + 1} through ${reviewEnd}.`,
+    steps: [],
+  };
+
+  for (let i = 0; i < MIN_QUESTIONS_PER_LESSON; i++) {
+    if (i > 0 && i % 3 === 0) {
+      summarySteps.push({
         type: "info",
-        title: `Getting Started with ${topic}`,
-        content: `${topic} is one of the most useful parts of ${course.label.toLowerCase()}. Start small, stay consistent, and focus on one clear action at a time.`,
-        mascotMsg: "Let's make this skill feel easy and practical! ✨",
-      },
-      {
-        type: "info",
-        title: `${topic} in Real Life`,
-        content: `The fastest way to improve ${topic.toLowerCase()} is to use it in everyday situations. Short practice sessions and quick reflection build lasting confidence.`,
-        mascotMsg: "Practice turns knowledge into real skill! 🌍",
-      },
-      ...Array.from({ length: MIN_QUESTIONS_PER_LESSON }, (_, index) =>
-        createGeneratedQuiz(course, seedLesson, index)
-      ),
-    ],
+        title: `Reflection Point`,
+        content: `Think about how the topics you've reviewed connect to each other. In ${course.label.toLowerCase()}, skills build on each other — what you learned early on supports what comes later. Can you see the connections?`,
+        mascotMsg: "Making connections strengthens your understanding! 🌟",
+      });
+    }
+    summarySteps.push(createGeneratedQuiz(course, seedLesson, i));
+  }
+
+  return {
+    ...seedLesson,
+    steps: summarySteps,
   };
 }
 
