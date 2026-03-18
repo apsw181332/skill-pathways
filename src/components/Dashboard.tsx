@@ -730,10 +730,10 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                     <span className="text-2xl">{course.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{course.label}</span>
+                        <span className="font-medium text-foreground">{course.tLabel || course.label}</span>
                         {isEnrolled && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{t("learn.enrolled")}</span>}
                       </div>
-                      <p className="text-sm text-muted-foreground">{course.description}</p>
+                      <p className="text-sm text-muted-foreground">{course.tDesc || course.description}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden">
                           <div className="progress-fill h-full" style={{ width: `${(completed / course.lessons.length) * 100}%` }} />
