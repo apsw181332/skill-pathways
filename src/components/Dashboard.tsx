@@ -761,19 +761,22 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           <button onClick={() => setSelectedCategory(null)} className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">{t("learn.back")}</button>
           {(() => {
             const course = COURSES.find(c => c.id === selectedCategory);
+            const courseIdx = COURSES.findIndex(c => c.id === selectedCategory);
             const isEnrolled = enrolledCourses.includes(selectedCategory);
             if (!course) return null;
+            const tLabel = getCourseName(courseIdx);
+            const tDesc = getCourseDesc(courseIdx);
             return (
               <>
                 <div className="flex items-center justify-between mb-2">
-                  <h1 className="text-2xl font-semibold text-foreground">{course.emoji} {course.label}</h1>
+                  <h1 className="text-2xl font-semibold text-foreground">{course.emoji} {tLabel || course.label}</h1>
                   {!isEnrolled && (
                     <Button size="sm" onClick={() => handleEnroll(course.id)} className="gap-1">
                        <Plus className="w-4 h-4" /> {t("learn.enroll")}
                     </Button>
                   )}
                 </div>
-                <p className="text-muted-foreground mb-2">{course.description}</p>
+                <p className="text-muted-foreground mb-2">{tDesc || course.description}</p>
                 {course.image && <img src={course.image} alt={course.label} className="w-full h-40 object-cover rounded-xl mb-4" />}
 
                 {/* Path Map */}
