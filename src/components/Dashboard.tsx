@@ -106,6 +106,12 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     "Complete lessons to start earning badges! 🎯",
   ], [greetingMsgEn]);
   const { translated: tDashMascot } = useTranslatedContent(dashboardMascotTexts, locale, "dashboard mascot messages");
+
+  // Translate course names and descriptions
+  const courseTexts = useMemo(() => COURSES.flatMap(c => [c.label, c.description]), []);
+  const { translated: tCourseTexts } = useTranslatedContent(courseTexts, locale, "course names and descriptions");
+  const getCourseName = (idx: number) => tCourseTexts[idx * 2] ?? COURSES[idx]?.label ?? "";
+  const getCourseDesc = (idx: number) => tCourseTexts[idx * 2 + 1] ?? COURSES[idx]?.description ?? "";
   const greetingMsg = tDashMascot[0] ?? greetingMsgEn;
   const [myInviteCode, setMyInviteCode] = useState(user.id.slice(0, 8).toUpperCase());
 

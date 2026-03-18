@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { COURSES } from "@/lib/courseData";
 
 describe("course normalization", () => {
-  it("ensures every course has at least 10 lessons", () => {
+  it("ensures every course has at least 15 lessons", () => {
     COURSES.forEach((course) => {
-      expect(course.lessons.length).toBeGreaterThanOrEqual(10);
+      expect(course.lessons.length).toBeGreaterThanOrEqual(15);
     });
   });
 
