@@ -308,6 +308,16 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
               await supabase.from("profiles").update({ gems: (profile as any).gems + gems } as any).eq("user_id", userId);
             }
           }
+          // Auto-advance to next lesson if available
+          const course = COURSES.find(c => c.id === categoryId);
+          if (course && onNextLesson) {
+            const currentIndex = course.lessons.findIndex(l => l.id === lessonId);
+            const nextLesson = course.lessons[currentIndex + 1];
+            if (nextLesson) {
+              onNextLesson(categoryId, nextLesson.id);
+              return;
+            }
+          }
           onBack();
         }}
         onClose={onBack}
