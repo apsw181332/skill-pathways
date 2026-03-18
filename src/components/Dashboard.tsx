@@ -539,6 +539,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
             {enrolledCourses.map(courseId => {
               const course = COURSES.find(c => c.id === courseId);
               if (!course) return null;
+              const courseIdx = COURSES.findIndex(c => c.id === courseId);
+              const tLabel = getCourseName(courseIdx);
               const completed = categoryProgress[courseId] || 0;
               const total = course.lessons.length;
               return (
