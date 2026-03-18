@@ -505,7 +505,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {extraLives > 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 flex items-center gap-3 py-3 border-destructive/30">
           <Heart className="w-5 h-5 text-destructive" fill="currentColor" />
-          <span className="text-sm text-foreground font-medium">{extraLives} extra {extraLives === 1 ? "life" : "lives"} available</span>
+          <span className="text-sm text-foreground font-medium">{extraLives} {t(extraLives === 1 ? "general.life_available" : "general.lives_available")}</span>
         </motion.div>
       )}
 
