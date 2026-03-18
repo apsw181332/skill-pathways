@@ -115,81 +115,106 @@ const Index = () => {
   const handleAuth = () => setState("onboarding");
   const handleSignOut = async () => { await signOut(); setState("landing"); };
   const handleStartLesson = (categoryId: string, lessonId: number, isReview: boolean = false) => {
+    setIsTransitioning(true);
     setActiveLessonCategory(categoryId);
     setActiveLessonId(lessonId);
     setActiveLessonReview(isReview);
-    setState("lesson");
+    // Short delay for transition to cover the content swap
+    setTimeout(() => {
+      setState("lesson");
+      setTimeout(() => setIsTransitioning(false), 400);
+    }, 300);
   };
 
   const handleUseExtraLife = () => {
     if (extraLives > 0) setExtraLives(prev => prev - 1);
   };
 
+  const handleStateChange = (newState: AppState) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setState(newState);
+      setTimeout(() => setIsTransitioning(false), 400);
+    }, 300);
+  };
+
   if (isReady && user && !adminLoading && isAdmin) return <AdminDashboard onSignOut={handleSignOut} />;
 
-  switch (effectiveState) {
-    case "landing": return <Landing onGetStarted={() => setState("auth")} />;
-    case "auth": return <AuthPage onAuth={handleAuth} signUp={signUp} signIn={signIn} resetPassword={resetPassword} />;
-    case "onboarding": return <Onboarding onComplete={handleOnboardingComplete} />;
-    case "tutorial": return <Tutorial onComplete={handleTutorialComplete} />;
-    case "settings": return <SettingsPage settings={settings} onUpdate={updateSetting} onBack={() => setState("dashboard")} locale={(settings.language || "en") as Locale} userId={user?.id} />;
-    case "dashboard":
-      return (
-        <>
-          <Dashboard config={config} onStartLesson={handleStartLesson} user={user!} onSignOut={handleSignOut}
-            onOpenSettings={() => setState("settings")} enrolledCourses={settings.enrolled_courses}
-            onEnroll={enrollCourse} onUnenroll={unenrollCourse}
-            gems={gems} extraLives={extraLives} locale={(settings.language || "en") as Locale}
-            onPurchase={async (itemId, cost) => {
-              if (gems < cost) return false;
-              if (itemId.startsWith("title-")) return false; // Titles are earned, not purchased
-              const newGems = gems - cost;
-              await supabase.from("profiles").update({ gems: newGems } as any).eq("user_id", user!.id);
-              setGems(newGems);
-              if (itemId === "extra-life") setExtraLives(prev => prev + 1);
-              if (itemId === "life-pack") setExtraLives(prev => prev + 3);
-              return true;
-            }}
+  const renderContent = () => {
+    switch (effectiveState) {
+      case "landing": return <Landing onGetStarted={() => setState("auth")} />;
+      case "auth": return <AuthPage onAuth={handleAuth} signUp={signUp} signIn={signIn} resetPassword={resetPassword} />;
+      case "onboarding": return <Onboarding onComplete={handleOnboardingComplete} />;
+      case "tutorial": return <Tutorial onComplete={handleTutorialComplete} />;
+      case "settings": return <SettingsPage settings={settings} onUpdate={updateSetting} onBack={() => handleStateChange("dashboard")} locale={currentLocale} userId={user?.id} />;
+      case "dashboard":
+        return (
+          <TranslationLoader locale={currentLocale} onReady={() => setTranslationsReady(true)}>
+            <Dashboard config={config} onStartLesson={handleStartLesson} user={user!} onSignOut={handleSignOut}
+              onOpenSettings={() => handleStateChange("settings")} enrolledCourses={settings.enrolled_courses}
+              onEnroll={enrollCourse} onUnenroll={unenrollCourse}
+              gems={gems} extraLives={extraLives} locale={currentLocale}
+              onPurchase={async (itemId, cost) => {
+                if (gems < cost) return false;
+                if (itemId.startsWith("title-")) return false;
+                const newGems = gems - cost;
+                await supabase.from("profiles").update({ gems: newGems } as any).eq("user_id", user!.id);
+                setGems(newGems);
+                if (itemId === "extra-life") setExtraLives(prev => prev + 1);
+                if (itemId === "life-pack") setExtraLives(prev => prev + 3);
+                return true;
+              }}
+            />
+            <ChatBot />
+            <AISuggestion userId={user!.id} enrolledCourses={settings.enrolled_courses} onEnroll={enrollCourse} />
+          </TranslationLoader>
+        );
+      case "path-complete":
+        return completedCourse ? (
+          <PathComplete
+            course={completedCourse}
+            totalXp={0}
+            onContinue={() => { setCompletedCourse(null); handleStateChange("dashboard"); }}
           />
-          <ChatBot />
-          <AISuggestion userId={user!.id} enrolledCourses={settings.enrolled_courses} onEnroll={enrollCourse} />
-        </>
-      );
-    case "path-complete":
-      return completedCourse ? (
-        <PathComplete
-          course={completedCourse}
-          totalXp={0}
-          onContinue={() => { setCompletedCourse(null); setState("dashboard"); }}
-        />
-      ) : null;
-    case "lesson":
-      return (
-        <LessonView onBack={async () => {
-          if (user && !activeLessonReview) {
-            const course = COURSES.find(c => c.id === activeLessonCategory);
-            if (course) {
-              const { data: progress } = await supabase.from("user_progress")
-                .select("lesson_id")
-                .eq("user_id", user.id)
-                .eq("category_id", activeLessonCategory)
-                .eq("completed", true);
-              const completedCount = progress?.length || 0;
-              if (completedCount >= course.lessons.length && settings.enrolled_courses.includes(activeLessonCategory)) {
-                await unenrollCourse(activeLessonCategory);
-                setCompletedCourse(course);
-                setState("path-complete");
-                return;
+        ) : null;
+      case "lesson":
+        return (
+          <LessonView onBack={async () => {
+            setIsTransitioning(true);
+            if (user && !activeLessonReview) {
+              const course = COURSES.find(c => c.id === activeLessonCategory);
+              if (course) {
+                const { data: progress } = await supabase.from("user_progress")
+                  .select("lesson_id")
+                  .eq("user_id", user.id)
+                  .eq("category_id", activeLessonCategory)
+                  .eq("completed", true);
+                const completedCount = progress?.length || 0;
+                if (completedCount >= course.lessons.length && settings.enrolled_courses.includes(activeLessonCategory)) {
+                  await unenrollCourse(activeLessonCategory);
+                  setCompletedCourse(course);
+                  setState("path-complete");
+                  setTimeout(() => setIsTransitioning(false), 400);
+                  return;
+                }
               }
             }
-          }
-          setState("dashboard");
-        }} userId={user?.id}
-          categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
-          ttsEnabled={settings.tts_enabled} locale={(settings.language || "en") as Locale}
-          extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
-      );
-  }
+            setState("dashboard");
+            setTimeout(() => setIsTransitioning(false), 400);
+          }} userId={user?.id}
+            categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
+            ttsEnabled={settings.tts_enabled} locale={currentLocale}
+            extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
+        );
+    }
+  };
+
+  return (
+    <>
+      <PageTransition isVisible={isTransitioning} />
+      {renderContent()}
+    </>
+  );
 };
 
 export default Index;
