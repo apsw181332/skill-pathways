@@ -10,7 +10,7 @@ import ReadAloudButton from "@/components/ReadAloudButton";
 import PebbleTip from "@/components/PebbleTip";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
-import { getLessonContent, type LessonStep } from "@/lib/courseData";
+import { getLessonContent, COURSES, type LessonStep } from "@/lib/courseData";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
 import { adaptLearningCode, getReadingPaceIntervention } from "@/lib/learningCode";
