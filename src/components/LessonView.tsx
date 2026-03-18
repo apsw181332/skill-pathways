@@ -625,7 +625,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                   })}
                 </div>
                 {orderedItems.length === (step.items?.length || 0) && !dragSubmitted && (
-                  <Button className="mt-4 min-h-[44px]" onClick={handleSubmitOrder}>Check order</Button>
+                  <Button className="mt-4 min-h-[44px]" onClick={handleSubmitOrder}>{t("lesson.check_order")}</Button>
                 )}
                 {dragSubmitted && (
                   <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-4 rounded-lg border-2 border-primary/30 bg-primary/5">
