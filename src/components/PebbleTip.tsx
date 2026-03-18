@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import mascotImg from "@/assets/mascot-penguin.png";
 
@@ -7,33 +7,94 @@ interface PebbleTipProps {
   stepType: "info" | "quiz" | "drag";
   question?: string;
   recentAccuracy: number;
+  options?: string[];
+  correctIndex?: number;
+  content?: string;
 }
 
-function generateTip({ learningCode, stepType, recentAccuracy, question }: PebbleTipProps): string {
+/**
+ * Generate a contextual tip based on the actual question/content and user's learning profile.
+ * Tips are specific to the question, not generic.
+ */
+function generateTip({ learningCode, stepType, recentAccuracy, question, options, correctIndex, content }: PebbleTipProps): string {
   const tips: string[] = [];
 
+  // Question-specific tips for quiz steps
+  if (stepType === "quiz" && question) {
+    // Analyze the question text to give specific guidance
+    const qLower = question.toLowerCase();
+    
+    if (qLower.includes("which") || qLower.includes("what")) {
+      tips.push(`Read the question again carefully: "${question.slice(0, 60)}..." — look for the keyword that distinguishes the right answer! 🔍`);
+    }
+    if (qLower.includes("best") || qLower.includes("most")) {
+      tips.push(`This asks for the BEST option — multiple answers might seem partly correct, but one stands out. Compare them carefully! 🤔`);
+    }
+    if (qLower.includes("not") || qLower.includes("except") || qLower.includes("least")) {
+      tips.push(`Watch out! This is a NEGATIVE question — you're looking for what DOESN'T fit. Read each option and ask "does this belong?" ⚠️`);
+    }
+    if (qLower.includes("why") || qLower.includes("reason")) {
+      tips.push(`Think about the cause-and-effect here. What's the underlying reason? Don't pick an answer that just sounds good — pick the one that explains WHY! 💡`);
+    }
+    if (qLower.includes("how") || qLower.includes("step")) {
+      tips.push(`This is asking about a process or method. Think about what you'd actually DO in real life! 🛠️`);
+    }
+    if (qLower.includes("first") || qLower.includes("priority")) {
+      tips.push(`Priority question! Think about what must happen BEFORE everything else. What's the foundation? 🏗️`);
+    }
+
+    // Option-based hints (without revealing the answer)
+    if (options && options.length > 0) {
+      const longOptions = options.filter(o => o.length > 40);
+      if (longOptions.length >= 2) {
+        tips.push("Some options are quite detailed — read each one fully before deciding. The devil is in the details! 📖");
+      }
+      
+      // Check for "all of the above" or "none of the above" type answers
+      const hasAllNone = options.some(o => o.toLowerCase().includes("all of") || o.toLowerCase().includes("none of"));
+      if (hasAllNone) {
+        tips.push("When you see 'all of the above' or 'none of the above', check if EVERY other option is true/false first! 🧐");
+      }
+    }
+  }
+
+  // Content-specific tips for info steps  
+  if (stepType === "info" && content) {
+    const contentLower = content.toLowerCase();
+    if (contentLower.includes("important") || contentLower.includes("key") || contentLower.includes("essential")) {
+      tips.push("This section has KEY information — try to identify the main takeaway before moving on! 📌");
+    }
+    if (content.length > 300) {
+      tips.push("This is a longer section. Try summarizing it in one sentence in your head before continuing! 🧠");
+    }
+    if (contentLower.includes("example") || contentLower.includes("for instance")) {
+      tips.push("Pay attention to the examples — they often show up as quiz questions later! 👀");
+    }
+  }
+
+  // Drag step tips
+  if (stepType === "drag") {
+    tips.push("Think about the logical sequence: what MUST happen before something else can happen? 📋");
+    tips.push("If you're unsure, start with what you're most confident about — the first and last items! 🎯");
+  }
+
+  // Learning code-driven tips (specific to user profile)
   if (learningCode && learningCode.length === 9) {
     const digits = learningCode.split("").map(d => parseInt(d) || 1);
     const [speed, visual, auditory, kinesthetic, readWrite, attention, , complexity] = digits;
 
-    // Speed + accuracy mismatch
+    // Speed + accuracy mismatch — this is the "slow down" scenario
     if (speed >= 2 && recentAccuracy < 0.6) {
-      tips.push("You're going fast but missing some answers — try slowing down and reading each word carefully! 🐢✨");
+      tips.push("I noticed you're going fast but your accuracy has dropped — try re-reading the question more slowly this time! 🐢✨");
     }
     if (speed <= 0 && recentAccuracy >= 0.8) {
-      tips.push("You're being thorough and it's paying off — great accuracy! Keep it up! 🌟");
+      tips.push("Your careful approach is paying off — great accuracy! Keep that thorough mindset! 🌟");
     }
 
-    // Attention span tips
-    if (attention === 0) {
-      tips.push("Try focusing on just one key idea at a time — you've got this! 🎯");
-      tips.push("Break it down: what's the single most important word in this section? 🧩");
-    }
-    if (attention === 0 && stepType === "info") {
-      tips.push("This is a good spot to take a quick breath before moving on! 😌");
+    if (attention === 0 && stepType === "quiz") {
+      tips.push("Focus on just the question — block out everything else for a moment. What is it actually asking? 🎯");
     }
 
-    // Complexity tips
     if (complexity === 0 && stepType === "quiz") {
       tips.push("Don't overthink it — look for the simplest, most straightforward answer! 😊");
     }
@@ -41,71 +102,78 @@ function generateTip({ learningCode, stepType, recentAccuracy, question }: Pebbl
       tips.push("Think about the deeper 'why' behind each option — the nuance matters here! 🧠");
     }
 
-    // Learning style tips
-    if (readWrite >= 2 && stepType === "info") {
-      tips.push("Try jotting down the key points — writing helps you remember! ✍️");
+    if (visual >= 2 && stepType === "quiz") {
+      tips.push("Try picturing this scenario in your mind — visualizing helps you find the answer! 🎨");
     }
     if (kinesthetic >= 2) {
-      tips.push("Think about how you'd actually do this in real life — that'll help you find the answer! 💪");
+      tips.push("Imagine yourself actually doing this — what would you do step by step? 💪");
     }
-    if (visual >= 2 && stepType === "quiz") {
-      tips.push("Picture the scenario in your head — visualizing helps! 🎨");
+    if (auditory >= 2 && stepType === "quiz") {
+      tips.push("Try reading the question out loud — sometimes hearing it helps! 🔊");
     }
-    if (visual >= 2 && stepType === "info") {
-      tips.push("Try drawing a quick diagram of what you just read! 📊");
-    }
-    if (auditory >= 2) {
-      tips.push("Try reading the question out loud to yourself — hearing it helps! 🔊");
+    if (readWrite >= 2 && stepType === "info") {
+      tips.push("Try jotting down the key point from this section — writing helps you remember! ✍️");
     }
   }
 
-  // Generic tips by step type
-  if (stepType === "quiz") {
-    tips.push("Look for keywords in the question that match one of the options! 🔍");
-    tips.push("If you're stuck, try eliminating answers you know are wrong first! ❌→✅");
-    if (recentAccuracy >= 0.8) {
-      tips.push("You're on a roll! Trust your instincts on this one! 🔥");
-    }
-  }
-  if (stepType === "drag") {
-    tips.push("Think step-by-step: what needs to happen first, second, third? 📋");
-    tips.push("Imagine doing this yourself — what would be the logical order? 🤔");
-  }
-  if (stepType === "info") {
-    tips.push("Try to summarize what you just read in one sentence! 📝");
-    tips.push("Focus on the key points — what's the main takeaway? 🎯");
-  }
-
-  // Accuracy-based tips
+  // Accuracy-based encouragement
   if (recentAccuracy < 0.4) {
-    tips.push("Don't worry about mistakes — each one teaches you something new! 🌱");
-    tips.push("Take a deep breath. Re-read the question slowly — you'll spot the answer! 🧘");
+    tips.push("Don't worry about mistakes — each one teaches you something. Take a breath and try carefully! 🌱");
+  }
+  if (recentAccuracy >= 0.9 && stepType === "quiz") {
+    tips.push("You're on fire! Trust your instincts on this one! 🔥");
   }
 
-  return tips[Math.floor(Math.random() * tips.length)] || "You're doing great — keep going! 🐧";
+  return tips[Math.floor(Math.random() * tips.length)] || "Take your time and read carefully — you've got this! 🐧";
 }
 
 const PebbleTip = (props: PebbleTipProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [tip, setTip] = useState("");
+  const [showPeek, setShowPeek] = useState(false);
+  const stepTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const stepStartRef = useRef(Date.now());
 
-  // Reset when step changes
+  // Reset when step changes — hide tip, start timer for auto-peek
   useEffect(() => {
     setIsOpen(false);
-  }, [props.question, props.stepType]);
+    setShowPeek(false);
+    stepStartRef.current = Date.now();
+
+    // Clear previous timer
+    if (stepTimerRef.current) clearTimeout(stepTimerRef.current);
+
+    // Only auto-show peek after delay for quiz/drag steps (user might be stuck)
+    if (props.stepType === "quiz" || props.stepType === "drag") {
+      stepTimerRef.current = setTimeout(() => {
+        // Only show if user hasn't moved to next step
+        setShowPeek(true);
+      }, 12000); // 12 seconds — user is likely stuck
+    } else if (props.stepType === "info") {
+      // For info steps, show after 20 seconds (reading time)
+      stepTimerRef.current = setTimeout(() => {
+        setShowPeek(true);
+      }, 20000);
+    }
+
+    return () => {
+      if (stepTimerRef.current) clearTimeout(stepTimerRef.current);
+    };
+  }, [props.question, props.stepType, props.content]);
 
   const handleToggle = () => {
     if (!isOpen) {
       setTip(generateTip(props));
+      setShowPeek(false);
     }
     setIsOpen(!isOpen);
   };
 
   return (
     <>
-      {/* Penguin peeking from right side */}
+      {/* Penguin peeking from right side — only shows after delay */}
       <AnimatePresence>
-        {!isOpen && (
+        {!isOpen && showPeek && (
           <motion.button
             initial={{ x: 50 }}
             animate={{ x: 0 }}
@@ -116,7 +184,7 @@ const PebbleTip = (props: PebbleTipProps) => {
             aria-label="Get a tip from Pebble"
           >
             <div className="bg-card border-2 border-border border-r-0 rounded-l-2xl pl-2 pr-1 py-1.5 shadow-lg flex items-center gap-1">
-              <span className="text-[10px] font-bold text-primary uppercase tracking-wide">Tip</span>
+              <span className="text-[10px] font-bold text-primary uppercase tracking-wide">Need help?</span>
               <motion.img
                 src={mascotImg}
                 alt="Pebble"
