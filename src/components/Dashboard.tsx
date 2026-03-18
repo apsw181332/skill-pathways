@@ -690,7 +690,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                   </div>
                 )}
                 {isCurrent && isEnrolled && (
-                  <p className="text-[10px] text-primary font-semibold mt-0.5">Start →</p>
+                  <p className="text-[10px] text-primary font-semibold mt-0.5">{t("general.start_arrow")}</p>
                 )}
               </div>
             </div>
