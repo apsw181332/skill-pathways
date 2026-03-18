@@ -549,7 +549,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                   className="lesson-card w-full text-left flex items-center gap-4 group">
                   <span className="text-2xl">{course.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <span className="font-medium text-foreground">{course.label}</span>
+                    <span className="font-medium text-foreground">{tLabel || course.label}</span>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden">
                         <div className="progress-fill h-full" style={{ width: `${(completed / total) * 100}%` }} />
