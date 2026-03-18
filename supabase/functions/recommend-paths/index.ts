@@ -26,20 +26,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    const token = authHeader.replace("Bearer ", "");
     const client = createClient(supabaseUrl, anonKey, {
       global: { headers: { authorization: authHeader } },
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: { user }, error: userError } = await client.auth.getUser(token);
-    if (userError || !user) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await client.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = user.id;
+    const userId = claimsData.claims.sub as string;
 
     const [profileRes, progressRes] = await Promise.all([
       client.from("profiles").select("interests, enrolled_courses, learning_style").eq("user_id", userId).single(),
