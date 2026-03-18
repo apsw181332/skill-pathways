@@ -138,7 +138,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <User className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-foreground">Display Name</h2>
+            <h2 className="font-semibold text-foreground">{t("settings.display_name")}</h2>
           </div>
           <div className="flex gap-2">
             <Input
@@ -158,7 +158,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.02 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Lock className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-foreground">Change Password</h2>
+            <h2 className="font-semibold text-foreground">{t("settings.change_password")}</h2>
           </div>
           <div className="space-y-3">
             <Input
@@ -176,7 +176,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
             />
             <Button onClick={handlePasswordChange} disabled={pwLoading || !newPassword || !confirmPassword} className="w-full">
               {pwLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Update Password
+              {t("settings.update_password")}
             </Button>
           </div>
         </motion.div>

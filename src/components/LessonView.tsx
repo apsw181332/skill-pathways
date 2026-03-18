@@ -7,6 +7,7 @@ import Confetti from "@/components/Confetti";
 import XpPopup from "@/components/XpPopup";
 import TreasureChest from "@/components/TreasureChest";
 import ReadAloudButton from "@/components/ReadAloudButton";
+import PebbleTip from "@/components/PebbleTip";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, type LessonStep } from "@/lib/courseData";
@@ -113,6 +114,14 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
   const infoReadTimes = useRef<{ duration: number; contentLength: number }[]>([]);
   const recentQuizResults = useRef<boolean[]>([]);
   const [paceWarning, setPaceWarning] = useState<string | null>(null);
+  const [userLearningCode, setUserLearningCode] = useState<string | null>(null);
+
+  // Fetch learning code on mount
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from("profiles").select("learning_code").eq("user_id", userId).single()
+      .then(({ data }) => { if (data) setUserLearningCode((data as any).learning_code || null); });
+  }, [userId]);
 
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
@@ -199,8 +208,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
           <Mascot message={msg} size="md" animation="bounce" />
-          <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">Out of Lives! 💔</h2>
-          <p className="text-muted-foreground mb-4">You used all 3 lives in this lesson.</p>
+          <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">{t("lesson.out_of_lives")}</h2>
+          <p className="text-muted-foreground mb-4">{t("lesson.lives_used")}</p>
           <div className="flex justify-center gap-2 mb-6">
             {[0, 1, 2].map(i => (
               <Heart key={i} className="w-8 h-8 text-muted-foreground/30" fill="currentColor" />
@@ -210,21 +219,21 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
                 <div className="text-lg font-semibold text-foreground">{correctAnswers}/{totalQuizzes}</div>
-                <div className="text-xs text-muted-foreground">Correct</div>
+                <div className="text-xs text-muted-foreground">{t("general.correct")}</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-semibold text-foreground">{totalXp} XP</div>
-                <div className="text-xs text-muted-foreground">Earned</div>
+                <div className="text-lg font-semibold text-foreground">{totalXp} {t("general.xp")}</div>
+                <div className="text-xs text-muted-foreground">{t("lesson.earned")}</div>
               </div>
             </div>
           </div>
           {extraLives > 0 && (
             <Button onClick={() => { onUseExtraLife(); setLives(1); setGameOver(false); }} className="w-full mb-3 gap-2" size="lg">
-              <Heart className="w-4 h-4" /> Use Extra Life ({extraLives} left)
+              <Heart className="w-4 h-4" /> {t("lesson.use_extra_life")} ({extraLives})
             </Button>
           )}
           <Button onClick={onBack} variant={extraLives > 0 ? "outline" : "default"} className="w-full" size="lg">
-            Back to Dashboard
+            {t("lesson.back")}
           </Button>
         </motion.div>
       </div>
@@ -244,7 +253,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
           <Mascot message={msg} size="md" animation="celebrate" />
           <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">
-            {isReview ? "Review Complete! 📖" : "Lesson Complete! 🎉"}
+            {isReview ? t("lesson.review_complete") : t("lesson.complete")}
           </h2>
           <p className="text-muted-foreground mb-4">{lesson?.title}</p>
           <div className="flex justify-center gap-2 mb-6">
@@ -256,30 +265,30 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
             <div className="lesson-card py-4">
               <Clock className="w-5 h-5 text-primary mx-auto mb-2" />
               <div className="text-lg font-semibold text-foreground">{fmtTime(elapsed)}</div>
-              <div className="text-xs text-muted-foreground">Time</div>
+              <div className="text-xs text-muted-foreground">{t("lesson.time")}</div>
             </div>
             <div className="lesson-card py-4">
               <Zap className="w-5 h-5 text-accent mx-auto mb-2" />
-              <div className="text-lg font-semibold text-foreground">{isReview ? "0" : totalXp} XP</div>
-              <div className="text-xs text-muted-foreground">{isReview ? "Review" : "Earned"}</div>
+              <div className="text-lg font-semibold text-foreground">{isReview ? "0" : totalXp} {t("general.xp")}</div>
+              <div className="text-xs text-muted-foreground">{isReview ? t("lesson.review") : t("lesson.earned")}</div>
             </div>
             <div className="lesson-card py-4">
               <Target className="w-5 h-5 text-primary mx-auto mb-2" />
               <div className="text-lg font-semibold text-foreground">{accuracy}%</div>
-              <div className="text-xs text-muted-foreground">Accuracy</div>
+              <div className="text-xs text-muted-foreground">{t("lesson.accuracy")}</div>
             </div>
           </div>
           <div className="lesson-card text-left mb-6 border-primary/30">
-            <p className="text-sm font-medium text-primary mb-1">💡 Pebble's Tip</p>
+            <p className="text-sm font-medium text-primary mb-1">💡 {t("lesson.pebble_tip")}</p>
             <p className="text-sm text-muted-foreground">{tip}</p>
           </div>
           {isReview ? (
             <Button onClick={onBack} className="w-full gap-2" size="lg">
-              Back to Dashboard
+              {t("lesson.back")}
             </Button>
           ) : (
             <Button onClick={() => setShowChest(true)} className="w-full gap-2" size="lg">
-              <Diamond className="w-4 h-4" /> Open Treasure Chest! 🎁
+              <Diamond className="w-4 h-4" /> {t("lesson.open_chest")}
             </Button>
           )}
         </motion.div>
@@ -575,7 +584,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                 {showFeedback && (
                   <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
                     className={`mt-4 p-4 rounded-lg border-2 ${selectedAnswer === shuffledQuiz.correctIndex ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
-                    <p className="text-sm font-medium text-foreground mb-1">{selectedAnswer === shuffledQuiz.correctIndex ? "Correct! ✓" : "Not quite."}</p>
+                    <p className="text-sm font-medium text-foreground mb-1">{selectedAnswer === shuffledQuiz.correctIndex ? t("lesson.correct_label") : t("lesson.not_quite")}</p>
                     <p className="text-sm text-muted-foreground">{tStep?.explanation ?? step.explanation}</p>
                   </motion.div>
                 )}
@@ -597,7 +606,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                         className={`lesson-card flex items-center gap-3 py-3 min-h-[44px] ${isCorrect ? "border-primary" : isWrong ? "border-destructive" : ""}`}>
                         <span className="w-6 h-6 rounded-md bg-primary flex items-center justify-center text-xs font-medium text-primary-foreground">{idx + 1}</span>
                         <span className="text-foreground">{item.text}</span>
-                        {!dragSubmitted && <button onClick={() => handleOrderItem(id)} className="ml-auto text-muted-foreground hover:text-destructive text-xs min-h-[44px] min-w-[44px] flex items-center justify-center">Remove</button>}
+                        {!dragSubmitted && <button onClick={() => handleOrderItem(id)} className="ml-auto text-muted-foreground hover:text-destructive text-xs min-h-[44px] min-w-[44px] flex items-center justify-center">{t("lesson.remove")}</button>}
                         {dragSubmitted && isCorrect && <CheckCircle2 className="w-4 h-4 text-primary ml-auto" />}
                         {dragSubmitted && isWrong && <XCircle className="w-4 h-4 text-destructive ml-auto" />}
                       </motion.div>
@@ -616,7 +625,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                   })}
                 </div>
                 {orderedItems.length === (step.items?.length || 0) && !dragSubmitted && (
-                  <Button className="mt-4 min-h-[44px]" onClick={handleSubmitOrder}>Check order</Button>
+                  <Button className="mt-4 min-h-[44px]" onClick={handleSubmitOrder}>{t("lesson.check_order")}</Button>
                 )}
                 {dragSubmitted && (
                   <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-4 rounded-lg border-2 border-primary/30 bg-primary/5">
@@ -627,6 +636,14 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
             )}
           </motion.div>
         </AnimatePresence>
+
+        {/* PebbleTip - contextual penguin helper */}
+        <PebbleTip
+          learningCode={userLearningCode}
+          stepType={step.type as "info" | "quiz" | "drag"}
+          question={step.question}
+          recentAccuracy={totalQuizzes > 0 ? correctAnswers / totalQuizzes : 1}
+        />
       </main>
 
       <div className="sticky bottom-0 bg-background border-t border-border p-4">

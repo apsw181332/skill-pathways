@@ -487,17 +487,17 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         <div className="lesson-card flex flex-col items-center py-4">
           <Flame className="w-5 h-5 text-destructive mb-1" />
           <div className="text-lg font-semibold text-foreground xp-counter">{streak}</div>
-          <div className="text-xs text-muted-foreground">Streak</div>
+          <div className="text-xs text-muted-foreground">{t("general.streak")}</div>
         </div>
         <div className="lesson-card flex flex-col items-center py-4">
           <Star className="w-5 h-5 text-accent mb-1" />
           <div className="text-lg font-semibold text-foreground xp-counter">{xp}</div>
-          <div className="text-xs text-muted-foreground">XP</div>
+          <div className="text-xs text-muted-foreground">{t("general.xp")}</div>
         </div>
         <div className="lesson-card flex flex-col items-center py-4">
           <Diamond className="w-5 h-5 text-cyan-500 mb-1" />
           <div className="text-lg font-semibold text-foreground xp-counter">{gems}</div>
-          <div className="text-xs text-muted-foreground">Gems</div>
+          <div className="text-xs text-muted-foreground">{t("general.gems")}</div>
         </div>
       </motion.div>
 
@@ -505,7 +505,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {extraLives > 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 flex items-center gap-3 py-3 border-destructive/30">
           <Heart className="w-5 h-5 text-destructive" fill="currentColor" />
-          <span className="text-sm text-foreground font-medium">{extraLives} extra {extraLives === 1 ? "life" : "lives"} available</span>
+          <span className="text-sm text-foreground font-medium">{extraLives} {t(extraLives === 1 ? "general.life_available" : "general.lives_available")}</span>
         </motion.div>
       )}
 
@@ -690,7 +690,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                   </div>
                 )}
                 {isCurrent && isEnrolled && (
-                  <p className="text-[10px] text-primary font-semibold mt-0.5">Start →</p>
+                  <p className="text-[10px] text-primary font-semibold mt-0.5">{t("general.start_arrow")}</p>
                 )}
               </div>
             </div>
@@ -709,7 +709,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           </motion.div>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search courses..." className="pl-10" />
+            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t("learn.search")} className="pl-10" />
           </div>
           <h2 className="text-xl font-semibold text-foreground mb-4">{t("learn.title")} ({filteredCourses.length})</h2>
           <div className="space-y-3">
@@ -724,7 +724,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-foreground">{course.label}</span>
-                        {isEnrolled && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Enrolled</span>}
+                        {isEnrolled && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{t("learn.enrolled")}</span>}
                       </div>
                       <p className="text-sm text-muted-foreground">{course.description}</p>
                       <div className="flex items-center gap-2 mt-1">
@@ -749,7 +749,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         </>
       ) : (
         <>
-          <button onClick={() => setSelectedCategory(null)} className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">← Back to courses</button>
+          <button onClick={() => setSelectedCategory(null)} className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">{t("learn.back")}</button>
           {(() => {
             const course = COURSES.find(c => c.id === selectedCategory);
             const isEnrolled = enrolledCourses.includes(selectedCategory);
@@ -760,7 +760,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                   <h1 className="text-2xl font-semibold text-foreground">{course.emoji} {course.label}</h1>
                   {!isEnrolled && (
                     <Button size="sm" onClick={() => handleEnroll(course.id)} className="gap-1">
-                      <Plus className="w-4 h-4" /> Enroll
+                       <Plus className="w-4 h-4" /> {t("learn.enroll")}
                     </Button>
                   )}
                 </div>
@@ -770,7 +770,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                 {/* Path Map */}
                 {renderCoursePath(course)}
 
-                {!isEnrolled && <p className="text-sm text-muted-foreground mt-4 text-center">Enroll in this course to start learning!</p>}
+                {!isEnrolled && <p className="text-sm text-muted-foreground mt-4 text-center">{t("learn.enroll_to_start")}</p>}
               </>
             );
           })()}
@@ -821,18 +821,18 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           <span className="font-semibold text-foreground">Level {levelInfo.current.level}</span>
         </div>
         <div className="flex justify-center gap-4 mt-4">
-          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{xp}</div><div className="text-xs text-muted-foreground">XP</div></div>
-          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{streak}</div><div className="text-xs text-muted-foreground">Streak</div></div>
-          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{gems}</div><div className="text-xs text-muted-foreground">Gems</div></div>
-          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{earnedBadges.length}</div><div className="text-xs text-muted-foreground">Badges</div></div>
+          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{xp}</div><div className="text-xs text-muted-foreground">{t("general.xp")}</div></div>
+          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{streak}</div><div className="text-xs text-muted-foreground">{t("general.streak")}</div></div>
+          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{gems}</div><div className="text-xs text-muted-foreground">{t("general.gems")}</div></div>
+          <div className="text-center"><div className="text-lg font-semibold text-foreground xp-counter">{earnedBadges.length}</div><div className="text-xs text-muted-foreground">{t("general.badges")}</div></div>
         </div>
       </motion.div>
 
       {/* Invite code */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card text-center mb-6 border-primary/30">
-        <p className="text-sm text-muted-foreground mb-1">Your Invite Code</p>
+        <p className="text-sm text-muted-foreground mb-1">{t("profile.invite_code")}</p>
         <p className="text-2xl font-mono font-bold text-foreground tracking-widest">{myInviteCode}</p>
-        <p className="text-xs text-muted-foreground mt-1">Share with friends to connect!</p>
+        <p className="text-xs text-muted-foreground mt-1">{t("profile.share")}</p>
       </motion.div>
 
       {/* Leaderboard */}
@@ -848,7 +848,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                   {rankEmojis[entry.rank] || `#${entry.rank}`}
                 </div>
                 <div className="flex-1">
-                  <span className={`font-medium text-sm ${entry.isUser ? "text-primary" : "text-foreground"}`}>{entry.isUser ? "You" : entry.name}</span>
+                  <span className={`font-medium text-sm ${entry.isUser ? "text-primary" : "text-foreground"}`}>{entry.isUser ? t("general.you") : entry.name}</span>
                   <span className="text-xs text-muted-foreground ml-2">{lvl.emoji} {entry.xp} XP</span>
                 </div>
               </div>
@@ -861,7 +861,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       <h3 className="text-lg font-semibold text-foreground mb-3">{t("profile.friends")} ({friends.length})</h3>
       {pendingRequests.length > 0 && (
         <div className="mb-4">
-          <p className="text-xs text-muted-foreground mb-2">Pending requests</p>
+          <p className="text-xs text-muted-foreground mb-2">{t("profile.pending")}</p>
           {pendingRequests.map(req => {
             const profile = pendingProfiles[req.user_id];
             return (
@@ -909,7 +909,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
               <span className="text-3xl">{badge.emoji}</span>
               <p className="font-medium text-foreground text-sm mt-2">{badge.label}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{badge.desc}</p>
-              {earned && <span className="inline-block mt-2 text-xs text-primary font-medium">Earned ✓</span>}
+              {earned && <span className="inline-block mt-2 text-xs text-primary font-medium">{t("missions.done")}</span>}
             </motion.div>
           );
         })}
