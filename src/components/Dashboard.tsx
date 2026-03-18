@@ -115,10 +115,11 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const greetingMsg = tDashMascot[0] ?? greetingMsgEn;
   const [myInviteCode, setMyInviteCode] = useState(user.id.slice(0, 8).toUpperCase());
 
-  const filteredCourses = COURSES.filter(c => {
+  const filteredCourses = COURSES.map((c, i) => ({ ...c, tLabel: getCourseName(i), tDesc: getCourseDesc(i) })).filter(c => {
     const matchesSearch = !searchQuery ||
-      c.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.description.toLowerCase().includes(searchQuery.toLowerCase());
+      c.tLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.tDesc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.label.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
 
