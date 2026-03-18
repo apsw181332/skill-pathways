@@ -584,7 +584,7 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
                 {showFeedback && (
                   <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
                     className={`mt-4 p-4 rounded-lg border-2 ${selectedAnswer === shuffledQuiz.correctIndex ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
-                    <p className="text-sm font-medium text-foreground mb-1">{selectedAnswer === shuffledQuiz.correctIndex ? "Correct! ✓" : "Not quite."}</p>
+                    <p className="text-sm font-medium text-foreground mb-1">{selectedAnswer === shuffledQuiz.correctIndex ? t("lesson.correct_label") : t("lesson.not_quite")}</p>
                     <p className="text-sm text-muted-foreground">{tStep?.explanation ?? step.explanation}</p>
                   </motion.div>
                 )}
