@@ -770,7 +770,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                 {/* Path Map */}
                 {renderCoursePath(course)}
 
-                {!isEnrolled && <p className="text-sm text-muted-foreground mt-4 text-center">Enroll in this course to start learning!</p>}
+                {!isEnrolled && <p className="text-sm text-muted-foreground mt-4 text-center">{t("learn.enroll_to_start")}</p>}
               </>
             );
           })()}
