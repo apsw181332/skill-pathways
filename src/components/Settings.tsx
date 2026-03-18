@@ -176,7 +176,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
             />
             <Button onClick={handlePasswordChange} disabled={pwLoading || !newPassword || !confirmPassword} className="w-full">
               {pwLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Update Password
+              {t("settings.update_password")}
             </Button>
           </div>
         </motion.div>
