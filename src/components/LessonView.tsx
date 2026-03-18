@@ -643,6 +643,9 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
           stepType={step.type as "info" | "quiz" | "drag"}
           question={step.question}
           recentAccuracy={totalQuizzes > 0 ? correctAnswers / totalQuizzes : 1}
+          options={step.options}
+          correctIndex={shuffledQuiz?.correctIndex}
+          content={step.content}
         />
       </main>
 
