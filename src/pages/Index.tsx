@@ -18,6 +18,8 @@ import ChatBot from "@/components/ChatBot";
 import AISuggestion from "@/components/AISuggestion";
 import { getCountryCoords } from "@/lib/countries";
 import { generateLearningCode } from "@/lib/learningCode";
+import TranslationLoader from "@/components/TranslationLoader";
+import PageTransition from "@/components/PageTransition";
 import type { Locale } from "@/lib/i18n";
 
 type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
