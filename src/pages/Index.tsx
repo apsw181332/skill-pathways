@@ -36,6 +36,10 @@ const Index = () => {
   const [completedCourse, setCompletedCourse] = useState<typeof COURSES[0] | null>(null);
   const [gems, setGems] = useState(0);
   const [extraLives, setExtraLives] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [translationsReady, setTranslationsReady] = useState(false);
+
+  const currentLocale = (settings.language || "en") as Locale;
 
   useEffect(() => {
     if (!settingsLoading) {
