@@ -208,8 +208,8 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
           <Mascot message={msg} size="md" animation="bounce" />
-          <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">Out of Lives! 💔</h2>
-          <p className="text-muted-foreground mb-4">You used all 3 lives in this lesson.</p>
+          <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">{t("lesson.out_of_lives")}</h2>
+          <p className="text-muted-foreground mb-4">{t("lesson.lives_used")}</p>
           <div className="flex justify-center gap-2 mb-6">
             {[0, 1, 2].map(i => (
               <Heart key={i} className="w-8 h-8 text-muted-foreground/30" fill="currentColor" />
@@ -219,21 +219,21 @@ const LessonView = ({ onBack, userId, categoryId, lessonId, soundEnabled, ttsEna
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
                 <div className="text-lg font-semibold text-foreground">{correctAnswers}/{totalQuizzes}</div>
-                <div className="text-xs text-muted-foreground">Correct</div>
+                <div className="text-xs text-muted-foreground">{t("general.correct")}</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-semibold text-foreground">{totalXp} XP</div>
-                <div className="text-xs text-muted-foreground">Earned</div>
+                <div className="text-lg font-semibold text-foreground">{totalXp} {t("general.xp")}</div>
+                <div className="text-xs text-muted-foreground">{t("lesson.earned")}</div>
               </div>
             </div>
           </div>
           {extraLives > 0 && (
             <Button onClick={() => { onUseExtraLife(); setLives(1); setGameOver(false); }} className="w-full mb-3 gap-2" size="lg">
-              <Heart className="w-4 h-4" /> Use Extra Life ({extraLives} left)
+              <Heart className="w-4 h-4" /> {t("lesson.use_extra_life")} ({extraLives})
             </Button>
           )}
           <Button onClick={onBack} variant={extraLives > 0 ? "outline" : "default"} className="w-full" size="lg">
-            Back to Dashboard
+            {t("lesson.back")}
           </Button>
         </motion.div>
       </div>
