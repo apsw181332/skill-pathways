@@ -398,6 +398,18 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     setTimeout(() => setShowXp(false), 1500);
   };
 
+  // Streak bonus: every 5 correct in a row gives bonus XP
+  const handleStreakBonus = (newStreak: number) => {
+    if (newStreak > 0 && newStreak % 5 === 0) {
+      const bonus = Math.min(newStreak, 25); // +5 at 5, +10 at 10, etc. cap at 25
+      setTimeout(() => {
+        triggerXp(bonus);
+        setFeedbackMascotMsg(`🔥 ${newStreak} correct streak! +${bonus} bonus XP!`);
+        if (soundEnabled) playSuccessSound();
+      }, 600);
+    }
+  };
+
   const handleAnswer = (idx: number) => {
     if (showFeedback || !shuffledQuiz) return;
     setSelectedAnswer(idx);
@@ -405,6 +417,8 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
     setTotalQuizzes(prev => prev + 1);
     if (idx === shuffledQuiz.correctIndex) {
+      const newStreak = correctStreak + 1;
+      setCorrectStreak(newStreak);
       setCorrectAnswers(prev => prev + 1);
       recentQuizResults.current.push(true);
       setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
@@ -412,11 +426,50 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       if (soundEnabled) playCorrectSound();
       if (chosenPath) {
         setShowCorrectEffect(true);
-        setTimeout(() => setShowCorrectEffect(false), 650);
+        setTimeout(() => setShowCorrectEffect(false), 700);
       }
+      handleStreakBonus(newStreak);
     } else {
+      setCorrectStreak(0);
       recentQuizResults.current.push(false);
       setLastWrongQuizIndex(currentStep);
+      setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
+      if (soundEnabled) playWrongSound();
+      const newLives = lives - 1;
+      setLives(newLives);
+      setShowLifeLostAnim(true);
+      setTimeout(() => setShowLifeLostAnim(false), 800);
+      if (newLives <= 0) {
+        if (!isReview) saveLessonProgress(totalXp, false);
+        setTimeout(() => setGameOver(true), 1500);
+        return;
+      }
+    }
+  };
+
+  const handleTypeInSubmit = () => {
+    if (typeInSubmitted || !step?.acceptedAnswers) return;
+    setTypeInSubmitted(true);
+    setTotalQuizzes(prev => prev + 1);
+
+    const userAnswer = typeInAnswer.trim().toLowerCase();
+    const isCorrect = step.acceptedAnswers.some(a => a.toLowerCase() === userAnswer);
+
+    setTypeInCorrect(isCorrect);
+    if (isCorrect) {
+      const newStreak = correctStreak + 1;
+      setCorrectStreak(newStreak);
+      setCorrectAnswers(prev => prev + 1);
+      setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
+      triggerXp(20); // Type-in gives more XP
+      if (soundEnabled) playCorrectSound();
+      if (chosenPath) {
+        setShowCorrectEffect(true);
+        setTimeout(() => setShowCorrectEffect(false), 700);
+      }
+      handleStreakBonus(newStreak);
+    } else {
+      setCorrectStreak(0);
       setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
       if (soundEnabled) playWrongSound();
       const newLives = lives - 1;
