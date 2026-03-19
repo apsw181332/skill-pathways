@@ -558,43 +558,127 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   };
 
   const handleUseEcho = () => {
-    if (echoUsed || !step || step.type !== "quiz" || !shuffledQuiz) return;
+    if (echoUsed || !step) return;
+    // Most powers work on quiz, but some (vitality, fortitude) work on any step
+    const isQuiz = step.type === "quiz" && shuffledQuiz;
 
     const power = ECHO_PATH_POWERS[chosenPath || ""] || ECHO_PATH_POWERS.default;
     setEchoUsed(true);
     setShowEchoEffect(true);
     setTimeout(() => setShowEchoEffect(false), 1000);
-
     if (soundEnabled) playSuccessSound();
 
-    if (chosenPath === "chronos") {
-      const targetStep = lastWrongQuizIndex;
-      if (targetStep !== null) {
-        setCurrentStep(targetStep);
-        setSelectedAnswer(null);
-        setShowFeedback(false);
-        setFeedbackMascotMsg("⏳ Time rewound. Try that question again.");
-        setHiddenOptions([]);
+    switch (chosenPath) {
+      case "chronos": {
+        // Rewind to last wrong question
+        if (lastWrongQuizIndex !== null) {
+          setCurrentStep(lastWrongQuizIndex);
+          setSelectedAnswer(null);
+          setShowFeedback(false);
+          setHiddenOptions([]);
+          setFeedbackMascotMsg("⏳ Time rewound! Try that question again.");
+        } else {
+          setFeedbackMascotMsg("⏳ No wrong answers yet — time flows steady.");
+        }
         return;
       }
-      setFeedbackMascotMsg("⏳ No wrong question yet — time is steady.");
-      return;
-    }
-
-    const wrongVisible = shuffledQuiz.originalIndices
-      .map((_, i) => i)
-      .filter((i) => i !== shuffledQuiz.correctIndex && !hiddenOptions.includes(i));
-
-    if (wrongVisible.length > 0) {
-      const toHide = wrongVisible[Math.floor(Math.random() * wrongVisible.length)];
-      setHiddenOptions((prev) => [...prev, toHide]);
-      if (power.icon === "hack") {
-        setFeedbackMascotMsg("💻 Hack complete. One wrong option erased.");
-      } else {
-        setFeedbackMascotMsg("✨ Echo released. One wrong option vanished.");
+      case "syntax": {
+        // Hack: remove one wrong option
+        if (!isQuiz) { setFeedbackMascotMsg("💻 Nothing to hack here."); return; }
+        const wrongVisible = shuffledQuiz!.originalIndices
+          .map((_, i) => i)
+          .filter(i => i !== shuffledQuiz!.correctIndex && !hiddenOptions.includes(i));
+        if (wrongVisible.length > 0) {
+          setHiddenOptions(prev => [...prev, wrongVisible[Math.floor(Math.random() * wrongVisible.length)]]);
+          setFeedbackMascotMsg("💻 Hack complete. One wrong option erased.");
+        }
+        return;
       }
-    } else {
-      setFeedbackMascotMsg("✨ Echo is active, but only strong options remain.");
+      case "eloquence": {
+        // Whisper: show explanation early
+        if (step.explanation) {
+          setFeedbackMascotMsg(`📜 Whisper: ${step.explanation}`);
+        } else {
+          setFeedbackMascotMsg("📜 The winds carry no secrets for this question.");
+        }
+        return;
+      }
+      case "treasury": {
+        // Double XP for next correct answer
+        setDoubleXpActive(true);
+        setFeedbackMascotMsg("🪙 Jackpot! Next correct answer gives double XP!");
+        return;
+      }
+      case "vitality": {
+        // Heal: restore one life
+        if (lives < 3) {
+          setLives(prev => Math.min(prev + 1, 3));
+          setFeedbackMascotMsg("🌿 Life restored! You feel revitalized.");
+        } else {
+          setFeedbackMascotMsg("🌿 You're already at full health!");
+        }
+        return;
+      }
+      case "fortitude": {
+        // Shield: next wrong answer won't cost a life
+        setShieldActive(true);
+        setFeedbackMascotMsg("🛡️ Shield activated! Your next mistake is protected.");
+        return;
+      }
+      case "surge": {
+        // Overcharge: auto-answer correctly
+        if (!isQuiz) { setFeedbackMascotMsg("⚡ Nothing to surge through here."); return; }
+        setSelectedAnswer(shuffledQuiz!.correctIndex);
+        setShowFeedback(true);
+        setTotalQuizzes(prev => prev + 1);
+        setCorrectAnswers(prev => prev + 1);
+        const newStreak = correctStreak + 1;
+        setCorrectStreak(newStreak);
+        triggerXp(15);
+        if (soundEnabled) playCorrectSound();
+        setShowCorrectEffect(true);
+        setTimeout(() => setShowCorrectEffect(false), 700);
+        setFeedbackMascotMsg("⚡ OVERCHARGED! Question answered automatically!");
+        handleStreakBonus(newStreak);
+        return;
+      }
+      case "unity": {
+        // Bond: narrow to 2 options (correct + 1 random)
+        if (!isQuiz) { setFeedbackMascotMsg("💗 No options to narrow here."); return; }
+        const wrongVisible = shuffledQuiz!.originalIndices
+          .map((_, i) => i)
+          .filter(i => i !== shuffledQuiz!.correctIndex && !hiddenOptions.includes(i));
+        // Keep only 1 wrong option, hide the rest
+        if (wrongVisible.length > 1) {
+          const keepIdx = wrongVisible[Math.floor(Math.random() * wrongVisible.length)];
+          const toHide = wrongVisible.filter(i => i !== keepIdx);
+          setHiddenOptions(prev => [...prev, ...toHide]);
+          setFeedbackMascotMsg("💗 Bond formed! Narrowed to 2 choices.");
+        } else {
+          setFeedbackMascotMsg("💗 Already narrowed down!");
+        }
+        return;
+      }
+      case "cosmos": {
+        // Vision: briefly reveal the correct answer
+        if (!isQuiz) { setFeedbackMascotMsg("🌌 No vision to see here."); return; }
+        setCosmosReveal(true);
+        setFeedbackMascotMsg("🌌 The cosmos reveals the truth... briefly!");
+        setTimeout(() => setCosmosReveal(false), 2000);
+        return;
+      }
+      default: {
+        // Default: remove one wrong option
+        if (!isQuiz) return;
+        const wrongVisible = shuffledQuiz!.originalIndices
+          .map((_, i) => i)
+          .filter(i => i !== shuffledQuiz!.correctIndex && !hiddenOptions.includes(i));
+        if (wrongVisible.length > 0) {
+          setHiddenOptions(prev => [...prev, wrongVisible[Math.floor(Math.random() * wrongVisible.length)]]);
+          setFeedbackMascotMsg("✨ Echo released. One wrong option vanished.");
+        }
+        return;
+      }
     }
   };
 
