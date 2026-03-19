@@ -27,6 +27,7 @@ interface LessonViewProps {
   onUseExtraLife: () => void;
   isReview?: boolean;
   locale?: Locale;
+  config?: { learningStyle?: string };
 }
 
 const CORRECT_MESSAGES = [
@@ -78,7 +79,7 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en" }: LessonViewProps) => {
+const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en", config }: LessonViewProps) => {
   const { t } = useTranslation(locale);
   const lesson = getLessonContent(categoryId, lessonId);
   const steps = lesson?.steps || [];
@@ -116,16 +117,41 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   const recentQuizResults = useRef<boolean[]>([]);
   const [paceWarning, setPaceWarning] = useState<string | null>(null);
   const [userLearningCode, setUserLearningCode] = useState<string | null>(null);
+  const [adaptedContent, setAdaptedContent] = useState<Record<number, { content?: string; mascotMsg?: string }>>({});
+  const [adaptingStep, setAdaptingStep] = useState(false);
 
   // Fetch learning code on mount
   useEffect(() => {
     if (!userId) return;
-    supabase.from("profiles").select("learning_code").eq("user_id", userId).single()
-      .then(({ data }) => { if (data) setUserLearningCode((data as any).learning_code || null); });
+    supabase.from("profiles").select("learning_code, learning_style").eq("user_id", userId).single()
+      .then(({ data }) => {
+        if (data) {
+          setUserLearningCode((data as any).learning_code || null);
+        }
+      });
   }, [userId]);
 
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
+
+  // AI-rephrase info steps based on learning code
+  useEffect(() => {
+    if (!userLearningCode || !step || step.type !== "info" || !step.content || adaptedContent[currentStep] || adaptingStep) return;
+    setAdaptingStep(true);
+    supabase.functions.invoke("adapt-lesson", {
+      body: {
+        learningCode: userLearningCode,
+        lessonTitle: step.title,
+        lessonContent: step.content,
+        mascotMsg: step.mascotMsg,
+        learningStyle: config?.learningStyle || "balanced",
+      },
+    }).then(({ data }) => {
+      if (data?.adapted) {
+        setAdaptedContent(prev => ({ ...prev, [currentStep]: { content: data.adapted, mascotMsg: data.adaptedMascotMsg } }));
+      }
+    }).catch(() => {}).finally(() => setAdaptingStep(false));
+  }, [currentStep, userLearningCode, step?.type]);
 
   // Translate current step content when locale != "en"
   const stepTexts = useMemo(() => {
@@ -547,7 +573,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       <main className="flex-1 max-w-2xl mx-auto px-6 py-6 w-full">
         <motion.div key={`mascot-${currentStep}-${feedbackMascotMsg}-${paceWarning}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-6">
           <Mascot
-            message={paceWarning || feedbackMascotMsg || (tStep?.mascotMsg ?? step.mascotMsg)}
+            message={paceWarning || feedbackMascotMsg || adaptedContent[currentStep]?.mascotMsg || (tStep?.mascotMsg ?? step.mascotMsg)}
             size="sm"
             animation={paceWarning ? "bounce" : feedbackMascotMsg ? (feedbackMascotMsg.includes("Nailed") || feedbackMascotMsg.includes("Brilliant") || feedbackMascotMsg.includes("fire") || feedbackMascotMsg.includes("Perfect") ? "celebrate" : "bounce") : "idle"}
           />
@@ -566,9 +592,12 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
                   </div>
                 )}
                 <div className="flex items-start gap-2">
-                  <p className="text-foreground leading-relaxed text-lg flex-1">{tStep?.content ?? step.content}</p>
-                  {(tStep?.content ?? step.content) && <ReadAloudButton text={tStep?.content ?? step.content ?? ""} size="sm" className="shrink-0 mt-1" />}
+                  <p className="text-foreground leading-relaxed text-lg flex-1">{adaptedContent[currentStep]?.content || tStep?.content || step.content}</p>
+                  {(tStep?.content ?? step.content) && <ReadAloudButton text={adaptedContent[currentStep]?.content || tStep?.content || step.content || ""} size="sm" className="shrink-0 mt-1" />}
                 </div>
+                {adaptingStep && !adaptedContent[currentStep] && (
+                  <p className="text-xs text-muted-foreground mt-2 animate-pulse">✨ Adapting content to your learning style...</p>
+                )}
               </div>
             )}
 

@@ -19,7 +19,6 @@ serve(async (req) => {
       });
     }
 
-    // Decode learning code
     const criteria = [
       "Learning Speed", "Visual Pref", "Auditory Pref", "Kinesthetic Pref",
       "Reading/Writing Pref", "Attention Span", "Social Learning", "Content Complexity", "Accessibility Needs"
@@ -39,8 +38,9 @@ Original mascot message: ${mascotMsg}
 
 Rules:
 - If attention span is short, make content more concise with bullet points
-- If visual preference is high, suggest adding visual metaphors
+- If visual preference is high, suggest adding visual metaphors and use emoji liberally
 - If kinesthetic preference is high, add "try this" action steps
+- If reading/writing preference is high, add detail and vocabulary
 - If accessibility needs are significant, use simpler language
 - If content complexity is simple, use everyday examples
 - Keep the same factual information, just adapt presentation
@@ -53,7 +53,7 @@ Rules:
       });
     }
 
-    const response = await fetch("https://ai-gateway.lovable.dev/api/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -68,6 +68,13 @@ Rules:
         temperature: 0.3,
       }),
     });
+
+    if (!response.ok) {
+      console.error("AI gateway error:", response.status, await response.text());
+      return new Response(JSON.stringify({ adapted: lessonContent, adaptedMascotMsg: mascotMsg }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "{}";

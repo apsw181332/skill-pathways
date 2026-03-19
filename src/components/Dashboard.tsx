@@ -6,13 +6,14 @@ import {
   ChevronRight, Lock, CheckCircle2, Circle, Medal, Crown, Award, LogOut,
   Users, UserPlus, Check, X, Search, Settings as SettingsIcon, Plus, Minus,
   Diamond, Heart, ShoppingBag, Target, MessageCircle, Gift, Send, ArrowLeft, RotateCcw,
-  Camera
+  Camera, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { UserConfig } from "@/components/Onboarding";
 import Mascot from "@/components/Mascot";
 import GemShop from "@/components/GemShop";
+import FriendsPage from "@/components/FriendsPage";
 import Missions, { MISSIONS, TITLE_REWARDS } from "@/components/Missions";
 import type { MissionStats } from "@/components/Missions";
 import mascotImg from "@/assets/mascot-penguin.png";
@@ -72,7 +73,10 @@ interface ChatMessage { id: string; sender_id: string; receiver_id: string; cont
 
 const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase, locale = "en" }: DashboardProps) => {
   const { t } = useTranslation(locale);
-  const [activeTab, setActiveTab] = useState<"home" | "learn" | "missions" | "shop" | "profile">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "learn" | "missions" | "friends" | "shop" | "profile">("home");
+  const [dailyLessonCount, setDailyLessonCount] = useState(0);
+  const [showLimitBanner, setShowLimitBanner] = useState(false);
+  const FREE_DAILY_LIMIT = 2;
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState<FriendData[]>([]);
@@ -128,7 +132,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       const [profileRes, achieveRes, progressRes, lbRes] = await Promise.all([
         supabase.from("profiles").select("xp, streak, avatar_url, friend_code").eq("user_id", user.id).single(),
         supabase.from("achievements").select("badge_id").eq("user_id", user.id),
-        supabase.from("user_progress").select("category_id, lesson_id, completed").eq("user_id", user.id),
+        supabase.from("user_progress").select("category_id, lesson_id, completed, completed_at").eq("user_id", user.id),
         supabase.from("profiles").select("user_id, display_name, xp, streak").order("xp", { ascending: false }).limit(50),
       ]);
       if (profileRes.data) {
@@ -150,9 +154,18 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       if (progressRes.data) {
         const progress: Record<string, number> = {};
         let total = 0;
-        progressRes.data.forEach(p => { if (p.completed) { progress[p.category_id] = (progress[p.category_id] || 0) + 1; total++; } });
+        const today = new Date().toISOString().split("T")[0];
+        let todayCount = 0;
+        progressRes.data.forEach(p => {
+          if (p.completed) {
+            progress[p.category_id] = (progress[p.category_id] || 0) + 1;
+            total++;
+            if ((p as any).completed_at && (p as any).completed_at.startsWith(today)) todayCount++;
+          }
+        });
         setCategoryProgress(progress);
         setTotalLessonsCompleted(total);
+        setDailyLessonCount(todayCount);
       }
       if (lbRes.data) {
         setLeaderboard(lbRes.data.map((p, i) => ({
@@ -393,6 +406,13 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   };
 
   const nextLesson = getNextLesson();
+  const atDailyLimit = dailyLessonCount >= FREE_DAILY_LIMIT;
+
+  const startLessonWithLimit = (categoryId: string, lessonId: number, isReview?: boolean) => {
+    if (isReview) { onStartLesson(categoryId, lessonId, true); return; }
+    if (atDailyLimit) { setShowLimitBanner(true); return; }
+    onStartLesson(categoryId, lessonId, false);
+  };
 
   const missionStats: MissionStats = {
     lessonsCompleted: totalLessonsCompleted,
@@ -468,6 +488,16 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
   const renderHome = () => (
     <>
+      {showLimitBanner && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 border-accent bg-accent/5 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Daily limit reached!</p>
+            <p className="text-xs text-muted-foreground">You've completed {FREE_DAILY_LIMIT} lessons today. Come back tomorrow or upgrade for unlimited learning! 🚀</p>
+          </div>
+          <button onClick={() => setShowLimitBanner(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+        </motion.div>
+      )}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <Mascot message={greetingMsg} size="sm" animation={streak > 0 ? "wave" : "bounce"} />
       </motion.div>
@@ -568,7 +598,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {/* Continue learning */}
       {nextLesson && (
         <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          onClick={() => onStartLesson(nextLesson.categoryId, nextLesson.lessonId)}
+          onClick={() => startLessonWithLimit(nextLesson.categoryId, nextLesson.lessonId)}
           className="lesson-card w-full text-left mb-6 group border-primary">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-primary">{t("home.continue")}</span>
@@ -670,8 +700,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.05, type: "spring", stiffness: 400, damping: 20 }}
                 onClick={() => {
-                  if (isCompleted) onStartLesson(course.id, lesson.id, true);
-                  else if (isCurrent && isEnrolled) onStartLesson(course.id, lesson.id, false);
+                  if (isCompleted) startLessonWithLimit(course.id, lesson.id, true);
+                  else if (isCurrent && isEnrolled) startLessonWithLimit(course.id, lesson.id, false);
                 }}
                 disabled={!canPlay}
                 className={`${isCurrent ? "w-[68px] h-[68px]" : "w-[60px] h-[60px]"} rounded-full flex items-center justify-center font-bold transition-all duration-200 border-[5px] ${
@@ -974,6 +1004,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         {activeTab === "missions" && (
           <Missions stats={missionStats} claimedMissions={claimedMissions} onClaim={handleClaimMission} locale={locale} />
         )}
+        {activeTab === "friends" && (
+          <FriendsPage userId={user.id} gems={gems} locale={locale} />
+        )}
         {activeTab === "shop" && (
           <GemShop gems={gems} extraLives={extraLives} ownedTitles={ownedTitles} onPurchase={handlePurchase} locale={locale} />
         )}
@@ -984,6 +1017,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         {[
           { id: "home" as const, icon: Home, label: t("nav.home") },
           { id: "learn" as const, icon: BookOpen, label: t("nav.learn") },
+          { id: "friends" as const, icon: Users, label: "Friends" },
           { id: "missions" as const, icon: Target, label: t("nav.missions") },
           { id: "shop" as const, icon: ShoppingBag, label: t("nav.shop") },
           { id: "profile" as const, icon: UserIcon, label: t("nav.profile") },

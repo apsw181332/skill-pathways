@@ -228,7 +228,8 @@ const Index = () => {
             userId={user?.id}
             categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
             ttsEnabled={settings.tts_enabled} locale={currentLocale}
-            extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview} />
+            extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview}
+            config={{ learningStyle: config.learningStyle }} />
         );
     }
   };
