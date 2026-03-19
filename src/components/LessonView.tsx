@@ -404,13 +404,13 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
       triggerXp(15);
       if (soundEnabled) playCorrectSound();
-      // Show path correct effect
       if (chosenPath) {
         setShowCorrectEffect(true);
-        setTimeout(() => setShowCorrectEffect(false), 900);
+        setTimeout(() => setShowCorrectEffect(false), 650);
       }
     } else {
       recentQuizResults.current.push(false);
+      setLastWrongQuizIndex(currentStep);
       setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
       if (soundEnabled) playWrongSound();
       const newLives = lives - 1;
