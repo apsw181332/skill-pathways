@@ -232,10 +232,14 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
         originalIndices: shuffled.map(s => s.originalIndex),
         correctIndex: shuffled.findIndex(s => s.originalIndex === step.correct),
       });
+      setHiddenOptions([]);
+      setSelectedAnswer(null);
+      setShowFeedback(false);
     } else {
       setShuffledQuiz(null);
+      setHiddenOptions([]);
     }
-  }, [currentStep]);
+  }, [currentStep, step?.type]);
 
   // Game over screen
   if (gameOver) {
