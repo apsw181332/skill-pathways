@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import type { UserConfig } from "@/components/Onboarding";
 import Mascot from "@/components/Mascot";
 import GemShop from "@/components/GemShop";
+import FriendsPage from "@/components/FriendsPage";
 import Missions, { MISSIONS, TITLE_REWARDS } from "@/components/Missions";
 import type { MissionStats } from "@/components/Missions";
 import mascotImg from "@/assets/mascot-penguin.png";
