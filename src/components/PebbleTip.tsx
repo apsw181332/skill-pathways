@@ -11,6 +11,7 @@ interface PebbleTipProps {
   options?: string[];
   correctIndex?: number;
   content?: string;
+  pathId?: string | null;
 }
 
 // Positions Pebble can pop out from
