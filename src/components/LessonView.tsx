@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap, Heart, Diamond, Sparkles, RotateCcw, Wand2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap, Heart, Diamond, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Mascot from "@/components/Mascot";
 import Confetti from "@/components/Confetti";
@@ -82,10 +82,17 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const ECHO_PATH_POWERS: Record<string, { title: string; description: string; icon: "rewind" | "hack" | "surge" }> = {
-  chronos: { title: "Echo of Path · Rewind", description: "Reverse time to retry your last wrong quiz question.", icon: "rewind" },
-  syntax: { title: "Echo of Path · Hack", description: "Simulate a hack and delete one wrong answer choice.", icon: "hack" },
-  default: { title: "Echo of Path · Surge", description: "Release your path energy to remove one wrong answer choice.", icon: "surge" },
+const ECHO_PATH_POWERS: Record<string, { title: string; description: string; icon: string }> = {
+  chronos:   { title: "Rewind",    description: "Reverse time to retry your last wrong question.", icon: "rewind" },
+  syntax:    { title: "Hack",      description: "Hack the system to erase one wrong answer.", icon: "hack" },
+  eloquence: { title: "Whisper",   description: "Hear a whisper revealing the explanation early.", icon: "whisper" },
+  treasury:  { title: "Jackpot",   description: "Double XP reward for this question.", icon: "jackpot" },
+  vitality:  { title: "Heal",      description: "Restore one lost life.", icon: "heal" },
+  fortitude: { title: "Shield",    description: "Block the next wrong answer from costing a life.", icon: "shield" },
+  surge:     { title: "Overcharge", description: "Surge through — auto-answer correctly.", icon: "surge" },
+  unity:     { title: "Bond",      description: "Narrow it down to just 2 options.", icon: "bond" },
+  cosmos:    { title: "Vision",    description: "Briefly reveal the correct answer for 2 seconds.", icon: "vision" },
+  default:   { title: "Surge",     description: "Release path energy to remove one wrong answer.", icon: "surge" },
 };
 
 const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en", config, chosenPath }: LessonViewProps) => {
@@ -140,6 +147,9 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   const [echoUsed, setEchoUsed] = useState(false);
   const [hiddenOptions, setHiddenOptions] = useState<number[]>([]);
   const [lastWrongQuizIndex, setLastWrongQuizIndex] = useState<number | null>(null);
+  const [shieldActive, setShieldActive] = useState(false);
+  const [doubleXpActive, setDoubleXpActive] = useState(false);
+  const [cosmosReveal, setCosmosReveal] = useState(false);
 
   // Fetch learning code on mount
   useEffect(() => {
@@ -414,6 +424,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     if (showFeedback || !shuffledQuiz) return;
     setSelectedAnswer(idx);
     setShowFeedback(true);
+    setCosmosReveal(false); // hide cosmos reveal on answer
 
     setTotalQuizzes(prev => prev + 1);
     if (idx === shuffledQuiz.correctIndex) {
@@ -422,7 +433,9 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setCorrectAnswers(prev => prev + 1);
       recentQuizResults.current.push(true);
       setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
-      triggerXp(15);
+      const xpGain = doubleXpActive ? 30 : 15;
+      if (doubleXpActive) setDoubleXpActive(false);
+      triggerXp(xpGain);
       if (soundEnabled) playCorrectSound();
       if (chosenPath) {
         setShowCorrectEffect(true);
@@ -435,14 +448,21 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setLastWrongQuizIndex(currentStep);
       setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
       if (soundEnabled) playWrongSound();
-      const newLives = lives - 1;
-      setLives(newLives);
-      setShowLifeLostAnim(true);
-      setTimeout(() => setShowLifeLostAnim(false), 800);
-      if (newLives <= 0) {
-        if (!isReview) saveLessonProgress(totalXp, false);
-        setTimeout(() => setGameOver(true), 1500);
-        return;
+      if (doubleXpActive) setDoubleXpActive(false);
+      if (shieldActive) {
+        // Shield absorbs the hit
+        setShieldActive(false);
+        setFeedbackMascotMsg("🛡️ Shield absorbed the blow! No life lost.");
+      } else {
+        const newLives = lives - 1;
+        setLives(newLives);
+        setShowLifeLostAnim(true);
+        setTimeout(() => setShowLifeLostAnim(false), 800);
+        if (newLives <= 0) {
+          if (!isReview) saveLessonProgress(totalXp, false);
+          setTimeout(() => setGameOver(true), 1500);
+          return;
+        }
       }
     }
   };
@@ -548,43 +568,127 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   };
 
   const handleUseEcho = () => {
-    if (echoUsed || !step || step.type !== "quiz" || !shuffledQuiz) return;
+    if (echoUsed || !step) return;
+    // Most powers work on quiz, but some (vitality, fortitude) work on any step
+    const isQuiz = step.type === "quiz" && shuffledQuiz;
 
     const power = ECHO_PATH_POWERS[chosenPath || ""] || ECHO_PATH_POWERS.default;
     setEchoUsed(true);
     setShowEchoEffect(true);
     setTimeout(() => setShowEchoEffect(false), 1000);
-
     if (soundEnabled) playSuccessSound();
 
-    if (chosenPath === "chronos") {
-      const targetStep = lastWrongQuizIndex;
-      if (targetStep !== null) {
-        setCurrentStep(targetStep);
-        setSelectedAnswer(null);
-        setShowFeedback(false);
-        setFeedbackMascotMsg("⏳ Time rewound. Try that question again.");
-        setHiddenOptions([]);
+    switch (chosenPath) {
+      case "chronos": {
+        // Rewind to last wrong question
+        if (lastWrongQuizIndex !== null) {
+          setCurrentStep(lastWrongQuizIndex);
+          setSelectedAnswer(null);
+          setShowFeedback(false);
+          setHiddenOptions([]);
+          setFeedbackMascotMsg("⏳ Time rewound! Try that question again.");
+        } else {
+          setFeedbackMascotMsg("⏳ No wrong answers yet — time flows steady.");
+        }
         return;
       }
-      setFeedbackMascotMsg("⏳ No wrong question yet — time is steady.");
-      return;
-    }
-
-    const wrongVisible = shuffledQuiz.originalIndices
-      .map((_, i) => i)
-      .filter((i) => i !== shuffledQuiz.correctIndex && !hiddenOptions.includes(i));
-
-    if (wrongVisible.length > 0) {
-      const toHide = wrongVisible[Math.floor(Math.random() * wrongVisible.length)];
-      setHiddenOptions((prev) => [...prev, toHide]);
-      if (power.icon === "hack") {
-        setFeedbackMascotMsg("💻 Hack complete. One wrong option erased.");
-      } else {
-        setFeedbackMascotMsg("✨ Echo released. One wrong option vanished.");
+      case "syntax": {
+        // Hack: remove one wrong option
+        if (!isQuiz) { setFeedbackMascotMsg("💻 Nothing to hack here."); return; }
+        const wrongVisible = shuffledQuiz!.originalIndices
+          .map((_, i) => i)
+          .filter(i => i !== shuffledQuiz!.correctIndex && !hiddenOptions.includes(i));
+        if (wrongVisible.length > 0) {
+          setHiddenOptions(prev => [...prev, wrongVisible[Math.floor(Math.random() * wrongVisible.length)]]);
+          setFeedbackMascotMsg("💻 Hack complete. One wrong option erased.");
+        }
+        return;
       }
-    } else {
-      setFeedbackMascotMsg("✨ Echo is active, but only strong options remain.");
+      case "eloquence": {
+        // Whisper: show explanation early
+        if (step.explanation) {
+          setFeedbackMascotMsg(`📜 Whisper: ${step.explanation}`);
+        } else {
+          setFeedbackMascotMsg("📜 The winds carry no secrets for this question.");
+        }
+        return;
+      }
+      case "treasury": {
+        // Double XP for next correct answer
+        setDoubleXpActive(true);
+        setFeedbackMascotMsg("🪙 Jackpot! Next correct answer gives double XP!");
+        return;
+      }
+      case "vitality": {
+        // Heal: restore one life
+        if (lives < 3) {
+          setLives(prev => Math.min(prev + 1, 3));
+          setFeedbackMascotMsg("🌿 Life restored! You feel revitalized.");
+        } else {
+          setFeedbackMascotMsg("🌿 You're already at full health!");
+        }
+        return;
+      }
+      case "fortitude": {
+        // Shield: next wrong answer won't cost a life
+        setShieldActive(true);
+        setFeedbackMascotMsg("🛡️ Shield activated! Your next mistake is protected.");
+        return;
+      }
+      case "surge": {
+        // Overcharge: auto-answer correctly
+        if (!isQuiz) { setFeedbackMascotMsg("⚡ Nothing to surge through here."); return; }
+        setSelectedAnswer(shuffledQuiz!.correctIndex);
+        setShowFeedback(true);
+        setTotalQuizzes(prev => prev + 1);
+        setCorrectAnswers(prev => prev + 1);
+        const newStreak = correctStreak + 1;
+        setCorrectStreak(newStreak);
+        triggerXp(15);
+        if (soundEnabled) playCorrectSound();
+        setShowCorrectEffect(true);
+        setTimeout(() => setShowCorrectEffect(false), 700);
+        setFeedbackMascotMsg("⚡ OVERCHARGED! Question answered automatically!");
+        handleStreakBonus(newStreak);
+        return;
+      }
+      case "unity": {
+        // Bond: narrow to 2 options (correct + 1 random)
+        if (!isQuiz) { setFeedbackMascotMsg("💗 No options to narrow here."); return; }
+        const wrongVisible = shuffledQuiz!.originalIndices
+          .map((_, i) => i)
+          .filter(i => i !== shuffledQuiz!.correctIndex && !hiddenOptions.includes(i));
+        // Keep only 1 wrong option, hide the rest
+        if (wrongVisible.length > 1) {
+          const keepIdx = wrongVisible[Math.floor(Math.random() * wrongVisible.length)];
+          const toHide = wrongVisible.filter(i => i !== keepIdx);
+          setHiddenOptions(prev => [...prev, ...toHide]);
+          setFeedbackMascotMsg("💗 Bond formed! Narrowed to 2 choices.");
+        } else {
+          setFeedbackMascotMsg("💗 Already narrowed down!");
+        }
+        return;
+      }
+      case "cosmos": {
+        // Vision: briefly reveal the correct answer
+        if (!isQuiz) { setFeedbackMascotMsg("🌌 No vision to see here."); return; }
+        setCosmosReveal(true);
+        setFeedbackMascotMsg("🌌 The cosmos reveals the truth... briefly!");
+        setTimeout(() => setCosmosReveal(false), 2000);
+        return;
+      }
+      default: {
+        // Default: remove one wrong option
+        if (!isQuiz) return;
+        const wrongVisible = shuffledQuiz!.originalIndices
+          .map((_, i) => i)
+          .filter(i => i !== shuffledQuiz!.correctIndex && !hiddenOptions.includes(i));
+        if (wrongVisible.length > 0) {
+          setHiddenOptions(prev => [...prev, wrongVisible[Math.floor(Math.random() * wrongVisible.length)]]);
+          setFeedbackMascotMsg("✨ Echo released. One wrong option vanished.");
+        }
+        return;
+      }
     }
   };
 
@@ -722,7 +826,14 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
         <AnimatePresence mode="wait">
           <motion.div key={currentStep} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-            <h2 className="text-2xl font-semibold text-foreground mb-6">{tStep?.title ?? step.title}</h2>
+            <div className="flex items-start justify-between gap-3 mb-6">
+              <h2 className="text-2xl font-semibold text-foreground">{tStep?.title ?? step.title}</h2>
+              {!isReview && chosenPath && step.type !== "quiz" && !echoUsed && ["vitality", "fortitude", "chronos"].includes(chosenPath) && (
+                <Button type="button" variant="outline" size="sm" onClick={handleUseEcho} className="shrink-0 gap-2">
+                  <Sparkles className="w-4 h-4" /> Echo
+                </Button>
+              )}
+            </div>
 
             {step.type === "info" && (
               <div className="lesson-card">
@@ -749,7 +860,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
                     <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
                     {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
                   </div>
-                  {!isReview && chosenPath && (
+                  {!isReview && chosenPath && !showFeedback && (
                     <Button
                       type="button"
                       variant="outline"
@@ -758,28 +869,33 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
                       onClick={handleUseEcho}
                       className="shrink-0 gap-2"
                     >
-                      {chosenPath === "chronos" ? <RotateCcw className="w-4 h-4" /> : chosenPath === "syntax" ? <Wand2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-                      Echo of Path
+                      <Sparkles className="w-4 h-4" />
+                      Echo
                     </Button>
                   )}
                 </div>
-                {chosenPath && (
+                {chosenPath && !echoUsed && (
                   <p className="mb-4 text-xs text-muted-foreground">
-                    {(ECHO_PATH_POWERS[chosenPath] || ECHO_PATH_POWERS.default).description} {echoUsed ? "Used in this lesson." : "One use this lesson."}
+                    ✨ {(ECHO_PATH_POWERS[chosenPath] || ECHO_PATH_POWERS.default).title}: {(ECHO_PATH_POWERS[chosenPath] || ECHO_PATH_POWERS.default).description}
                   </p>
+                )}
+                {echoUsed && chosenPath && (
+                  <p className="mb-4 text-xs text-muted-foreground/50">✨ Echo used this lesson.</p>
                 )}
                 <div className="space-y-3">
                   {shuffledQuiz.originalIndices.map((origIdx, idx) => {
                     if (hiddenOptions.includes(idx)) return null;
                     const opt = (tStep?.options ?? step.options)?.[origIdx] ?? "";
                     let borderClass = "";
-                    if (showFeedback && idx === shuffledQuiz.correctIndex) borderClass = "border-primary bg-primary/5";
+                    if (cosmosReveal && idx === shuffledQuiz.correctIndex) borderClass = "border-accent bg-accent/10 ring-2 ring-accent/30";
+                    else if (showFeedback && idx === shuffledQuiz.correctIndex) borderClass = "border-primary bg-primary/5";
                     else if (showFeedback && idx === selectedAnswer && idx !== shuffledQuiz.correctIndex) borderClass = "border-destructive bg-destructive/5";
                     return (
                       <motion.button key={idx} whileTap={{ scale: 0.98 }} onClick={() => handleAnswer(idx)} disabled={showFeedback}
-                        className={`lesson-card w-full text-left flex items-center gap-3 min-h-[44px] ${borderClass} ${!showFeedback && selectedAnswer === idx ? "border-primary" : ""}`}>
+                        className={`lesson-card w-full text-left flex items-center gap-3 min-h-[44px] ${borderClass} ${!showFeedback && !cosmosReveal && selectedAnswer === idx ? "border-primary" : ""}`}>
                         <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0 text-sm font-medium text-foreground">{String.fromCharCode(65 + idx)}</div>
                         <span className="text-foreground">{opt}</span>
+                        {cosmosReveal && idx === shuffledQuiz.correctIndex && <motion.span initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1, 0] }} transition={{ duration: 2 }} className="ml-auto text-accent text-xs font-medium">🌌 Vision</motion.span>}
                         {showFeedback && idx === shuffledQuiz.correctIndex && <CheckCircle2 className="w-5 h-5 text-primary ml-auto shrink-0" />}
                         {showFeedback && idx === selectedAnswer && idx !== shuffledQuiz.correctIndex && <XCircle className="w-5 h-5 text-destructive ml-auto shrink-0" />}
                       </motion.button>
