@@ -464,7 +464,6 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
           return;
         }
       }
-      }
     }
   };
 
