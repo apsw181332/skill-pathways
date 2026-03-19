@@ -826,7 +826,14 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
         <AnimatePresence mode="wait">
           <motion.div key={currentStep} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-            <h2 className="text-2xl font-semibold text-foreground mb-6">{tStep?.title ?? step.title}</h2>
+            <div className="flex items-start justify-between gap-3 mb-6">
+              <h2 className="text-2xl font-semibold text-foreground">{tStep?.title ?? step.title}</h2>
+              {!isReview && chosenPath && step.type !== "quiz" && !echoUsed && ["vitality", "fortitude", "chronos"].includes(chosenPath) && (
+                <Button type="button" variant="outline" size="sm" onClick={handleUseEcho} className="shrink-0 gap-2">
+                  <Sparkles className="w-4 h-4" /> Echo
+                </Button>
+              )}
+            </div>
 
             {step.type === "info" && (
               <div className="lesson-card">
