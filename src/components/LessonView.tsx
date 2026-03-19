@@ -663,7 +663,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     }
   };
 
-  const canProceed = step.type === "info" || (step.type === "quiz" && showFeedback) || (step.type === "drag" && dragSubmitted);
+  const canProceed = step.type === "info" || (step.type === "quiz" && showFeedback) || (step.type === "drag" && dragSubmitted) || (step.type === "type-in" && typeInSubmitted);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
