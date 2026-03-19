@@ -82,10 +82,17 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const ECHO_PATH_POWERS: Record<string, { title: string; description: string; icon: "rewind" | "hack" | "surge" }> = {
-  chronos: { title: "Echo of Path · Rewind", description: "Reverse time to retry your last wrong quiz question.", icon: "rewind" },
-  syntax: { title: "Echo of Path · Hack", description: "Simulate a hack and delete one wrong answer choice.", icon: "hack" },
-  default: { title: "Echo of Path · Surge", description: "Release your path energy to remove one wrong answer choice.", icon: "surge" },
+const ECHO_PATH_POWERS: Record<string, { title: string; description: string; icon: string }> = {
+  chronos:   { title: "Rewind",    description: "Reverse time to retry your last wrong question.", icon: "rewind" },
+  syntax:    { title: "Hack",      description: "Hack the system to erase one wrong answer.", icon: "hack" },
+  eloquence: { title: "Whisper",   description: "Hear a whisper revealing the explanation early.", icon: "whisper" },
+  treasury:  { title: "Jackpot",   description: "Double XP reward for this question.", icon: "jackpot" },
+  vitality:  { title: "Heal",      description: "Restore one lost life.", icon: "heal" },
+  fortitude: { title: "Shield",    description: "Block the next wrong answer from costing a life.", icon: "shield" },
+  surge:     { title: "Overcharge", description: "Surge through — auto-answer correctly.", icon: "surge" },
+  unity:     { title: "Bond",      description: "Narrow it down to just 2 options.", icon: "bond" },
+  cosmos:    { title: "Vision",    description: "Briefly reveal the correct answer for 2 seconds.", icon: "vision" },
+  default:   { title: "Surge",     description: "Release path energy to remove one wrong answer.", icon: "surge" },
 };
 
 const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en", config, chosenPath }: LessonViewProps) => {
