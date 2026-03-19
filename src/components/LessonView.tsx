@@ -701,6 +701,11 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
             ))}
           </div>
           {isReview && <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded-full">Review</span>}
+          {correctStreak >= 3 && (
+            <motion.span initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+              🔥{correctStreak}
+            </motion.span>
+          )}
           <span className="text-sm font-medium text-accent xp-counter">{isReview ? "—" : `${totalXp} XP`}</span>
           <span className="text-sm text-muted-foreground xp-counter">{currentStep + 1}/{steps.length}</span>
         </div>
