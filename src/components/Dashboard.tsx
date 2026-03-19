@@ -147,6 +147,15 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         setStreak(profileRes.data.streak);
         setAvatarUrl((profileRes.data as any).avatar_url || null);
         if ((profileRes.data as any).friend_code) setMyInviteCode((profileRes.data as any).friend_code);
+        setIsPro((profileRes.data as any).is_pro || false);
+        // Calculate current stamina with regen
+        const storedStamina = (profileRes.data as any).stamina ?? 30;
+        const lastRefresh = (profileRes.data as any).stamina_last_refresh || new Date().toISOString();
+        const hoursSinceRefresh = (Date.now() - new Date(lastRefresh).getTime()) / (1000 * 60 * 60);
+        const regenAmount = Math.floor(hoursSinceRefresh * STAMINA_REGEN_PER_HOUR);
+        const currentStamina = Math.min(MAX_STAMINA, storedStamina + regenAmount);
+        setStamina(currentStamina);
+        setStaminaLastRefresh(lastRefresh);
       }
       if (achieveRes.data) {
         const badges = achieveRes.data.map(a => a.badge_id);
