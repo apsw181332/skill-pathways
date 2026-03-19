@@ -124,8 +124,8 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
               <span className="text-4xl font-bold text-cyan-400">+{gemsWon}</span>
             </motion.div>
             <p className="text-white/60 text-sm mb-6">Gems added to your balance!</p>
-            <Button onClick={handleCollect} size="lg" className="w-full" disabled={collecting}>
-              {collecting ? "Loading…" : "Collect Gems 💎"}
+            <Button onClick={handleCollect} size="lg" className="w-full">
+              Collect Gems 💎
             </Button>
           </motion.div>
         )}
