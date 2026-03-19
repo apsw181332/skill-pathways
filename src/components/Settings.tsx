@@ -286,6 +286,18 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
             <Switch checked={settings.tts_enabled} onCheckedChange={(v) => onUpdate("tts_enabled", v)} />
           </div>
         </motion.div>
+
+        {/* Delete Account */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }} className="lesson-card border-destructive/30">
+          <div className="flex items-center gap-3 mb-4">
+            <Trash2 className="w-5 h-5 text-destructive" />
+            <h2 className="font-semibold text-foreground">{t("settings.delete_account") || "Delete Account"}</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            This will permanently delete your account, all progress, badges, and data. This action cannot be undone.
+          </p>
+          <DeleteAccountButton userId={userId} />
+        </motion.div>
       </main>
     </div>
   );
