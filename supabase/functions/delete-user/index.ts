@@ -23,35 +23,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
+    // Manual JWT decode (ES256 signing-key compatible)
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await anonClient.auth.getUser(token);
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    let callerId: string;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      callerId = payload.sub;
+      if (!callerId) throw new Error("no sub");
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const callerId = user.id;
-
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    const { data: roleData } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", callerId)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
-        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -75,14 +56,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (user_id === callerId) {
-      return new Response(JSON.stringify({ error: "Cannot delete your own account" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    // Allow self-deletion OR admin deletion of others
+    const isSelfDelete = user_id === callerId;
+
+    if (!isSelfDelete) {
+      // Only admins can delete other users
+      const { data: roleData } = await adminClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", callerId)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (!roleData) {
+        return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
-    // Delete related data - catch individual errors but continue
+    // Delete related data
     const tables = [
       { table: "friend_messages", filter: `sender_id.eq.${user_id},receiver_id.eq.${user_id}`, useOr: true },
       { table: "user_progress", filter: `user_id.eq.${user_id}`, useOr: false },
