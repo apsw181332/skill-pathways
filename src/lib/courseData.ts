@@ -260,6 +260,14 @@ const RAW_COURSES: Course[] = [
             mascotMsg: "Let's master your money! 💰",
           },
           {
+            type: "type-in",
+            title: "The 50/30/20 Rule",
+            question: "In the 50/30/20 rule, what percentage goes to savings?",
+            acceptedAnswers: ["20", "20%", "twenty", "twenty percent"],
+            explanation: "The 50/30/20 rule allocates 20% of your income to savings and debt repayment, 50% to needs, and 30% to wants.",
+            mascotMsg: "Quick recall! 💡",
+          },
+          {
             type: "quiz",
             title: "Budget Categories",
             question: "Which expense is a 'need' rather than a 'want'?",
