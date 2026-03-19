@@ -423,11 +423,20 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   };
 
   const nextLesson = getNextLesson();
-  const atDailyLimit = dailyLessonCount >= FREE_DAILY_LIMIT;
+  const hasStamina = isPro || stamina >= STAMINA_PER_LESSON;
 
-  const startLessonWithLimit = (categoryId: string, lessonId: number, isReview?: boolean) => {
+  const startLessonWithStamina = async (categoryId: string, lessonId: number, isReview?: boolean) => {
     if (isReview) { onStartLesson(categoryId, lessonId, true); return; }
-    if (atDailyLimit) { setShowLimitBanner(true); return; }
+    if (!hasStamina) {
+      toast({ title: "Not enough stamina!", description: `You need ${STAMINA_PER_LESSON} stamina to start a lesson. Stamina regenerates ${STAMINA_REGEN_PER_HOUR}/hour.`, variant: "destructive" });
+      return;
+    }
+    // Deduct stamina
+    if (!isPro) {
+      const newStamina = stamina - STAMINA_PER_LESSON;
+      setStamina(newStamina);
+      await supabase.from("profiles").update({ stamina: newStamina, stamina_last_refresh: new Date().toISOString() } as any).eq("user_id", user.id);
+    }
     onStartLesson(categoryId, lessonId, false);
   };
 
