@@ -6,17 +6,18 @@ import cookingNutritionImg from "@/assets/lessons/cooking-nutrition.jpg";
 import socialSkillsImg from "@/assets/lessons/social-skills.jpg";
 
 export interface LessonStep {
-  type: "info" | "quiz" | "drag";
+  type: "info" | "quiz" | "drag" | "type-in";
   title: string;
   content?: string;
   image?: string;
-  video?: string; // YouTube embed URL e.g. "https://www.youtube.com/embed/VIDEO_ID"
+  video?: string;
   question?: string;
   options?: string[];
   correct?: number;
   explanation?: string;
   instruction?: string;
   items?: { id: string; text: string; order: number }[];
+  acceptedAnswers?: string[]; // For type-in questions — all valid answers (case-insensitive)
   mascotMsg: string;
 }
 
