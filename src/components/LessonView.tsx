@@ -8,6 +8,7 @@ import XpPopup from "@/components/XpPopup";
 import TreasureChest from "@/components/TreasureChest";
 import ReadAloudButton from "@/components/ReadAloudButton";
 import PebbleTip from "@/components/PebbleTip";
+import CorrectEffect, { EndLessonEffect } from "@/components/CorrectEffect";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, COURSES, type LessonStep } from "@/lib/courseData";
