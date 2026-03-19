@@ -617,6 +617,9 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setDragSubmitted(false);
       setFeedbackMascotMsg(null);
       setHiddenOptions([]);
+      setTypeInAnswer("");
+      setTypeInSubmitted(false);
+      setTypeInCorrect(false);
     } else {
       if (!isReview) {
         saveLessonProgress(totalXp);
