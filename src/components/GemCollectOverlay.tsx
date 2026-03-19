@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface GemCollectOverlayProps {
@@ -9,15 +9,17 @@ interface GemCollectOverlayProps {
 
 const GemCollectOverlay = ({ amount, active, onDone }: GemCollectOverlayProps) => {
   const [phase, setPhase] = useState<"gems" | "done">("gems");
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     if (!active) { setPhase("gems"); return; }
     const timer = setTimeout(() => {
       setPhase("done");
-      setTimeout(onDone, 400);
+      setTimeout(() => onDoneRef.current(), 400);
     }, 1800);
     return () => clearTimeout(timer);
-  }, [active, onDone]);
+  }, [active]);
 
   if (!active) return null;
 
