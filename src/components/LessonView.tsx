@@ -488,6 +488,47 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     }
   };
 
+  const handleUseEcho = () => {
+    if (echoUsed || !step || step.type !== "quiz" || !shuffledQuiz) return;
+
+    const power = ECHO_PATH_POWERS[chosenPath || ""] || ECHO_PATH_POWERS.default;
+    setEchoUsed(true);
+    setShowEchoEffect(true);
+    setTimeout(() => setShowEchoEffect(false), 1000);
+
+    if (soundEnabled) playSuccessSound();
+
+    if (chosenPath === "chronos") {
+      const targetStep = lastWrongQuizIndex;
+      if (targetStep !== null) {
+        setCurrentStep(targetStep);
+        setSelectedAnswer(null);
+        setShowFeedback(false);
+        setFeedbackMascotMsg("⏳ Time rewound. Try that question again.");
+        setHiddenOptions([]);
+        return;
+      }
+      setFeedbackMascotMsg("⏳ No wrong question yet — time is steady.");
+      return;
+    }
+
+    const wrongVisible = shuffledQuiz.originalIndices
+      .map((_, i) => i)
+      .filter((i) => i !== shuffledQuiz.correctIndex && !hiddenOptions.includes(i));
+
+    if (wrongVisible.length > 0) {
+      const toHide = wrongVisible[Math.floor(Math.random() * wrongVisible.length)];
+      setHiddenOptions((prev) => [...prev, toHide]);
+      if (power.icon === "hack") {
+        setFeedbackMascotMsg("💻 Hack complete. One wrong option erased.");
+      } else {
+        setFeedbackMascotMsg("✨ Echo released. One wrong option vanished.");
+      }
+    } else {
+      setFeedbackMascotMsg("✨ Echo is active, but only strong options remain.");
+    }
+  };
+
   const handleNext = () => {
     if (soundEnabled) playClickSound();
     setPaceWarning(null);
@@ -516,6 +557,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setOrderedItems([]);
       setDragSubmitted(false);
       setFeedbackMascotMsg(null);
+      setHiddenOptions([]);
     } else {
       if (!isReview) {
         saveLessonProgress(totalXp);
@@ -526,7 +568,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       // Show end lesson path effect
       if (chosenPath) {
         setShowEndEffect(true);
-        setTimeout(() => setShowEndEffect(false), 2500);
+        setTimeout(() => setShowEndEffect(false), 3000);
       }
       setShowCompletion(true);
     }
