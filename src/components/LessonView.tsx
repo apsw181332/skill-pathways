@@ -116,13 +116,38 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   const recentQuizResults = useRef<boolean[]>([]);
   const [paceWarning, setPaceWarning] = useState<string | null>(null);
   const [userLearningCode, setUserLearningCode] = useState<string | null>(null);
+  const [adaptedContent, setAdaptedContent] = useState<Record<number, { content?: string; mascotMsg?: string }>>({});
+  const [adaptingStep, setAdaptingStep] = useState(false);
 
   // Fetch learning code on mount
   useEffect(() => {
     if (!userId) return;
-    supabase.from("profiles").select("learning_code").eq("user_id", userId).single()
-      .then(({ data }) => { if (data) setUserLearningCode((data as any).learning_code || null); });
+    supabase.from("profiles").select("learning_code, learning_style").eq("user_id", userId).single()
+      .then(({ data }) => {
+        if (data) {
+          setUserLearningCode((data as any).learning_code || null);
+        }
+      });
   }, [userId]);
+
+  // AI-rephrase info steps based on learning code
+  useEffect(() => {
+    if (!userLearningCode || !step || step.type !== "info" || !step.content || adaptedContent[currentStep] || adaptingStep) return;
+    setAdaptingStep(true);
+    supabase.functions.invoke("adapt-lesson", {
+      body: {
+        learningCode: userLearningCode,
+        lessonTitle: step.title,
+        lessonContent: step.content,
+        mascotMsg: step.mascotMsg,
+        learningStyle: config?.learningStyle || "balanced",
+      },
+    }).then(({ data }) => {
+      if (data?.adapted) {
+        setAdaptedContent(prev => ({ ...prev, [currentStep]: { content: data.adapted, mascotMsg: data.adaptedMascotMsg } }));
+      }
+    }).catch(() => {}).finally(() => setAdaptingStep(false));
+  }, [currentStep, userLearningCode, step?.type]);
 
   const step: LessonStep | undefined = steps[currentStep];
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
