@@ -121,6 +121,8 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   const [userLearningCode, setUserLearningCode] = useState<string | null>(null);
   const [adaptedContent, setAdaptedContent] = useState<Record<number, { content?: string; mascotMsg?: string }>>({});
   const [adaptingStep, setAdaptingStep] = useState(false);
+  const [showCorrectEffect, setShowCorrectEffect] = useState(false);
+  const [showEndEffect, setShowEndEffect] = useState(false);
 
   // Fetch learning code on mount
   useEffect(() => {
