@@ -389,6 +389,11 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
       triggerXp(15);
       if (soundEnabled) playCorrectSound();
+      // Show path correct effect
+      if (chosenPath) {
+        setShowCorrectEffect(true);
+        setTimeout(() => setShowCorrectEffect(false), 900);
+      }
     } else {
       recentQuizResults.current.push(false);
       setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
