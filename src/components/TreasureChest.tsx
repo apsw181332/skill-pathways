@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Diamond } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
   const [gemsWon, setGemsWon] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [upgradeAnim, setUpgradeAnim] = useState(false);
+  const [collecting, setCollecting] = useState(false);
 
   const config = CHEST_CONFIG[tier];
 
@@ -36,7 +37,6 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
 
   const handleChestClick = () => {
     if (opened) return;
-
     const newCount = clickCount + 1;
     setClickCount(newCount);
 
@@ -48,18 +48,17 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
       return;
     }
 
-    // 20% chance to upgrade
     if (Math.random() < 0.2) {
-      if (tier === "rare") {
-        setTier("epic");
-        setUpgradeAnim(true);
-        setTimeout(() => setUpgradeAnim(false), 600);
-      } else if (tier === "epic") {
-        setTier("legendary");
-        setUpgradeAnim(true);
-        setTimeout(() => setUpgradeAnim(false), 600);
-      }
+      if (tier === "rare") { setTier("epic"); setUpgradeAnim(true); setTimeout(() => setUpgradeAnim(false), 600); }
+      else if (tier === "epic") { setTier("legendary"); setUpgradeAnim(true); setTimeout(() => setUpgradeAnim(false), 600); }
     }
+  };
+
+  const handleCollect = () => {
+    if (collecting) return;
+    setCollecting(true);
+    // Call onComplete which handles navigation
+    onComplete(gemsWon);
   };
 
   return (
@@ -82,7 +81,6 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
               transition={{ duration: 0.5 }}
               className="mb-6"
             >
-              {/* The chest itself IS the clickable target */}
               <motion.button
                 whileTap={{ scale: 0.85 }}
                 whileHover={{ scale: 1.08 }}
@@ -93,12 +91,7 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
                 {chestEmoji}
               </motion.button>
 
-              <motion.div
-                key={tier}
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="mt-4"
-              >
+              <motion.div key={tier} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="mt-4">
                 <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold text-white bg-gradient-to-r ${config.color}`}>
                   {config.label}
                 </span>
@@ -108,24 +101,15 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
             <p className="text-white/80 text-sm mb-2">
               Tap the chest {3 - clickCount} more time{3 - clickCount !== 1 ? "s" : ""} to open!
             </p>
-            <p className="text-white/50 text-xs mb-6">
-              20% chance to upgrade each tap ✨
-            </p>
+            <p className="text-white/50 text-xs mb-6">20% chance to upgrade each tap ✨</p>
 
             <div className="flex justify-center gap-3 mb-6">
               {[0, 1, 2].map(i => (
-                <div
-                  key={i}
-                  className={`w-4 h-4 rounded-full transition-all duration-300 ${
-                    i < clickCount ? "bg-primary scale-110" : "bg-white/20"
-                  }`}
-                />
+                <div key={i} className={`w-4 h-4 rounded-full transition-all duration-300 ${i < clickCount ? "bg-primary scale-110" : "bg-white/20"}`} />
               ))}
             </div>
 
-            <button onClick={onClose} className="mt-2 text-white/40 text-sm hover:text-white/60 transition-colors">
-              Skip
-            </button>
+            <button onClick={onClose} className="mt-2 text-white/40 text-sm hover:text-white/60 transition-colors">Skip</button>
           </>
         ) : (
           <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", bounce: 0.5 }}>
@@ -141,11 +125,9 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
               <Diamond className="w-8 h-8 text-cyan-400" />
               <span className="text-4xl font-bold text-cyan-400">+{gemsWon}</span>
             </motion.div>
-            <p className="text-white/60 text-sm mb-6">
-              Gems added to your balance!
-            </p>
-            <Button onClick={() => onComplete(gemsWon)} size="lg" className="w-full">
-              Collect Gems 💎
+            <p className="text-white/60 text-sm mb-6">Gems added to your balance!</p>
+            <Button onClick={handleCollect} size="lg" className="w-full" disabled={collecting}>
+              {collecting ? "Loading…" : "Collect Gems 💎"}
             </Button>
           </motion.div>
         )}

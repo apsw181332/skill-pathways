@@ -301,14 +301,17 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   if (showChest) {
     return (
       <TreasureChest
-        onComplete={async (gems) => {
+        onComplete={(gems) => {
+          // Save gems in background, navigate immediately
           if (userId) {
-            const { data: profile } = await supabase.from("profiles").select("gems").eq("user_id", userId).single();
-            if (profile) {
-              await supabase.from("profiles").update({ gems: (profile as any).gems + gems } as any).eq("user_id", userId);
-            }
+            supabase.from("profiles").select("gems").eq("user_id", userId).single()
+              .then(({ data: profile }) => {
+                if (profile) {
+                  supabase.from("profiles").update({ gems: (profile as any).gems + gems } as any).eq("user_id", userId);
+                }
+              });
           }
-          // Auto-advance to next lesson if available
+          // Auto-advance to next lesson immediately
           const course = COURSES.find(c => c.id === categoryId);
           if (course && onNextLesson) {
             const currentIndex = course.lessons.findIndex(l => l.id === lessonId);
