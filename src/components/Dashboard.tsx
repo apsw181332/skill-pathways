@@ -154,9 +154,18 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       if (progressRes.data) {
         const progress: Record<string, number> = {};
         let total = 0;
-        progressRes.data.forEach(p => { if (p.completed) { progress[p.category_id] = (progress[p.category_id] || 0) + 1; total++; } });
+        const today = new Date().toISOString().split("T")[0];
+        let todayCount = 0;
+        progressRes.data.forEach(p => {
+          if (p.completed) {
+            progress[p.category_id] = (progress[p.category_id] || 0) + 1;
+            total++;
+            if ((p as any).completed_at && (p as any).completed_at.startsWith(today)) todayCount++;
+          }
+        });
         setCategoryProgress(progress);
         setTotalLessonsCompleted(total);
+        setDailyLessonCount(todayCount);
       }
       if (lbRes.data) {
         setLeaderboard(lbRes.data.map((p, i) => ({
