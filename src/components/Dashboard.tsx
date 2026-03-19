@@ -73,7 +73,10 @@ interface ChatMessage { id: string; sender_id: string; receiver_id: string; cont
 
 const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase, locale = "en" }: DashboardProps) => {
   const { t } = useTranslation(locale);
-  const [activeTab, setActiveTab] = useState<"home" | "learn" | "missions" | "shop" | "profile">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "learn" | "missions" | "friends" | "shop" | "profile">("home");
+  const [dailyLessonCount, setDailyLessonCount] = useState(0);
+  const [showLimitBanner, setShowLimitBanner] = useState(false);
+  const FREE_DAILY_LIMIT = 2;
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState<FriendData[]>([]);
