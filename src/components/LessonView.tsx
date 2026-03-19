@@ -853,7 +853,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
                     <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
                     {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
                   </div>
-                  {!isReview && chosenPath && (
+                  {!isReview && chosenPath && !showFeedback && (
                     <Button
                       type="button"
                       variant="outline"
@@ -862,28 +862,33 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
                       onClick={handleUseEcho}
                       className="shrink-0 gap-2"
                     >
-                      {chosenPath === "chronos" ? <RotateCcw className="w-4 h-4" /> : chosenPath === "syntax" ? <Wand2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-                      Echo of Path
+                      <Sparkles className="w-4 h-4" />
+                      Echo
                     </Button>
                   )}
                 </div>
-                {chosenPath && (
+                {chosenPath && !echoUsed && (
                   <p className="mb-4 text-xs text-muted-foreground">
-                    {(ECHO_PATH_POWERS[chosenPath] || ECHO_PATH_POWERS.default).description} {echoUsed ? "Used in this lesson." : "One use this lesson."}
+                    ✨ {(ECHO_PATH_POWERS[chosenPath] || ECHO_PATH_POWERS.default).title}: {(ECHO_PATH_POWERS[chosenPath] || ECHO_PATH_POWERS.default).description}
                   </p>
+                )}
+                {echoUsed && chosenPath && (
+                  <p className="mb-4 text-xs text-muted-foreground/50">✨ Echo used this lesson.</p>
                 )}
                 <div className="space-y-3">
                   {shuffledQuiz.originalIndices.map((origIdx, idx) => {
                     if (hiddenOptions.includes(idx)) return null;
                     const opt = (tStep?.options ?? step.options)?.[origIdx] ?? "";
                     let borderClass = "";
-                    if (showFeedback && idx === shuffledQuiz.correctIndex) borderClass = "border-primary bg-primary/5";
+                    if (cosmosReveal && idx === shuffledQuiz.correctIndex) borderClass = "border-accent bg-accent/10 ring-2 ring-accent/30";
+                    else if (showFeedback && idx === shuffledQuiz.correctIndex) borderClass = "border-primary bg-primary/5";
                     else if (showFeedback && idx === selectedAnswer && idx !== shuffledQuiz.correctIndex) borderClass = "border-destructive bg-destructive/5";
                     return (
                       <motion.button key={idx} whileTap={{ scale: 0.98 }} onClick={() => handleAnswer(idx)} disabled={showFeedback}
-                        className={`lesson-card w-full text-left flex items-center gap-3 min-h-[44px] ${borderClass} ${!showFeedback && selectedAnswer === idx ? "border-primary" : ""}`}>
+                        className={`lesson-card w-full text-left flex items-center gap-3 min-h-[44px] ${borderClass} ${!showFeedback && !cosmosReveal && selectedAnswer === idx ? "border-primary" : ""}`}>
                         <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0 text-sm font-medium text-foreground">{String.fromCharCode(65 + idx)}</div>
                         <span className="text-foreground">{opt}</span>
+                        {cosmosReveal && idx === shuffledQuiz.correctIndex && <motion.span initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1, 0] }} transition={{ duration: 2 }} className="ml-auto text-accent text-xs font-medium">🌌 Vision</motion.span>}
                         {showFeedback && idx === shuffledQuiz.correctIndex && <CheckCircle2 className="w-5 h-5 text-primary ml-auto shrink-0" />}
                         {showFeedback && idx === selectedAnswer && idx !== shuffledQuiz.correctIndex && <XCircle className="w-5 h-5 text-destructive ml-auto shrink-0" />}
                       </motion.button>
