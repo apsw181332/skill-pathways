@@ -677,12 +677,33 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
             {step.type === "quiz" && shuffledQuiz && (
               <div>
-                <div className="flex items-start gap-2 mb-6">
-                  <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
-                  {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2 flex-1">
+                    <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
+                    {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
+                  </div>
+                  {!isReview && chosenPath && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={echoUsed}
+                      onClick={handleUseEcho}
+                      className="shrink-0 gap-2"
+                    >
+                      {chosenPath === "chronos" ? <RotateCcw className="w-4 h-4" /> : chosenPath === "syntax" ? <Wand2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                      Echo of Path
+                    </Button>
+                  )}
                 </div>
+                {chosenPath && (
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    {(ECHO_PATH_POWERS[chosenPath] || ECHO_PATH_POWERS.default).description} {echoUsed ? "Used in this lesson." : "One use this lesson."}
+                  </p>
+                )}
                 <div className="space-y-3">
                   {shuffledQuiz.originalIndices.map((origIdx, idx) => {
+                    if (hiddenOptions.includes(idx)) return null;
                     const opt = (tStep?.options ?? step.options)?.[origIdx] ?? "";
                     let borderClass = "";
                     if (showFeedback && idx === shuffledQuiz.correctIndex) borderClass = "border-primary bg-primary/5";
