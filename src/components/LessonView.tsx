@@ -573,7 +573,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       <main className="flex-1 max-w-2xl mx-auto px-6 py-6 w-full">
         <motion.div key={`mascot-${currentStep}-${feedbackMascotMsg}-${paceWarning}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-6">
           <Mascot
-            message={paceWarning || feedbackMascotMsg || (tStep?.mascotMsg ?? step.mascotMsg)}
+            message={paceWarning || feedbackMascotMsg || adaptedContent[currentStep]?.mascotMsg || (tStep?.mascotMsg ?? step.mascotMsg)}
             size="sm"
             animation={paceWarning ? "bounce" : feedbackMascotMsg ? (feedbackMascotMsg.includes("Nailed") || feedbackMascotMsg.includes("Brilliant") || feedbackMascotMsg.includes("fire") || feedbackMascotMsg.includes("Perfect") ? "celebrate" : "bounce") : "idle"}
           />
@@ -592,9 +592,12 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
                   </div>
                 )}
                 <div className="flex items-start gap-2">
-                  <p className="text-foreground leading-relaxed text-lg flex-1">{tStep?.content ?? step.content}</p>
-                  {(tStep?.content ?? step.content) && <ReadAloudButton text={tStep?.content ?? step.content ?? ""} size="sm" className="shrink-0 mt-1" />}
+                  <p className="text-foreground leading-relaxed text-lg flex-1">{adaptedContent[currentStep]?.content || tStep?.content || step.content}</p>
+                  {(tStep?.content ?? step.content) && <ReadAloudButton text={adaptedContent[currentStep]?.content || tStep?.content || step.content || ""} size="sm" className="shrink-0 mt-1" />}
                 </div>
+                {adaptingStep && !adaptedContent[currentStep] && (
+                  <p className="text-xs text-muted-foreground mt-2 animate-pulse">✨ Adapting content to your learning style...</p>
+                )}
               </div>
             )}
 
