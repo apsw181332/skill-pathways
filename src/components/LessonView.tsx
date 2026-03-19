@@ -80,7 +80,7 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en", config }: LessonViewProps) => {
+const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en", config, chosenPath }: LessonViewProps) => {
   const { t } = useTranslation(locale);
   const lesson = getLessonContent(categoryId, lessonId);
   const steps = lesson?.steps || [];
