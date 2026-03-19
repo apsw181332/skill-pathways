@@ -1004,6 +1004,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         {activeTab === "missions" && (
           <Missions stats={missionStats} claimedMissions={claimedMissions} onClaim={handleClaimMission} locale={locale} />
         )}
+        {activeTab === "friends" && (
+          <FriendsPage userId={user.id} gems={gems} locale={locale} />
+        )}
         {activeTab === "shop" && (
           <GemShop gems={gems} extraLives={extraLives} ownedTitles={ownedTitles} onPurchase={handlePurchase} locale={locale} />
         )}
@@ -1014,6 +1017,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         {[
           { id: "home" as const, icon: Home, label: t("nav.home") },
           { id: "learn" as const, icon: BookOpen, label: t("nav.learn") },
+          { id: "friends" as const, icon: Users, label: "Friends" },
           { id: "missions" as const, icon: Target, label: t("nav.missions") },
           { id: "shop" as const, icon: ShoppingBag, label: t("nav.shop") },
           { id: "profile" as const, icon: UserIcon, label: t("nav.profile") },
