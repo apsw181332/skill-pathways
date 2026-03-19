@@ -23,7 +23,7 @@ const PathSelection = ({ interests, onSelect }: PathSelectionProps) => {
         className="mb-6 w-full max-w-lg"
       >
         <Mascot
-          message="Choose your path, adventurer! Each path gives you unique visual effects as you learn. 🌟"
+          message="Choose the path that feels right. The story will reveal itself as you learn. ✨"
           size="sm"
           animation="celebrate"
         />
@@ -37,7 +37,7 @@ const PathSelection = ({ interests, onSelect }: PathSelectionProps) => {
       >
         <h1 className="text-3xl font-semibold mb-2 text-foreground text-center">Choose Your Path</h1>
         <p className="text-muted-foreground mb-8 text-center">
-          Your path adds a story element to your learning journey with unique visual effects.
+          No spoilers — just trust your instinct.
         </p>
 
         <div className="space-y-4 mb-8">
@@ -52,29 +52,15 @@ const PathSelection = ({ interests, onSelect }: PathSelectionProps) => {
                 selected === path.id ? "border-primary shadow-lg ring-2 ring-primary/20" : ""
               }`}
             >
-              {/* Subtle gradient background */}
-              <div className={`absolute inset-0 opacity-5 bg-gradient-to-r ${
-                path.id === "syntax" ? "from-emerald-500 to-cyan-500" :
-                path.id === "eloquence" ? "from-violet-500 to-purple-500" :
-                path.id === "treasury" ? "from-amber-500 to-yellow-500" :
-                path.id === "vitality" ? "from-green-500 to-emerald-500" :
-                path.id === "chronos" ? "from-sky-500 to-blue-500" :
-                path.id === "fortitude" ? "from-slate-500 to-zinc-500" :
-                path.id === "surge" ? "from-yellow-500 to-orange-500" :
-                path.id === "unity" ? "from-pink-500 to-rose-500" :
-                "from-indigo-500 to-violet-500"
-              }`} />
-              
-              <div className="relative flex items-start gap-4 p-1">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/10" />
+
+              <div className="relative flex items-center gap-4 p-3">
                 <span className="text-4xl shrink-0">{path.emoji}</span>
                 <div className="flex-1">
                   <h3 className="font-semibold text-foreground text-lg">{path.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{path.description}</p>
-                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                    <span>Correct: {path.correctEmoji} flash</span>
-                    <span>•</span>
-                    <span>Finish: {path.endLessonDescription.slice(0, 40)}…</span>
-                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {selected === path.id ? "Chosen path" : "Tap to choose"}
+                  </p>
                 </div>
               </div>
             </motion.button>
