@@ -27,6 +27,7 @@ interface LessonViewProps {
   onUseExtraLife: () => void;
   isReview?: boolean;
   locale?: Locale;
+  config?: { learningStyle?: string };
 }
 
 const CORRECT_MESSAGES = [
