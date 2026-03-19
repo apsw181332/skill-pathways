@@ -108,9 +108,15 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   const [totalQuizzes, setTotalQuizzes] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [shuffledItems, setShuffledItems] = useState<{ id: string; text: string; order: number }[]>([]);
-
-  // Shuffled quiz options — store original indices so we can map to translated text at render time
   const [shuffledQuiz, setShuffledQuiz] = useState<{ originalIndices: number[]; correctIndex: number } | null>(null);
+
+  // Type-in question state
+  const [typeInAnswer, setTypeInAnswer] = useState("");
+  const [typeInSubmitted, setTypeInSubmitted] = useState(false);
+  const [typeInCorrect, setTypeInCorrect] = useState(false);
+
+  // Correct streak system
+  const [correctStreak, setCorrectStreak] = useState(0);
 
   // Lives system
   const [lives, setLives] = useState(3);
