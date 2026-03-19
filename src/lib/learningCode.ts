@@ -41,8 +41,8 @@ export function generateLearningCode(
   const auditory = learningStyle === "auditory" ? 2 : 1;
   const kinesthetic = learningStyle === "kinesthetic" ? 2 : 1;
 
-  // Position 5: Reading/Writing — inferred (visual learners tend to be readers too)
-  const readWrite = learningStyle === "visual" ? 2 : 1;
+  // Position 5: Reading/Writing — now a proper VARK style
+  const readWrite = learningStyle === "reading" ? 2 : 1;
 
   // Position 6: Attention span — ADHD mode = short, otherwise moderate
   const attention = accessibilityModes.includes("adhd") ? 0 : 1;

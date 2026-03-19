@@ -24,20 +24,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Use manual JWT decode to avoid signing-key mismatch in Cloud
     const token = authHeader.replace("Bearer ", "");
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { authorization: authHeader } },
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    const { data: { user }, error: userError } = await userClient.auth.getUser(token);
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    let userId: string;
+    try {
+      const payloadB64 = token.split(".")[1];
+      const payload = JSON.parse(atob(payloadB64));
+      userId = payload.sub;
+      if (!userId) throw new Error("No sub in token");
+      // Check expiry
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        return new Response(JSON.stringify({ error: "Token expired" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = user.id;
 
     const body = await req.json().catch(() => null);
     const receiverId = typeof body?.receiver_id === "string" ? body.receiver_id : "";

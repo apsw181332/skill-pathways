@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Languages, User, Lock, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Languages, User, Lock, Check, Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -286,9 +286,81 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
             <Switch checked={settings.tts_enabled} onCheckedChange={(v) => onUpdate("tts_enabled", v)} />
           </div>
         </motion.div>
+
+        {/* Delete Account */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }} className="lesson-card border-destructive/30">
+          <div className="flex items-center gap-3 mb-4">
+            <Trash2 className="w-5 h-5 text-destructive" />
+            <h2 className="font-semibold text-foreground">{t("settings.delete_account") || "Delete Account"}</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            This will permanently delete your account, all progress, badges, and data. This action cannot be undone.
+          </p>
+          <DeleteAccountButton userId={userId} />
+        </motion.div>
       </main>
     </div>
   );
 };
+
+function DeleteAccountButton({ userId }: { userId?: string }) {
+  const [step, setStep] = useState<"idle" | "confirm" | "deleting">("idle");
+  const [confirmText, setConfirmText] = useState("");
+  const { toast } = useToast();
+
+  const handleDelete = async () => {
+    if (confirmText !== "DELETE" || !userId) return;
+    setStep("deleting");
+    try {
+      const { error } = await supabase.functions.invoke("delete-user", {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      toast({ title: "Account deleted", description: "Your account has been permanently deleted." });
+      await supabase.auth.signOut();
+      window.location.reload();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to delete account.", variant: "destructive" });
+      setStep("confirm");
+    }
+  };
+
+  if (step === "idle") {
+    return (
+      <Button variant="destructive" onClick={() => setStep("confirm")} className="w-full gap-2">
+        <Trash2 className="w-4 h-4" /> Delete my account
+      </Button>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+        <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+        <p className="text-sm text-destructive font-medium">Type DELETE to confirm</p>
+      </div>
+      <Input
+        value={confirmText}
+        onChange={e => setConfirmText(e.target.value)}
+        placeholder="Type DELETE"
+        className="font-mono"
+      />
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={() => { setStep("idle"); setConfirmText(""); }} className="flex-1">
+          Cancel
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={handleDelete}
+          disabled={confirmText !== "DELETE" || step === "deleting"}
+          className="flex-1 gap-2"
+        >
+          {step === "deleting" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+          {step === "deleting" ? "Deleting..." : "Confirm Delete"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default Settings;
