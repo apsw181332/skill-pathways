@@ -121,7 +121,7 @@ const PebbleTip = (props: PebbleTipProps) => {
   }, [props.question, props.stepType, props.content]);
 
   // Generate tip based on current context
-  const tip = useMemo(() => generateTip(props), [props.question, props.stepType, props.content, props.recentAccuracy, props.learningCode]);
+  const tip = useMemo(() => generateTip(props), [props.question, props.stepType, props.content, props.recentAccuracy, props.learningCode, props.pathId]);
 
   const handleToggle = () => setIsOpen(!isOpen);
 
