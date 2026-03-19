@@ -303,4 +303,64 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
   );
 };
 
+function DeleteAccountButton({ userId }: { userId?: string }) {
+  const [step, setStep] = useState<"idle" | "confirm" | "deleting">("idle");
+  const [confirmText, setConfirmText] = useState("");
+  const { toast } = useToast();
+
+  const handleDelete = async () => {
+    if (confirmText !== "DELETE" || !userId) return;
+    setStep("deleting");
+    try {
+      const { error } = await supabase.functions.invoke("delete-user", {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      toast({ title: "Account deleted", description: "Your account has been permanently deleted." });
+      await supabase.auth.signOut();
+      window.location.reload();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to delete account.", variant: "destructive" });
+      setStep("confirm");
+    }
+  };
+
+  if (step === "idle") {
+    return (
+      <Button variant="destructive" onClick={() => setStep("confirm")} className="w-full gap-2">
+        <Trash2 className="w-4 h-4" /> Delete my account
+      </Button>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+        <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+        <p className="text-sm text-destructive font-medium">Type DELETE to confirm</p>
+      </div>
+      <Input
+        value={confirmText}
+        onChange={e => setConfirmText(e.target.value)}
+        placeholder="Type DELETE"
+        className="font-mono"
+      />
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={() => { setStep("idle"); setConfirmText(""); }} className="flex-1">
+          Cancel
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={handleDelete}
+          disabled={confirmText !== "DELETE" || step === "deleting"}
+          className="flex-1 gap-2"
+        >
+          {step === "deleting" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+          {step === "deleting" ? "Deleting..." : "Confirm Delete"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default Settings;
