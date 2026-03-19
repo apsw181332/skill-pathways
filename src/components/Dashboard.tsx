@@ -995,6 +995,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         active={gemOverlay.active}
         onDone={() => setGemOverlay({ active: false, amount: 0 })}
       />
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border">
+        <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src={mascotImg} alt="Pebble" className="w-7 h-7 object-contain" />
             <span className="font-semibold text-lg text-foreground tracking-tight">Pathways</span>
