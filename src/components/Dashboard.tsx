@@ -15,6 +15,8 @@ import Mascot from "@/components/Mascot";
 import GemShop from "@/components/GemShop";
 import FriendsPage from "@/components/FriendsPage";
 import Missions, { MISSIONS, TITLE_REWARDS } from "@/components/Missions";
+import GemCollectOverlay from "@/components/GemCollectOverlay";
+import { NINE_PATHS } from "@/lib/paths";
 import type { MissionStats } from "@/components/Missions";
 import mascotImg from "@/assets/mascot-penguin.png";
 import { getLevelForXp, getXpProgress, LEVELS } from "@/lib/levels";
