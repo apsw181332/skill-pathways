@@ -124,6 +124,10 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   const [adaptingStep, setAdaptingStep] = useState(false);
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [showEndEffect, setShowEndEffect] = useState(false);
+  const [showEchoEffect, setShowEchoEffect] = useState(false);
+  const [echoUsed, setEchoUsed] = useState(false);
+  const [hiddenOptions, setHiddenOptions] = useState<number[]>([]);
+  const [lastWrongQuizIndex, setLastWrongQuizIndex] = useState<number | null>(null);
 
   // Fetch learning code on mount
   useEffect(() => {
