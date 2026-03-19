@@ -147,6 +147,9 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   const [echoUsed, setEchoUsed] = useState(false);
   const [hiddenOptions, setHiddenOptions] = useState<number[]>([]);
   const [lastWrongQuizIndex, setLastWrongQuizIndex] = useState<number | null>(null);
+  const [shieldActive, setShieldActive] = useState(false);
+  const [doubleXpActive, setDoubleXpActive] = useState(false);
+  const [cosmosReveal, setCosmosReveal] = useState(false);
 
   // Fetch learning code on mount
   useEffect(() => {
