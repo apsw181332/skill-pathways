@@ -875,6 +875,22 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         </div>
       </motion.div>
 
+      {/* Chosen Path */}
+      {chosenPath && (() => {
+        const pathDef = NINE_PATHS.find(p => p.id === chosenPath);
+        return pathDef ? (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-6 border-primary/30">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{pathDef.emoji}</span>
+              <div>
+                <p className="font-semibold text-foreground">{pathDef.name}</p>
+                <p className="text-xs text-muted-foreground">{pathDef.description}</p>
+              </div>
+            </div>
+          </motion.div>
+        ) : null;
+      })()}
+
       {/* Invite code */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card text-center mb-6 border-primary/30">
         <p className="text-sm text-muted-foreground mb-1">{t("profile.invite_code")}</p>
