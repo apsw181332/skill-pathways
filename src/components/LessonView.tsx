@@ -791,6 +791,41 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
               </div>
             )}
 
+            {step.type === "type-in" && (
+              <div>
+                <div className="mb-4 flex items-start gap-2">
+                  <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
+                  {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
+                </div>
+                <div className="flex gap-3 mb-4">
+                  <input
+                    type="text"
+                    value={typeInAnswer}
+                    onChange={e => setTypeInAnswer(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && !typeInSubmitted && typeInAnswer.trim() && handleTypeInSubmit()}
+                    disabled={typeInSubmitted}
+                    placeholder="Type your answer..."
+                    className="flex-1 h-12 rounded-xl border-2 border-border bg-background px-4 text-foreground text-lg focus:border-primary focus:outline-none transition-colors disabled:opacity-60"
+                  />
+                  {!typeInSubmitted && (
+                    <Button onClick={handleTypeInSubmit} disabled={!typeInAnswer.trim()} size="lg" className="h-12 px-6">
+                      Check
+                    </Button>
+                  )}
+                </div>
+                {typeInSubmitted && (
+                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 rounded-lg border-2 ${typeInCorrect ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
+                    <p className="text-sm font-medium text-foreground mb-1">{typeInCorrect ? "✅ Correct!" : "❌ Not quite"}</p>
+                    {!typeInCorrect && step.acceptedAnswers && (
+                      <p className="text-sm text-muted-foreground mb-1">Answer: <span className="font-medium text-foreground">{step.acceptedAnswers[0]}</span></p>
+                    )}
+                    <p className="text-sm text-muted-foreground">{tStep?.explanation ?? step.explanation}</p>
+                  </motion.div>
+                )}
+              </div>
+            )}
+
             {step.type === "drag" && (
               <div>
                 <p className="text-foreground text-lg mb-6">{tStep?.instruction ?? step.instruction}</p>
