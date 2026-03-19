@@ -64,6 +64,7 @@ interface DashboardProps {
   extraLives: number;
   onPurchase: (itemId: string, cost: number) => Promise<boolean>;
   locale?: Locale;
+  chosenPath?: string | null;
 }
 
 interface FriendData { id: string; user_id: string; friend_id: string; status: string; }
