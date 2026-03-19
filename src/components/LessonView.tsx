@@ -28,6 +28,7 @@ interface LessonViewProps {
   isReview?: boolean;
   locale?: Locale;
   config?: { learningStyle?: string };
+  chosenPath?: string | null;
 }
 
 const CORRECT_MESSAGES = [
