@@ -74,6 +74,14 @@ const RAW_COURSES: Course[] = [
             mascotMsg: "This is a game-changer for security! 📱",
           },
           {
+            type: "type-in",
+            title: "2FA Check",
+            question: "What does '2FA' stand for? Type the full name.",
+            acceptedAnswers: ["two-factor authentication", "two factor authentication", "2 factor authentication", "two-factor auth"],
+            explanation: "2FA stands for Two-Factor Authentication. It uses two different verification methods (like a password + phone code) to protect your account.",
+            mascotMsg: "Type it out! ⌨️",
+          },
+          {
             type: "drag",
             title: "Security Best Practices",
             instruction: "Put these security steps in order of priority:",
