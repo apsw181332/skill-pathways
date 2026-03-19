@@ -380,7 +380,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     if (profile) {
       await supabase.from("profiles").update({ gems: (profile as any).gems + reward } as any).eq("user_id", user.id);
     }
-    toast({ title: `💎 +${reward} Gems!`, description: "Mission completed!" });
+    // Show gem collection overlay
+    setGemOverlay({ active: true, amount: reward });
 
     // Check if this mission unlocks a title
     const titleReward = TITLE_REWARDS[missionId];
