@@ -508,6 +508,11 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       }
       setShowConfetti(true);
       if (soundEnabled) playSuccessSound();
+      // Show end lesson path effect
+      if (chosenPath) {
+        setShowEndEffect(true);
+        setTimeout(() => setShowEndEffect(false), 2500);
+      }
       setShowCompletion(true);
     }
   };
