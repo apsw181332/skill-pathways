@@ -210,7 +210,7 @@ const Index = () => {
         ) : null;
       case "lesson":
         return (
-          <LessonView onBack={async () => {
+          <LessonView key={`${activeLessonCategory}-${activeLessonId}-${activeLessonReview ? "review" : "lesson"}`} onBack={async () => {
             setIsTransitioning(true);
             if (user && !activeLessonReview) {
               const course = COURSES.find(c => c.id === activeLessonCategory);

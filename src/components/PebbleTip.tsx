@@ -11,6 +11,7 @@ interface PebbleTipProps {
   options?: string[];
   correctIndex?: number;
   content?: string;
+  pathId?: string | null;
 }
 
 // Positions Pebble can pop out from
@@ -23,93 +24,92 @@ const POSITIONS = [
   "fixed left-4 top-32",
 ];
 
-function generateTip({ learningCode, stepType, recentAccuracy, question, options, correctIndex, content }: PebbleTipProps): string {
+function generateTip({ learningCode, stepType, recentAccuracy, question, options, content, pathId }: PebbleTipProps): string {
   const tips: string[] = [];
 
   if (stepType === "quiz" && question && options && options.length > 0) {
     const qLower = question.toLowerCase();
 
-    // Practical tips based on question keywords
+    if (pathId === "chronos") {
+      tips.push("Chronos tip: imagine the moment in order, like frames in a short movie. Which answer happens at the right time or in the right sequence? ⏳");
+    }
+    if (pathId === "syntax") {
+      tips.push("Syntax tip: scan each option like debugging code. Which choice has the exact rule or detail from the lesson, and which ones have one broken part? 💻");
+    }
+    if (pathId === "treasury") {
+      tips.push("Treasury tip: think of the safest smart money move in real life. If you had to explain your choice to a friend, which option would sound most practical? 🪙");
+    }
+
     if (qLower.includes("which") || qLower.includes("what")) {
-      tips.push(`Try checking each option one by one — ask yourself "does this match exactly what the question asks?" For example, if it says "which is safest", think about real danger levels. 🔍`);
+      tips.push("Check each option one by one and ask: does this match what the lesson just taught? If the lesson used an example, compare each option to that example. 🔍");
     }
     if (qLower.includes("best") || qLower.includes("most")) {
-      tips.push(`All options might seem partly right. Compare them like this: "Would option A work better than option B in real life?" Pick the one that works in the MOST situations. 🤔`);
+      tips.push("More than one option may feel okay. Pick the one that would work best in real life most of the time, not just in one special case. 🤔");
     }
     if (qLower.includes("not") || qLower.includes("except") || qLower.includes("least")) {
-      tips.push(`This is a trick question! It's asking for the ODD ONE OUT. Try flipping it — check which 3 options DO fit, and the remaining one is your answer. ⚠️`);
+      tips.push("Flip the question. Find the options that DO fit first, then the leftover choice is probably the answer. ⚠️");
     }
     if (qLower.includes("why") || qLower.includes("reason")) {
-      tips.push(`Think about cause and effect. For example, "Why do we lock our doors? Because it prevents break-ins." Look for the option that explains the CAUSE, not just describes what happens. 💡`);
+      tips.push("Look for cause and effect. Ask yourself: what action causes this result in the real world? 💡");
     }
     if (qLower.includes("how") || qLower.includes("step")) {
-      tips.push(`Picture yourself actually doing this right now. Which option describes what you'd REALLY do first? Think of it like following a recipe — what's the logical first step? 🛠️`);
+      tips.push("Pretend you are doing it right now. Which option sounds like the real action you would actually take? 🛠️");
     }
     if (qLower.includes("first") || qLower.includes("priority")) {
-      tips.push(`Imagine everything goes wrong at once. Which action would you do BEFORE anything else? The foundation must come first — like putting on shoes before running! 🏗️`);
+      tips.push("Think foundation first. What would have to happen before the other options could even work? 🏗️");
     }
 
-    // Check if options have very different lengths (common trap)
-    const lengths = options.map(o => o.length);
-    const avgLen = lengths.reduce((a, b) => a + b, 0) / lengths.length;
-    const hasOutlier = lengths.some(l => l > avgLen * 1.8);
-    if (hasOutlier) {
-      tips.push(`Don't just pick the longest or shortest answer! Read each option as if it were the only choice — does it actually answer the question? 📏`);
-    }
-
-    // Tip referencing specific options
     if (options.some(o => o.toLowerCase().includes("all of") || o.toLowerCase().includes("none of"))) {
-      tips.push(`"All of the above" or "None of the above" — test EVERY other option first. If even ONE doesn't fit for "all", or ONE does fit for "none", eliminate it! 🧐`);
+      tips.push("Test each normal option first. If even one breaks the rule, you can remove 'all' or 'none' fast. 🧐");
     }
 
-    // Give a concrete elimination strategy
     if (options.length >= 4) {
-      tips.push(`Elimination trick: Cross out options you're 100% sure are wrong. Usually you can remove 2 right away, making it a 50/50 choice! 🎯`);
+      tips.push("Quick strategy: remove two weak options first, then compare the final two using one lesson fact or example. 🎯");
     }
   }
 
   if (stepType === "info" && content) {
     const cl = content.toLowerCase();
     if (cl.includes("important") || cl.includes("key") || cl.includes("essential")) {
-      tips.push("There's a KEY point here — try to find the ONE sentence you'd highlight if this were a textbook. That's likely the quiz question! 📌");
+      tips.push("Try this: say the main rule in one short sentence. That sentence is often what the next question tests. 📌");
     }
     if (content.length > 300) {
-      tips.push("Long section! Try the 'one sentence summary' trick: after reading, say in your own words what this section taught you. If you can't, re-read the first and last sentences. 🧠");
+      tips.push("Long section? Read the first sentence, middle idea, and final sentence. Then ask: what practical action or example did this section teach? 🧠");
     }
     if (cl.includes("example") || cl.includes("for instance")) {
-      tips.push("This example will probably appear in a quiz! Try changing the example slightly in your head — like swapping the names or numbers — to make sure you understand the CONCEPT, not just memorized the example. 👀");
+      tips.push("The example matters. Change one detail in the example in your head and see if the rule still works — that helps you understand, not just memorize. 👀");
     }
     if (cl.includes("never") || cl.includes("always") || cl.includes("must")) {
-      tips.push("Words like 'never', 'always', or 'must' usually signal important rules that show up in quizzes. Make a mental note of what you should ALWAYS or NEVER do! ⚡");
+      tips.push("Words like 'always' and 'never' are quiz magnets. Keep that rule in mind before you continue. ⚡");
     }
   }
 
   if (stepType === "drag") {
-    tips.push("Start with the items you're MOST confident about. Put the obvious first and last items, then fill in the middle. Think: 'What HAS to happen before this other thing?' 📋");
-    tips.push("Imagine doing these steps in real life, like a cooking recipe. What would happen if you swapped two steps? If it would cause a problem, you know the order matters! 🎯");
+    tips.push("Start with the step you know must come first in real life, then place the step that clearly comes last. Fill the middle after that. 📋");
+    tips.push("Pretend you're teaching the process to someone else. If one step sounds impossible before another, swap them. 🎯");
   }
 
   if (learningCode && learningCode.length === 9) {
     const d = learningCode.split("").map(x => parseInt(x) || 1);
     if (d[0] >= 2 && recentAccuracy < 0.6) {
-      tips.push("You're going fast but missing some — try the 'read twice' trick: skim once quickly, then read again slowly focusing on details. Your accuracy will jump! 🐢✨");
+      tips.push("Slow it down a bit. Read once for the big idea, then once for the detail the question might test. 🐢");
     }
     if (d[1] >= 2 && stepType === "quiz") {
-      tips.push("You're a visual learner! Try picturing this scenario like a movie scene. Where are you? What do you see? The right answer often 'looks right' when you visualize it. 🎨");
+      tips.push("Picture the lesson as a scene. Which option matches what you can clearly imagine happening? 🎨");
     }
     if (d[3] >= 2) {
-      tips.push("You learn by doing! Imagine physically performing each option. Which one 'feels' like the right action? Trust your body's instinct! 💪");
+      tips.push("Act it out in your head. Which option feels like the real move someone would make? 💪");
     }
   }
 
   if (recentAccuracy < 0.4) {
-    tips.push("Struggling? That's totally normal — it means you're learning something NEW! Try reading the info sections more slowly and look for the main point before moving on. 🌱");
+    tips.push("You are learning something new, so go practical: what is one real example from the lesson that matches this question? 🌱");
   }
   if (recentAccuracy >= 0.9 && stepType === "quiz") {
-    tips.push("You're crushing it! At this point, trust your first instinct — research shows your gut feeling is usually right when you know the material! 🔥");
+    tips.push("You know this well — use the lesson detail that best proves your answer, then trust it. 🔥");
   }
 
-  return tips[Math.floor(Math.random() * tips.length)] || "Take your time with this one — think about how it connects to real life! 🐧";
+  return tips[Math.floor(Math.random() * tips.length)] || "Use the lesson example and ask which option would make sense in real life. 🐧";
 }
 
 const PebbleTip = (props: PebbleTipProps) => {
@@ -121,7 +121,7 @@ const PebbleTip = (props: PebbleTipProps) => {
   }, [props.question, props.stepType, props.content]);
 
   // Generate tip based on current context
-  const tip = useMemo(() => generateTip(props), [props.question, props.stepType, props.content, props.recentAccuracy, props.learningCode]);
+  const tip = useMemo(() => generateTip(props), [props.question, props.stepType, props.content, props.recentAccuracy, props.learningCode, props.pathId]);
 
   const handleToggle = () => setIsOpen(!isOpen);
 

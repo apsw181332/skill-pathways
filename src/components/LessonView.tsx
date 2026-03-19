@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap, Heart, Diamond } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap, Heart, Diamond, Sparkles, RotateCcw, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Mascot from "@/components/Mascot";
 import Confetti from "@/components/Confetti";
@@ -8,13 +8,14 @@ import XpPopup from "@/components/XpPopup";
 import TreasureChest from "@/components/TreasureChest";
 import ReadAloudButton from "@/components/ReadAloudButton";
 import PebbleTip from "@/components/PebbleTip";
-import CorrectEffect, { EndLessonEffect } from "@/components/CorrectEffect";
+import CorrectEffect, { EchoEffect, EndLessonEffect } from "@/components/CorrectEffect";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, COURSES, type LessonStep } from "@/lib/courseData";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
 import { adaptLearningCode, getReadingPaceIntervention } from "@/lib/learningCode";
+import { NINE_PATHS } from "@/lib/paths";
 
 interface LessonViewProps {
   onBack: () => void;
@@ -81,6 +82,12 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
+const ECHO_PATH_POWERS: Record<string, { title: string; description: string; icon: "rewind" | "hack" | "surge" }> = {
+  chronos: { title: "Echo of Path · Rewind", description: "Reverse time to retry your last wrong quiz question.", icon: "rewind" },
+  syntax: { title: "Echo of Path · Hack", description: "Simulate a hack and delete one wrong answer choice.", icon: "hack" },
+  default: { title: "Echo of Path · Surge", description: "Release your path energy to remove one wrong answer choice.", icon: "surge" },
+};
+
 const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en", config, chosenPath }: LessonViewProps) => {
   const { t } = useTranslation(locale);
   const lesson = getLessonContent(categoryId, lessonId);
@@ -123,6 +130,10 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   const [adaptingStep, setAdaptingStep] = useState(false);
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [showEndEffect, setShowEndEffect] = useState(false);
+  const [showEchoEffect, setShowEchoEffect] = useState(false);
+  const [echoUsed, setEchoUsed] = useState(false);
+  const [hiddenOptions, setHiddenOptions] = useState<number[]>([]);
+  const [lastWrongQuizIndex, setLastWrongQuizIndex] = useState<number | null>(null);
 
   // Fetch learning code on mount
   useEffect(() => {
@@ -227,10 +238,14 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
         originalIndices: shuffled.map(s => s.originalIndex),
         correctIndex: shuffled.findIndex(s => s.originalIndex === step.correct),
       });
+      setHiddenOptions([]);
+      setSelectedAnswer(null);
+      setShowFeedback(false);
     } else {
       setShuffledQuiz(null);
+      setHiddenOptions([]);
     }
-  }, [currentStep]);
+  }, [currentStep, step?.type]);
 
   // Game over screen
   if (gameOver) {
@@ -389,13 +404,13 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
       triggerXp(15);
       if (soundEnabled) playCorrectSound();
-      // Show path correct effect
       if (chosenPath) {
         setShowCorrectEffect(true);
-        setTimeout(() => setShowCorrectEffect(false), 900);
+        setTimeout(() => setShowCorrectEffect(false), 650);
       }
     } else {
       recentQuizResults.current.push(false);
+      setLastWrongQuizIndex(currentStep);
       setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
       if (soundEnabled) playWrongSound();
       const newLives = lives - 1;
@@ -473,6 +488,47 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     }
   };
 
+  const handleUseEcho = () => {
+    if (echoUsed || !step || step.type !== "quiz" || !shuffledQuiz) return;
+
+    const power = ECHO_PATH_POWERS[chosenPath || ""] || ECHO_PATH_POWERS.default;
+    setEchoUsed(true);
+    setShowEchoEffect(true);
+    setTimeout(() => setShowEchoEffect(false), 1000);
+
+    if (soundEnabled) playSuccessSound();
+
+    if (chosenPath === "chronos") {
+      const targetStep = lastWrongQuizIndex;
+      if (targetStep !== null) {
+        setCurrentStep(targetStep);
+        setSelectedAnswer(null);
+        setShowFeedback(false);
+        setFeedbackMascotMsg("⏳ Time rewound. Try that question again.");
+        setHiddenOptions([]);
+        return;
+      }
+      setFeedbackMascotMsg("⏳ No wrong question yet — time is steady.");
+      return;
+    }
+
+    const wrongVisible = shuffledQuiz.originalIndices
+      .map((_, i) => i)
+      .filter((i) => i !== shuffledQuiz.correctIndex && !hiddenOptions.includes(i));
+
+    if (wrongVisible.length > 0) {
+      const toHide = wrongVisible[Math.floor(Math.random() * wrongVisible.length)];
+      setHiddenOptions((prev) => [...prev, toHide]);
+      if (power.icon === "hack") {
+        setFeedbackMascotMsg("💻 Hack complete. One wrong option erased.");
+      } else {
+        setFeedbackMascotMsg("✨ Echo released. One wrong option vanished.");
+      }
+    } else {
+      setFeedbackMascotMsg("✨ Echo is active, but only strong options remain.");
+    }
+  };
+
   const handleNext = () => {
     if (soundEnabled) playClickSound();
     setPaceWarning(null);
@@ -501,6 +557,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setOrderedItems([]);
       setDragSubmitted(false);
       setFeedbackMascotMsg(null);
+      setHiddenOptions([]);
     } else {
       if (!isReview) {
         saveLessonProgress(totalXp);
@@ -511,7 +568,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       // Show end lesson path effect
       if (chosenPath) {
         setShowEndEffect(true);
-        setTimeout(() => setShowEndEffect(false), 2500);
+        setTimeout(() => setShowEndEffect(false), 3000);
       }
       setShowCompletion(true);
     }
@@ -551,6 +608,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       <Confetti active={showConfetti} />
       <XpPopup amount={xpAmount} show={showXp} />
       <CorrectEffect pathId={chosenPath || null} active={showCorrectEffect} />
+      <EchoEffect pathId={chosenPath || null} active={showEchoEffect} />
       <EndLessonEffect pathId={chosenPath || null} active={showEndEffect} />
 
       <AnimatePresence>
@@ -619,12 +677,33 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
             {step.type === "quiz" && shuffledQuiz && (
               <div>
-                <div className="flex items-start gap-2 mb-6">
-                  <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
-                  {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2 flex-1">
+                    <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
+                    {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
+                  </div>
+                  {!isReview && chosenPath && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={echoUsed}
+                      onClick={handleUseEcho}
+                      className="shrink-0 gap-2"
+                    >
+                      {chosenPath === "chronos" ? <RotateCcw className="w-4 h-4" /> : chosenPath === "syntax" ? <Wand2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                      Echo of Path
+                    </Button>
+                  )}
                 </div>
+                {chosenPath && (
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    {(ECHO_PATH_POWERS[chosenPath] || ECHO_PATH_POWERS.default).description} {echoUsed ? "Used in this lesson." : "One use this lesson."}
+                  </p>
+                )}
                 <div className="space-y-3">
                   {shuffledQuiz.originalIndices.map((origIdx, idx) => {
+                    if (hiddenOptions.includes(idx)) return null;
                     const opt = (tStep?.options ?? step.options)?.[origIdx] ?? "";
                     let borderClass = "";
                     if (showFeedback && idx === shuffledQuiz.correctIndex) borderClass = "border-primary bg-primary/5";
@@ -705,6 +784,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
           options={step.options}
           correctIndex={shuffledQuiz?.correctIndex}
           content={step.content}
+          pathId={chosenPath || null}
         />
       </main>
 
