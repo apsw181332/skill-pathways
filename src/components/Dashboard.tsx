@@ -137,7 +137,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   useEffect(() => {
     const fetchAll = async () => {
       const [profileRes, achieveRes, progressRes, lbRes] = await Promise.all([
-        supabase.from("profiles").select("xp, streak, avatar_url, friend_code").eq("user_id", user.id).single(),
+        supabase.from("profiles").select("xp, streak, avatar_url, friend_code, stamina, stamina_last_refresh, is_pro").eq("user_id", user.id).single(),
         supabase.from("achievements").select("badge_id").eq("user_id", user.id),
         supabase.from("user_progress").select("category_id, lesson_id, completed, completed_at").eq("user_id", user.id),
         supabase.from("profiles").select("user_id, display_name, xp, streak").order("xp", { ascending: false }).limit(50),
