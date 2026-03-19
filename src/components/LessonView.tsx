@@ -550,6 +550,8 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     <div className="min-h-screen bg-background flex flex-col">
       <Confetti active={showConfetti} />
       <XpPopup amount={xpAmount} show={showXp} />
+      <CorrectEffect pathId={chosenPath || null} active={showCorrectEffect} />
+      <EndLessonEffect pathId={chosenPath || null} active={showEndEffect} />
 
       <AnimatePresence>
         {showLifeLostAnim && (
