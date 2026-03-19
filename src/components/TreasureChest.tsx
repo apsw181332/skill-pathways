@@ -24,7 +24,7 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
   const [gemsWon, setGemsWon] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [upgradeAnim, setUpgradeAnim] = useState(false);
-  const [collecting, setCollecting] = useState(false);
+  
 
   const config = CHEST_CONFIG[tier];
 
