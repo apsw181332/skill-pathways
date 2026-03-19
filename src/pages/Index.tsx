@@ -85,15 +85,32 @@ const Index = () => {
       );
       // Geocode country
       const coords = userConfig.country ? getCountryCoords(userConfig.country) : null;
+
+      // Auto-enroll matching courses based on selected interests (up to 3)
+      const interestToCourse: Record<string, string> = {
+        financial: "financial", home: "home", cooking: "cooking",
+        social: "social", career: "career", health: "health",
+        legal: "legal", tech: "tech",
+      };
+      const autoEnroll = userConfig.interests
+        .map(i => interestToCourse[i])
+        .filter(Boolean)
+        .slice(0, 3);
+
       await supabase.from("profiles").update({
         interests: userConfig.interests, learning_style: userConfig.learningStyle,
         accessibility: userConfig.accessibility, onboarding_completed: true,
         accessibility_modes: userConfig.accessibilityModes || [],
         country: userConfig.country || null,
         learning_code: learningCode,
+        enrolled_courses: autoEnroll,
         ...(coords ? { latitude: coords.lat, longitude: coords.lng } : {}),
       } as any).eq("user_id", user.id);
       await updateSetting("onboarding_completed", true);
+      // Update enrolled courses in settings
+      for (const courseId of autoEnroll) {
+        await enrollCourse(courseId);
+      }
       // Apply accessibility modes from onboarding immediately
       if (userConfig.accessibilityModes?.length) {
         applyAccessibilityModes(userConfig.accessibilityModes);
