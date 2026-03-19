@@ -49,7 +49,7 @@ const CorrectEffect = ({ pathId, active }: CorrectEffectProps) => {
   const path = NINE_PATHS.find(p => p.id === pathId);
   if (!path) return null;
   const c = vc();
-  const burst = ring(14, 35, 130);
+  const burst = ring(28, 60, 260);
 
   const glyphs: Record<string, string[]> = {
     syntax:    ["0", "1", "</>", "{}", "=>", "//", "&&"],
