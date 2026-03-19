@@ -131,6 +131,9 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       });
   }, [userId]);
 
+  const step: LessonStep | undefined = steps[currentStep];
+  const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
+
   // AI-rephrase info steps based on learning code
   useEffect(() => {
     if (!userLearningCode || !step || step.type !== "info" || !step.content || adaptedContent[currentStep] || adaptingStep) return;
@@ -149,9 +152,6 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       }
     }).catch(() => {}).finally(() => setAdaptingStep(false));
   }, [currentStep, userLearningCode, step?.type]);
-
-  const step: LessonStep | undefined = steps[currentStep];
-  const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
 
   // Translate current step content when locale != "en"
   const stepTexts = useMemo(() => {
