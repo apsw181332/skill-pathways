@@ -514,14 +514,50 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
   const renderHome = () => (
     <>
-      {showLimitBanner && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 border-accent bg-accent/5 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Daily limit reached!</p>
-            <p className="text-xs text-muted-foreground">You've completed {FREE_DAILY_LIMIT} lessons today. Come back tomorrow or upgrade for unlimited learning! 🚀</p>
+      {/* Stamina bar */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 border-primary/30">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">⚡</span>
+            <span className="font-semibold text-foreground">Stamina</span>
           </div>
-          <button onClick={() => setShowLimitBanner(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+          <span className="text-sm font-medium text-foreground">
+            {isPro ? "∞" : `${stamina}/${MAX_STAMINA}`}
+          </span>
+        </div>
+        {!isPro && (
+          <div className="w-full h-3 rounded-full bg-secondary overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+              initial={{ width: 0 }}
+              animate={{ width: `${(stamina / MAX_STAMINA) * 100}%` }}
+              transition={{ duration: 0.6 }}
+            />
+          </div>
+        )}
+        {isPro && (
+          <div className="flex items-center gap-1 text-xs text-primary font-medium">
+            <Crown className="w-3.5 h-3.5" /> Pro — Unlimited Stamina
+          </div>
+        )}
+        {!isPro && stamina < MAX_STAMINA && (
+          <p className="text-xs text-muted-foreground mt-1">+{STAMINA_REGEN_PER_HOUR} per hour • {STAMINA_PER_LESSON} per lesson</p>
+        )}
+      </motion.div>
+
+      {/* Pro upgrade banner */}
+      {!isPro && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 border-accent/50 bg-gradient-to-r from-accent/5 to-primary/5">
+          <div className="flex items-center gap-3">
+            <Crown className="w-6 h-6 text-accent shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">Upgrade to Pro</p>
+              <p className="text-xs text-muted-foreground">Unlimited stamina • Premium content • Extra lessons</p>
+            </div>
+            <Button size="sm" variant="outline" className="shrink-0 border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+              $4.99/mo
+            </Button>
+          </div>
         </motion.div>
       )}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
