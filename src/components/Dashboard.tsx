@@ -15,6 +15,8 @@ import Mascot from "@/components/Mascot";
 import GemShop from "@/components/GemShop";
 import FriendsPage from "@/components/FriendsPage";
 import Missions, { MISSIONS, TITLE_REWARDS } from "@/components/Missions";
+import GemCollectOverlay from "@/components/GemCollectOverlay";
+import { NINE_PATHS } from "@/lib/paths";
 import type { MissionStats } from "@/components/Missions";
 import mascotImg from "@/assets/mascot-penguin.png";
 import { getLevelForXp, getXpProgress, LEVELS } from "@/lib/levels";
@@ -64,6 +66,7 @@ interface DashboardProps {
   extraLives: number;
   onPurchase: (itemId: string, cost: number) => Promise<boolean>;
   locale?: Locale;
+  chosenPath?: string | null;
 }
 
 interface FriendData { id: string; user_id: string; friend_id: string; status: string; }
@@ -71,7 +74,7 @@ interface ProfileData { id: string; user_id: string; display_name: string | null
 interface LeaderboardEntry { rank: number; name: string; xp: number; streak: number; userId: string; isUser: boolean; }
 interface ChatMessage { id: string; sender_id: string; receiver_id: string; content: string; gem_gift: number; created_at: string; }
 
-const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase, locale = "en" }: DashboardProps) => {
+const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase, locale = "en", chosenPath }: DashboardProps) => {
   const { t } = useTranslation(locale);
   const [activeTab, setActiveTab] = useState<"home" | "learn" | "missions" | "friends" | "shop" | "profile">("home");
   const [dailyLessonCount, setDailyLessonCount] = useState(0);
@@ -99,6 +102,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const [chatInput, setChatInput] = useState("");
   const [giftAmount, setGiftAmount] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [gemOverlay, setGemOverlay] = useState<{ active: boolean; amount: number }>({ active: false, amount: 0 });
   const { toast } = useToast();
 
   const levelInfo = getXpProgress(xp);
@@ -376,7 +380,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
     if (profile) {
       await supabase.from("profiles").update({ gems: (profile as any).gems + reward } as any).eq("user_id", user.id);
     }
-    toast({ title: `💎 +${reward} Gems!`, description: "Mission completed!" });
+    // Show gem collection overlay
+    setGemOverlay({ active: true, amount: reward });
 
     // Check if this mission unlocks a title
     const titleReward = TITLE_REWARDS[missionId];
@@ -870,6 +875,22 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         </div>
       </motion.div>
 
+      {/* Chosen Path */}
+      {chosenPath && (() => {
+        const pathDef = NINE_PATHS.find(p => p.id === chosenPath);
+        return pathDef ? (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-6 border-primary/30">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{pathDef.emoji}</span>
+              <div>
+                <p className="font-semibold text-foreground">{pathDef.name}</p>
+                <p className="text-xs text-muted-foreground">{pathDef.description}</p>
+              </div>
+            </div>
+          </motion.div>
+        ) : null;
+      })()}
+
       {/* Invite code */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card text-center mb-6 border-primary/30">
         <p className="text-sm text-muted-foreground mb-1">{t("profile.invite_code")}</p>
@@ -969,6 +990,11 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <GemCollectOverlay
+        amount={gemOverlay.amount}
+        active={gemOverlay.active}
+        onDone={() => setGemOverlay({ active: false, amount: 0 })}
+      />
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border">
         <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">

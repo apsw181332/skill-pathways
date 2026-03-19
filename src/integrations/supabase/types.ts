@@ -178,6 +178,7 @@ export type Database = {
           accessibility: string[] | null
           accessibility_modes: string[]
           avatar_url: string | null
+          chosen_path: string | null
           country: string | null
           created_at: string
           display_name: string | null
@@ -208,6 +209,7 @@ export type Database = {
           accessibility?: string[] | null
           accessibility_modes?: string[]
           avatar_url?: string | null
+          chosen_path?: string | null
           country?: string | null
           created_at?: string
           display_name?: string | null
@@ -238,6 +240,7 @@ export type Database = {
           accessibility?: string[] | null
           accessibility_modes?: string[]
           avatar_url?: string | null
+          chosen_path?: string | null
           country?: string | null
           created_at?: string
           display_name?: string | null

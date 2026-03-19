@@ -9,6 +9,7 @@ import Onboarding, { type UserConfig } from "@/components/Onboarding";
 import Dashboard from "@/components/Dashboard";
 import LessonView from "@/components/LessonView";
 import PathComplete from "@/components/PathComplete";
+import PathSelection from "@/components/PathSelection";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import { COURSES } from "@/lib/courseData";
 import Tutorial from "@/components/Tutorial";
@@ -21,7 +22,7 @@ import { generateLearningCode } from "@/lib/learningCode";
 import PageTransition from "@/components/PageTransition";
 import type { Locale } from "@/lib/i18n";
 
-type AppState = "landing" | "auth" | "onboarding" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
+type AppState = "landing" | "auth" | "onboarding" | "path-selection" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
 
 const Index = () => {
   const { user, isReady, signUp, signIn, signOut, resetPassword } = useAuth();
@@ -36,7 +37,7 @@ const Index = () => {
   const [gems, setGems] = useState(0);
   const [extraLives, setExtraLives] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [translationsReady, setTranslationsReady] = useState(false);
+  const [chosenPath, setChosenPath] = useState<string | null>(null);
 
   const currentLocale = (settings.language || "en") as Locale;
 
@@ -47,16 +48,23 @@ const Index = () => {
     }
   }, [settings.theme_color, settings.accessibility_modes, settingsLoading]);
 
+  // Fetch gems and chosen_path
   useEffect(() => {
     if (!user) return;
-    const fetchGems = async () => {
-      const { data } = await supabase.from("profiles").select("gems").eq("user_id", user.id).single();
-      if (data) setGems((data as any).gems || 0);
+    const fetchProfile = async () => {
+      const { data } = await supabase.from("profiles").select("gems, chosen_path").eq("user_id", user.id).single();
+      if (data) {
+        setGems((data as any).gems || 0);
+        setChosenPath((data as any).chosen_path || null);
+      }
     };
-    fetchGems();
+    fetchProfile();
     const channel = supabase.channel("gems-sync")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
-        (payload) => { setGems((payload.new as any).gems || 0); })
+        (payload) => {
+          setGems((payload.new as any).gems || 0);
+          if ((payload.new as any).chosen_path) setChosenPath((payload.new as any).chosen_path);
+        })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
@@ -67,6 +75,7 @@ const Index = () => {
       if (state === "lesson") return "lesson";
       if (state === "path-complete") return "path-complete";
       if (state === "settings") return "settings";
+      if (state === "path-selection") return "path-selection";
       if (!settings.onboarding_completed && state !== "dashboard") return "onboarding";
       if (settings.onboarding_completed && !settings.tutorial_completed && state === "tutorial") return "tutorial";
       return "dashboard";
@@ -77,28 +86,50 @@ const Index = () => {
   const handleOnboardingComplete = async (userConfig: UserConfig) => {
     setConfig(userConfig);
     if (user) {
-      // Generate learning code from onboarding data
       const learningCode = generateLearningCode(
         userConfig.learningStyle,
         userConfig.interests,
         userConfig.accessibilityModes || []
       );
-      // Geocode country
       const coords = userConfig.country ? getCountryCoords(userConfig.country) : null;
+
+      // Auto-enroll matching courses based on selected interests (up to 3)
+      const interestToCourse: Record<string, string> = {
+        financial: "financial", home: "home", cooking: "cooking",
+        social: "social", career: "career", health: "health",
+        legal: "legal", tech: "tech",
+      };
+      const autoEnroll = userConfig.interests
+        .map(i => interestToCourse[i])
+        .filter(Boolean)
+        .slice(0, 3);
+
       await supabase.from("profiles").update({
         interests: userConfig.interests, learning_style: userConfig.learningStyle,
         accessibility: userConfig.accessibility, onboarding_completed: true,
         accessibility_modes: userConfig.accessibilityModes || [],
         country: userConfig.country || null,
         learning_code: learningCode,
+        enrolled_courses: autoEnroll,
         ...(coords ? { latitude: coords.lat, longitude: coords.lng } : {}),
       } as any).eq("user_id", user.id);
       await updateSetting("onboarding_completed", true);
-      // Apply accessibility modes from onboarding immediately
+      for (const courseId of autoEnroll) {
+        await enrollCourse(courseId);
+      }
       if (userConfig.accessibilityModes?.length) {
         applyAccessibilityModes(userConfig.accessibilityModes);
         await updateSetting("accessibility_modes", userConfig.accessibilityModes);
       }
+    }
+    // Go to path selection instead of tutorial
+    setState("path-selection");
+  };
+
+  const handlePathSelected = async (pathId: string) => {
+    setChosenPath(pathId);
+    if (user) {
+      await supabase.from("profiles").update({ chosen_path: pathId } as any).eq("user_id", user.id);
     }
     setState("tutorial");
   };
@@ -118,7 +149,6 @@ const Index = () => {
     setActiveLessonCategory(categoryId);
     setActiveLessonId(lessonId);
     setActiveLessonReview(isReview);
-    // Short delay for transition to cover the content swap
     setTimeout(() => {
       setState("lesson");
       setTimeout(() => setIsTransitioning(false), 400);
@@ -144,6 +174,7 @@ const Index = () => {
       case "landing": return <Landing onGetStarted={() => setState("auth")} />;
       case "auth": return <AuthPage onAuth={handleAuth} signUp={signUp} signIn={signIn} resetPassword={resetPassword} />;
       case "onboarding": return <Onboarding onComplete={handleOnboardingComplete} />;
+      case "path-selection": return <PathSelection interests={config.interests} onSelect={handlePathSelected} />;
       case "tutorial": return <Tutorial onComplete={handleTutorialComplete} />;
       case "settings": return <SettingsPage settings={settings} onUpdate={updateSetting} onBack={() => handleStateChange("dashboard")} locale={currentLocale} userId={user?.id} />;
       case "dashboard":
@@ -153,6 +184,7 @@ const Index = () => {
               onOpenSettings={() => handleStateChange("settings")} enrolledCourses={settings.enrolled_courses}
               onEnroll={enrollCourse} onUnenroll={unenrollCourse}
               gems={gems} extraLives={extraLives} locale={currentLocale}
+              chosenPath={chosenPath}
               onPurchase={async (itemId, cost) => {
                 if (gems < cost) return false;
                 if (itemId.startsWith("title-")) return false;
@@ -202,7 +234,6 @@ const Index = () => {
             setTimeout(() => setIsTransitioning(false), 400);
           }}
             onNextLesson={async (catId, nextLessonId) => {
-              // Check if path is now complete
               if (user) {
                 const course = COURSES.find(c => c.id === catId);
                 if (course) {
@@ -222,13 +253,13 @@ const Index = () => {
                   }
                 }
               }
-              // Advance to next lesson with transition
               handleStartLesson(catId, nextLessonId);
             }}
             userId={user?.id}
             categoryId={activeLessonCategory} lessonId={activeLessonId} soundEnabled={settings.sound_enabled}
             ttsEnabled={settings.tts_enabled} locale={currentLocale}
             extraLives={extraLives} onUseExtraLife={handleUseExtraLife} isReview={activeLessonReview}
+            chosenPath={chosenPath}
             config={{ learningStyle: config.learningStyle }} />
         );
     }

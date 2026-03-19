@@ -24,7 +24,7 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
   const [gemsWon, setGemsWon] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [upgradeAnim, setUpgradeAnim] = useState(false);
-  const [collecting, setCollecting] = useState(false);
+  
 
   const config = CHEST_CONFIG[tier];
 
@@ -55,9 +55,7 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
   };
 
   const handleCollect = () => {
-    if (collecting) return;
-    setCollecting(true);
-    // Call onComplete which handles navigation
+    // Navigate immediately — no "collecting" state needed
     onComplete(gemsWon);
   };
 
@@ -126,8 +124,8 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
               <span className="text-4xl font-bold text-cyan-400">+{gemsWon}</span>
             </motion.div>
             <p className="text-white/60 text-sm mb-6">Gems added to your balance!</p>
-            <Button onClick={handleCollect} size="lg" className="w-full" disabled={collecting}>
-              {collecting ? "Loading…" : "Collect Gems 💎"}
+            <Button onClick={handleCollect} size="lg" className="w-full">
+              Collect Gems 💎
             </Button>
           </motion.div>
         )}

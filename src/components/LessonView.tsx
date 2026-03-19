@@ -8,6 +8,7 @@ import XpPopup from "@/components/XpPopup";
 import TreasureChest from "@/components/TreasureChest";
 import ReadAloudButton from "@/components/ReadAloudButton";
 import PebbleTip from "@/components/PebbleTip";
+import CorrectEffect, { EndLessonEffect } from "@/components/CorrectEffect";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, COURSES, type LessonStep } from "@/lib/courseData";
@@ -28,6 +29,7 @@ interface LessonViewProps {
   isReview?: boolean;
   locale?: Locale;
   config?: { learningStyle?: string };
+  chosenPath?: string | null;
 }
 
 const CORRECT_MESSAGES = [
@@ -79,7 +81,7 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en", config }: LessonViewProps) => {
+const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en", config, chosenPath }: LessonViewProps) => {
   const { t } = useTranslation(locale);
   const lesson = getLessonContent(categoryId, lessonId);
   const steps = lesson?.steps || [];
@@ -119,6 +121,8 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   const [userLearningCode, setUserLearningCode] = useState<string | null>(null);
   const [adaptedContent, setAdaptedContent] = useState<Record<number, { content?: string; mascotMsg?: string }>>({});
   const [adaptingStep, setAdaptingStep] = useState(false);
+  const [showCorrectEffect, setShowCorrectEffect] = useState(false);
+  const [showEndEffect, setShowEndEffect] = useState(false);
 
   // Fetch learning code on mount
   useEffect(() => {
@@ -385,6 +389,11 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
       triggerXp(15);
       if (soundEnabled) playCorrectSound();
+      // Show path correct effect
+      if (chosenPath) {
+        setShowCorrectEffect(true);
+        setTimeout(() => setShowCorrectEffect(false), 900);
+      }
     } else {
       recentQuizResults.current.push(false);
       setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
@@ -499,6 +508,11 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       }
       setShowConfetti(true);
       if (soundEnabled) playSuccessSound();
+      // Show end lesson path effect
+      if (chosenPath) {
+        setShowEndEffect(true);
+        setTimeout(() => setShowEndEffect(false), 2500);
+      }
       setShowCompletion(true);
     }
   };
@@ -536,6 +550,8 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     <div className="min-h-screen bg-background flex flex-col">
       <Confetti active={showConfetti} />
       <XpPopup amount={xpAmount} show={showXp} />
+      <CorrectEffect pathId={chosenPath || null} active={showCorrectEffect} />
+      <EndLessonEffect pathId={chosenPath || null} active={showEndEffect} />
 
       <AnimatePresence>
         {showLifeLostAnim && (

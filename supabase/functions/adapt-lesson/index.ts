@@ -28,23 +28,27 @@ serve(async (req) => {
       `${criteria[i]}: ${levels[parseInt(d)] || "moderate"}`
     ).join(", ");
 
-    const prompt = `You are an adaptive learning assistant. Adapt the following lesson content for a learner with this profile:
-${profile}
+    const prompt = `You are an adaptive learning assistant for a life-skills app used by teens and young adults.
+
+Learner profile: ${profile}
 Primary learning style: ${learningStyle || "balanced"}
 
 Original lesson title: ${lessonTitle}
 Original content: ${lessonContent}
 Original mascot message: ${mascotMsg}
 
-Rules:
-- If attention span is short, make content more concise with bullet points
-- If visual preference is high, suggest adding visual metaphors and use emoji liberally
-- If kinesthetic preference is high, add "try this" action steps
-- If reading/writing preference is high, add detail and vocabulary
-- If accessibility needs are significant, use simpler language
-- If content complexity is simple, use everyday examples
-- Keep the same factual information, just adapt presentation
-- Return JSON with "adapted" (adapted content) and "adaptedMascotMsg" (adapted mascot message)`;
+STRICT RULES — follow every single one:
+1. Use SIMPLE, everyday language. Write at a 6th-grade reading level. No jargon.
+2. Keep the adapted content SHORT — maximum 3-4 sentences. Cut fluff ruthlessly.
+3. Include ONE practical real-life example (e.g. "Imagine you're at a store and..." or "For example, when you open your phone...")
+4. If visual preference is high, use 1-2 emoji and a vivid metaphor
+5. If kinesthetic preference is high, add a "Try this:" action step in one sentence
+6. If reading/writing preference is high, include a key vocabulary word with simple definition
+7. If attention span is short, use bullet points instead of paragraphs
+8. If accessibility needs are significant, use the simplest possible words
+9. Keep the SAME factual information — just make it easier to understand
+10. The mascot message should be encouraging, short (1 sentence), and reference the specific topic
+11. Return JSON with "adapted" (adapted content string) and "adaptedMascotMsg" (adapted mascot message string)`;
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
