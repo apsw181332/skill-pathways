@@ -406,6 +406,13 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   };
 
   const nextLesson = getNextLesson();
+  const atDailyLimit = dailyLessonCount >= FREE_DAILY_LIMIT;
+
+  const startLessonWithLimit = (categoryId: string, lessonId: number, isReview?: boolean) => {
+    if (isReview) { onStartLesson(categoryId, lessonId, true); return; }
+    if (atDailyLimit) { setShowLimitBanner(true); return; }
+    onStartLesson(categoryId, lessonId, false);
+  };
 
   const missionStats: MissionStats = {
     lessonsCompleted: totalLessonsCompleted,
