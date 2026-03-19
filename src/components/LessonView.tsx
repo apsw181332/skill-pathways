@@ -82,6 +82,12 @@ function fmtTime(ms: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
+const ECHO_PATH_POWERS: Record<string, { title: string; description: string; icon: "rewind" | "hack" | "surge" }> = {
+  chronos: { title: "Echo of Path · Rewind", description: "Reverse time to retry your last wrong quiz question.", icon: "rewind" },
+  syntax: { title: "Echo of Path · Hack", description: "Simulate a hack and delete one wrong answer choice.", icon: "hack" },
+  default: { title: "Echo of Path · Surge", description: "Release your path energy to remove one wrong answer choice.", icon: "surge" },
+};
+
 const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundEnabled, ttsEnabled = false, extraLives, onUseExtraLife, isReview = false, locale = "en", config, chosenPath }: LessonViewProps) => {
   const { t } = useTranslation(locale);
   const lesson = getLessonContent(categoryId, lessonId);
