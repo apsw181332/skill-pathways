@@ -187,6 +187,7 @@ export type Database = {
           gems: number
           id: string
           interests: string[] | null
+          is_pro: boolean
           language: string
           last_activity_date: string | null
           latitude: number | null
@@ -196,6 +197,8 @@ export type Database = {
           longitude: number | null
           onboarding_completed: boolean
           sound_enabled: boolean
+          stamina: number
+          stamina_last_refresh: string
           streak: number
           theme_color: string
           title: string | null
@@ -218,6 +221,7 @@ export type Database = {
           gems?: number
           id?: string
           interests?: string[] | null
+          is_pro?: boolean
           language?: string
           last_activity_date?: string | null
           latitude?: number | null
@@ -227,6 +231,8 @@ export type Database = {
           longitude?: number | null
           onboarding_completed?: boolean
           sound_enabled?: boolean
+          stamina?: number
+          stamina_last_refresh?: string
           streak?: number
           theme_color?: string
           title?: string | null
@@ -249,6 +255,7 @@ export type Database = {
           gems?: number
           id?: string
           interests?: string[] | null
+          is_pro?: boolean
           language?: string
           last_activity_date?: string | null
           latitude?: number | null
@@ -258,6 +265,8 @@ export type Database = {
           longitude?: number | null
           onboarding_completed?: boolean
           sound_enabled?: boolean
+          stamina?: number
+          stamina_last_refresh?: string
           streak?: number
           theme_color?: string
           title?: string | null
