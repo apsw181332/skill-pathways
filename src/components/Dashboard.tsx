@@ -660,7 +660,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {/* Continue learning */}
       {nextLesson && (
         <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          onClick={() => startLessonWithLimit(nextLesson.categoryId, nextLesson.lessonId)}
+          onClick={() => startLessonWithStamina(nextLesson.categoryId, nextLesson.lessonId)}
           className="lesson-card w-full text-left mb-6 group border-primary">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-primary">{t("home.continue")}</span>
