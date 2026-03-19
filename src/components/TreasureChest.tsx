@@ -55,9 +55,7 @@ const TreasureChest = ({ onComplete, onClose }: TreasureChestProps) => {
   };
 
   const handleCollect = () => {
-    if (collecting) return;
-    setCollecting(true);
-    // Call onComplete which handles navigation
+    // Navigate immediately — no "collecting" state needed
     onComplete(gemsWon);
   };
 
