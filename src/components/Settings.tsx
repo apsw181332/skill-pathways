@@ -217,10 +217,13 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
             {ACCESSIBILITY_MODES.map((mode, idx) => {
               const isActive = ((settings as any).accessibility_modes || []).includes(mode.id);
               return (
-                <button
+                <div
                   key={mode.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => toggleAccessibilityMode(mode.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleAccessibilityMode(mode.id); } }}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left cursor-pointer ${
                     isActive ? "bg-primary/10 ring-2 ring-primary" : "bg-secondary hover:bg-secondary/80"
                   }`}
                 >
@@ -230,7 +233,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
                     <p className="text-xs text-muted-foreground">{getAccessDesc(idx)}</p>
                   </div>
                   <Switch checked={isActive} onCheckedChange={() => toggleAccessibilityMode(mode.id)} />
-                </button>
+                </div>
               );
             })}
           </div>
