@@ -608,6 +608,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       <Confetti active={showConfetti} />
       <XpPopup amount={xpAmount} show={showXp} />
       <CorrectEffect pathId={chosenPath || null} active={showCorrectEffect} />
+      <EchoEffect pathId={chosenPath || null} active={showEchoEffect} />
       <EndLessonEffect pathId={chosenPath || null} active={showEndEffect} />
 
       <AnimatePresence>
