@@ -424,6 +424,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     if (showFeedback || !shuffledQuiz) return;
     setSelectedAnswer(idx);
     setShowFeedback(true);
+    setCosmosReveal(false); // hide cosmos reveal on answer
 
     setTotalQuizzes(prev => prev + 1);
     if (idx === shuffledQuiz.correctIndex) {
@@ -432,7 +433,9 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setCorrectAnswers(prev => prev + 1);
       recentQuizResults.current.push(true);
       setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
-      triggerXp(15);
+      const xpGain = doubleXpActive ? 30 : 15;
+      if (doubleXpActive) setDoubleXpActive(false);
+      triggerXp(xpGain);
       if (soundEnabled) playCorrectSound();
       if (chosenPath) {
         setShowCorrectEffect(true);
@@ -445,14 +448,22 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setLastWrongQuizIndex(currentStep);
       setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
       if (soundEnabled) playWrongSound();
-      const newLives = lives - 1;
-      setLives(newLives);
-      setShowLifeLostAnim(true);
-      setTimeout(() => setShowLifeLostAnim(false), 800);
-      if (newLives <= 0) {
-        if (!isReview) saveLessonProgress(totalXp, false);
-        setTimeout(() => setGameOver(true), 1500);
-        return;
+      if (doubleXpActive) setDoubleXpActive(false);
+      if (shieldActive) {
+        // Shield absorbs the hit
+        setShieldActive(false);
+        setFeedbackMascotMsg("🛡️ Shield absorbed the blow! No life lost.");
+      } else {
+        const newLives = lives - 1;
+        setLives(newLives);
+        setShowLifeLostAnim(true);
+        setTimeout(() => setShowLifeLostAnim(false), 800);
+        if (newLives <= 0) {
+          if (!isReview) saveLessonProgress(totalXp, false);
+          setTimeout(() => setGameOver(true), 1500);
+          return;
+        }
+      }
       }
     }
   };
