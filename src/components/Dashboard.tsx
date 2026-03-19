@@ -77,9 +77,12 @@ interface ChatMessage { id: string; sender_id: string; receiver_id: string; cont
 const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enrolledCourses, onEnroll, onUnenroll, gems, extraLives, onPurchase, locale = "en", chosenPath }: DashboardProps) => {
   const { t } = useTranslation(locale);
   const [activeTab, setActiveTab] = useState<"home" | "learn" | "missions" | "friends" | "shop" | "profile">("home");
-  const [dailyLessonCount, setDailyLessonCount] = useState(0);
-  const [showLimitBanner, setShowLimitBanner] = useState(false);
-  const FREE_DAILY_LIMIT = 2;
+  const [stamina, setStamina] = useState(30);
+  const [staminaLastRefresh, setStaminaLastRefresh] = useState<string>(new Date().toISOString());
+  const [isPro, setIsPro] = useState(false);
+  const MAX_STAMINA = 30;
+  const STAMINA_PER_LESSON = 5;
+  const STAMINA_REGEN_PER_HOUR = 2;
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState<FriendData[]>([]);
@@ -134,7 +137,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   useEffect(() => {
     const fetchAll = async () => {
       const [profileRes, achieveRes, progressRes, lbRes] = await Promise.all([
-        supabase.from("profiles").select("xp, streak, avatar_url, friend_code").eq("user_id", user.id).single(),
+        supabase.from("profiles").select("xp, streak, avatar_url, friend_code, stamina, stamina_last_refresh, is_pro").eq("user_id", user.id).single(),
         supabase.from("achievements").select("badge_id").eq("user_id", user.id),
         supabase.from("user_progress").select("category_id, lesson_id, completed, completed_at").eq("user_id", user.id),
         supabase.from("profiles").select("user_id, display_name, xp, streak").order("xp", { ascending: false }).limit(50),
@@ -144,6 +147,15 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         setStreak(profileRes.data.streak);
         setAvatarUrl((profileRes.data as any).avatar_url || null);
         if ((profileRes.data as any).friend_code) setMyInviteCode((profileRes.data as any).friend_code);
+        setIsPro((profileRes.data as any).is_pro || false);
+        // Calculate current stamina with regen
+        const storedStamina = (profileRes.data as any).stamina ?? 30;
+        const lastRefresh = (profileRes.data as any).stamina_last_refresh || new Date().toISOString();
+        const hoursSinceRefresh = (Date.now() - new Date(lastRefresh).getTime()) / (1000 * 60 * 60);
+        const regenAmount = Math.floor(hoursSinceRefresh * STAMINA_REGEN_PER_HOUR);
+        const currentStamina = Math.min(MAX_STAMINA, storedStamina + regenAmount);
+        setStamina(currentStamina);
+        setStaminaLastRefresh(lastRefresh);
       }
       if (achieveRes.data) {
         const badges = achieveRes.data.map(a => a.badge_id);
@@ -158,18 +170,14 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       if (progressRes.data) {
         const progress: Record<string, number> = {};
         let total = 0;
-        const today = new Date().toISOString().split("T")[0];
-        let todayCount = 0;
         progressRes.data.forEach(p => {
           if (p.completed) {
             progress[p.category_id] = (progress[p.category_id] || 0) + 1;
             total++;
-            if ((p as any).completed_at && (p as any).completed_at.startsWith(today)) todayCount++;
           }
         });
         setCategoryProgress(progress);
         setTotalLessonsCompleted(total);
-        setDailyLessonCount(todayCount);
       }
       if (lbRes.data) {
         setLeaderboard(lbRes.data.map((p, i) => ({
@@ -411,11 +419,20 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   };
 
   const nextLesson = getNextLesson();
-  const atDailyLimit = dailyLessonCount >= FREE_DAILY_LIMIT;
+  const hasStamina = isPro || stamina >= STAMINA_PER_LESSON;
 
-  const startLessonWithLimit = (categoryId: string, lessonId: number, isReview?: boolean) => {
+  const startLessonWithStamina = async (categoryId: string, lessonId: number, isReview?: boolean) => {
     if (isReview) { onStartLesson(categoryId, lessonId, true); return; }
-    if (atDailyLimit) { setShowLimitBanner(true); return; }
+    if (!hasStamina) {
+      toast({ title: "Not enough stamina!", description: `You need ${STAMINA_PER_LESSON} stamina to start a lesson. Stamina regenerates ${STAMINA_REGEN_PER_HOUR}/hour.`, variant: "destructive" });
+      return;
+    }
+    // Deduct stamina
+    if (!isPro) {
+      const newStamina = stamina - STAMINA_PER_LESSON;
+      setStamina(newStamina);
+      await supabase.from("profiles").update({ stamina: newStamina, stamina_last_refresh: new Date().toISOString() } as any).eq("user_id", user.id);
+    }
     onStartLesson(categoryId, lessonId, false);
   };
 
@@ -493,14 +510,50 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
   const renderHome = () => (
     <>
-      {showLimitBanner && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 border-accent bg-accent/5 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Daily limit reached!</p>
-            <p className="text-xs text-muted-foreground">You've completed {FREE_DAILY_LIMIT} lessons today. Come back tomorrow or upgrade for unlimited learning! 🚀</p>
+      {/* Stamina bar */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 border-primary/30">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">⚡</span>
+            <span className="font-semibold text-foreground">Stamina</span>
           </div>
-          <button onClick={() => setShowLimitBanner(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+          <span className="text-sm font-medium text-foreground">
+            {isPro ? "∞" : `${stamina}/${MAX_STAMINA}`}
+          </span>
+        </div>
+        {!isPro && (
+          <div className="w-full h-3 rounded-full bg-secondary overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+              initial={{ width: 0 }}
+              animate={{ width: `${(stamina / MAX_STAMINA) * 100}%` }}
+              transition={{ duration: 0.6 }}
+            />
+          </div>
+        )}
+        {isPro && (
+          <div className="flex items-center gap-1 text-xs text-primary font-medium">
+            <Crown className="w-3.5 h-3.5" /> Pro — Unlimited Stamina
+          </div>
+        )}
+        {!isPro && stamina < MAX_STAMINA && (
+          <p className="text-xs text-muted-foreground mt-1">+{STAMINA_REGEN_PER_HOUR} per hour • {STAMINA_PER_LESSON} per lesson</p>
+        )}
+      </motion.div>
+
+      {/* Pro upgrade banner */}
+      {!isPro && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 border-accent/50 bg-gradient-to-r from-accent/5 to-primary/5">
+          <div className="flex items-center gap-3">
+            <Crown className="w-6 h-6 text-accent shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">Upgrade to Pro</p>
+              <p className="text-xs text-muted-foreground">Unlimited stamina • Premium content • Extra lessons</p>
+            </div>
+            <Button size="sm" variant="outline" className="shrink-0 border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+              $4.99/mo
+            </Button>
+          </div>
         </motion.div>
       )}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
@@ -603,7 +656,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       {/* Continue learning */}
       {nextLesson && (
         <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          onClick={() => startLessonWithLimit(nextLesson.categoryId, nextLesson.lessonId)}
+          onClick={() => startLessonWithStamina(nextLesson.categoryId, nextLesson.lessonId)}
           className="lesson-card w-full text-left mb-6 group border-primary">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-primary">{t("home.continue")}</span>
@@ -705,8 +758,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.05, type: "spring", stiffness: 400, damping: 20 }}
                 onClick={() => {
-                  if (isCompleted) startLessonWithLimit(course.id, lesson.id, true);
-                  else if (isCurrent && isEnrolled) startLessonWithLimit(course.id, lesson.id, false);
+                  if (isCompleted) startLessonWithStamina(course.id, lesson.id, true);
+                  else if (isCurrent && isEnrolled) startLessonWithStamina(course.id, lesson.id, false);
                 }}
                 disabled={!canPlay}
                 className={`${isCurrent ? "w-[68px] h-[68px]" : "w-[60px] h-[60px]"} rounded-full flex items-center justify-center font-bold transition-all duration-200 border-[5px] ${

@@ -108,9 +108,15 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   const [totalQuizzes, setTotalQuizzes] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [shuffledItems, setShuffledItems] = useState<{ id: string; text: string; order: number }[]>([]);
-
-  // Shuffled quiz options — store original indices so we can map to translated text at render time
   const [shuffledQuiz, setShuffledQuiz] = useState<{ originalIndices: number[]; correctIndex: number } | null>(null);
+
+  // Type-in question state
+  const [typeInAnswer, setTypeInAnswer] = useState("");
+  const [typeInSubmitted, setTypeInSubmitted] = useState(false);
+  const [typeInCorrect, setTypeInCorrect] = useState(false);
+
+  // Correct streak system
+  const [correctStreak, setCorrectStreak] = useState(0);
 
   // Lives system
   const [lives, setLives] = useState(3);
@@ -392,6 +398,18 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     setTimeout(() => setShowXp(false), 1500);
   };
 
+  // Streak bonus: every 5 correct in a row gives bonus XP
+  const handleStreakBonus = (newStreak: number) => {
+    if (newStreak > 0 && newStreak % 5 === 0) {
+      const bonus = Math.min(newStreak, 25); // +5 at 5, +10 at 10, etc. cap at 25
+      setTimeout(() => {
+        triggerXp(bonus);
+        setFeedbackMascotMsg(`🔥 ${newStreak} correct streak! +${bonus} bonus XP!`);
+        if (soundEnabled) playSuccessSound();
+      }, 600);
+    }
+  };
+
   const handleAnswer = (idx: number) => {
     if (showFeedback || !shuffledQuiz) return;
     setSelectedAnswer(idx);
@@ -399,6 +417,8 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
     setTotalQuizzes(prev => prev + 1);
     if (idx === shuffledQuiz.correctIndex) {
+      const newStreak = correctStreak + 1;
+      setCorrectStreak(newStreak);
       setCorrectAnswers(prev => prev + 1);
       recentQuizResults.current.push(true);
       setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
@@ -406,11 +426,50 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       if (soundEnabled) playCorrectSound();
       if (chosenPath) {
         setShowCorrectEffect(true);
-        setTimeout(() => setShowCorrectEffect(false), 650);
+        setTimeout(() => setShowCorrectEffect(false), 700);
       }
+      handleStreakBonus(newStreak);
     } else {
+      setCorrectStreak(0);
       recentQuizResults.current.push(false);
       setLastWrongQuizIndex(currentStep);
+      setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
+      if (soundEnabled) playWrongSound();
+      const newLives = lives - 1;
+      setLives(newLives);
+      setShowLifeLostAnim(true);
+      setTimeout(() => setShowLifeLostAnim(false), 800);
+      if (newLives <= 0) {
+        if (!isReview) saveLessonProgress(totalXp, false);
+        setTimeout(() => setGameOver(true), 1500);
+        return;
+      }
+    }
+  };
+
+  const handleTypeInSubmit = () => {
+    if (typeInSubmitted || !step?.acceptedAnswers) return;
+    setTypeInSubmitted(true);
+    setTotalQuizzes(prev => prev + 1);
+
+    const userAnswer = typeInAnswer.trim().toLowerCase();
+    const isCorrect = step.acceptedAnswers.some(a => a.toLowerCase() === userAnswer);
+
+    setTypeInCorrect(isCorrect);
+    if (isCorrect) {
+      const newStreak = correctStreak + 1;
+      setCorrectStreak(newStreak);
+      setCorrectAnswers(prev => prev + 1);
+      setFeedbackMascotMsg(pickMsg(CORRECT_MESSAGES, tFeedback?.correct));
+      triggerXp(20); // Type-in gives more XP
+      if (soundEnabled) playCorrectSound();
+      if (chosenPath) {
+        setShowCorrectEffect(true);
+        setTimeout(() => setShowCorrectEffect(false), 700);
+      }
+      handleStreakBonus(newStreak);
+    } else {
+      setCorrectStreak(0);
       setFeedbackMascotMsg(pickMsg(WRONG_MESSAGES, tFeedback?.wrong));
       if (soundEnabled) playWrongSound();
       const newLives = lives - 1;
@@ -558,6 +617,9 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       setDragSubmitted(false);
       setFeedbackMascotMsg(null);
       setHiddenOptions([]);
+      setTypeInAnswer("");
+      setTypeInSubmitted(false);
+      setTypeInCorrect(false);
     } else {
       if (!isReview) {
         saveLessonProgress(totalXp);
@@ -601,7 +663,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     }
   };
 
-  const canProceed = step.type === "info" || (step.type === "quiz" && showFeedback) || (step.type === "drag" && dragSubmitted);
+  const canProceed = step.type === "info" || (step.type === "quiz" && showFeedback) || (step.type === "drag" && dragSubmitted) || (step.type === "type-in" && typeInSubmitted);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -639,6 +701,11 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
             ))}
           </div>
           {isReview && <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded-full">Review</span>}
+          {correctStreak >= 3 && (
+            <motion.span initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="text-xs font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+              🔥{correctStreak}
+            </motion.span>
+          )}
           <span className="text-sm font-medium text-accent xp-counter">{isReview ? "—" : `${totalXp} XP`}</span>
           <span className="text-sm text-muted-foreground xp-counter">{currentStep + 1}/{steps.length}</span>
         </div>
@@ -723,6 +790,41 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
                   <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
                     className={`mt-4 p-4 rounded-lg border-2 ${selectedAnswer === shuffledQuiz.correctIndex ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
                     <p className="text-sm font-medium text-foreground mb-1">{selectedAnswer === shuffledQuiz.correctIndex ? t("lesson.correct_label") : t("lesson.not_quite")}</p>
+                    <p className="text-sm text-muted-foreground">{tStep?.explanation ?? step.explanation}</p>
+                  </motion.div>
+                )}
+              </div>
+            )}
+
+            {step.type === "type-in" && (
+              <div>
+                <div className="mb-4 flex items-start gap-2">
+                  <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
+                  {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
+                </div>
+                <div className="flex gap-3 mb-4">
+                  <input
+                    type="text"
+                    value={typeInAnswer}
+                    onChange={e => setTypeInAnswer(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && !typeInSubmitted && typeInAnswer.trim() && handleTypeInSubmit()}
+                    disabled={typeInSubmitted}
+                    placeholder="Type your answer..."
+                    className="flex-1 h-12 rounded-xl border-2 border-border bg-background px-4 text-foreground text-lg focus:border-primary focus:outline-none transition-colors disabled:opacity-60"
+                  />
+                  {!typeInSubmitted && (
+                    <Button onClick={handleTypeInSubmit} disabled={!typeInAnswer.trim()} size="lg" className="h-12 px-6">
+                      Check
+                    </Button>
+                  )}
+                </div>
+                {typeInSubmitted && (
+                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 rounded-lg border-2 ${typeInCorrect ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
+                    <p className="text-sm font-medium text-foreground mb-1">{typeInCorrect ? "✅ Correct!" : "❌ Not quite"}</p>
+                    {!typeInCorrect && step.acceptedAnswers && (
+                      <p className="text-sm text-muted-foreground mb-1">Answer: <span className="font-medium text-foreground">{step.acceptedAnswers[0]}</span></p>
+                    )}
                     <p className="text-sm text-muted-foreground">{tStep?.explanation ?? step.explanation}</p>
                   </motion.div>
                 )}

@@ -49,7 +49,7 @@ const CorrectEffect = ({ pathId, active }: CorrectEffectProps) => {
   const path = NINE_PATHS.find(p => p.id === pathId);
   if (!path) return null;
   const c = vc();
-  const burst = ring(14, 35, 130);
+  const burst = ring(28, 60, 260);
 
   const glyphs: Record<string, string[]> = {
     syntax:    ["0", "1", "</>", "{}", "=>", "//", "&&"],
@@ -67,26 +67,40 @@ const CorrectEffect = ({ pathId, active }: CorrectEffectProps) => {
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[88] pointer-events-none overflow-hidden">
-        {/* Center glow */}
+        {/* Screen flash */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 0.15, 0] }}
+          transition={{ duration: 0.4 }}
+          className="absolute inset-0 bg-primary/20"
+        />
+        {/* Center glow - BIGGER */}
         <motion.div
           initial={{ scale: 0.15, opacity: 0 }}
-          animate={{ scale: [0.15, 1.6, 2.8], opacity: [0, 0.5, 0] }}
-          transition={{ duration: 0.65 }}
-          className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl bg-primary/30"
+          animate={{ scale: [0.15, 2.5, 4.5], opacity: [0, 0.6, 0] }}
+          transition={{ duration: 0.7 }}
+          className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl bg-primary/40"
         />
-        {/* Center ring */}
+        {/* Double ring burst */}
         <motion.div
           initial={{ scale: 0.2, opacity: 0 }}
-          animate={{ scale: [0.2, 1.3, 1.8], opacity: [0, 0.7, 0] }}
-          transition={{ duration: 0.6 }}
-          className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary/50"
+          animate={{ scale: [0.2, 1.8, 2.8], opacity: [0, 0.8, 0] }}
+          transition={{ duration: 0.65 }}
+          className="absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border-3 border-primary/60"
         />
-        {/* Center emoji */}
         <motion.div
           initial={{ scale: 0.3, opacity: 0 }}
-          animate={{ scale: [0.3, 1.3, 0.8], opacity: [0, 1, 0] }}
-          transition={{ duration: 0.6 }}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl"
+          animate={{ scale: [0.3, 2, 3.2], opacity: [0, 0.5, 0] }}
+          transition={{ duration: 0.7, delay: 0.05 }}
+          className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary/40"
+        />
+        {/* Center emoji - BIGGER */}
+        <motion.div
+          initial={{ scale: 0.3, opacity: 0 }}
+          animate={{ scale: [0.3, 1.8, 1.0], opacity: [0, 1, 0] }}
+          transition={{ duration: 0.65 }}
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-7xl"
+          style={{ filter: "drop-shadow(0 0 20px hsl(var(--primary)/0.5))" }}
         >
           {path.correctEmoji}
         </motion.div>
