@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap, Heart, Diamond } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap, Heart, Diamond, Sparkles, RotateCcw, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Mascot from "@/components/Mascot";
 import Confetti from "@/components/Confetti";
@@ -8,13 +8,14 @@ import XpPopup from "@/components/XpPopup";
 import TreasureChest from "@/components/TreasureChest";
 import ReadAloudButton from "@/components/ReadAloudButton";
 import PebbleTip from "@/components/PebbleTip";
-import CorrectEffect, { EndLessonEffect } from "@/components/CorrectEffect";
+import CorrectEffect, { EchoEffect, EndLessonEffect } from "@/components/CorrectEffect";
 import { supabase } from "@/integrations/supabase/client";
 import { playCorrectSound, playWrongSound, playClickSound, playSuccessSound } from "@/hooks/useSoundEffects";
 import { getLessonContent, COURSES, type LessonStep } from "@/lib/courseData";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
 import { adaptLearningCode, getReadingPaceIntervention } from "@/lib/learningCode";
+import { NINE_PATHS } from "@/lib/paths";
 
 interface LessonViewProps {
   onBack: () => void;
