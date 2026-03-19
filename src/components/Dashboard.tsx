@@ -690,8 +690,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.05, type: "spring", stiffness: 400, damping: 20 }}
                 onClick={() => {
-                  if (isCompleted) onStartLesson(course.id, lesson.id, true);
-                  else if (isCurrent && isEnrolled) onStartLesson(course.id, lesson.id, false);
+                  if (isCompleted) startLessonWithLimit(course.id, lesson.id, true);
+                  else if (isCurrent && isEnrolled) startLessonWithLimit(course.id, lesson.id, false);
                 }}
                 disabled={!canPlay}
                 className={`${isCurrent ? "w-[68px] h-[68px]" : "w-[60px] h-[60px]"} rounded-full flex items-center justify-center font-bold transition-all duration-200 border-[5px] ${
