@@ -784,6 +784,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
           options={step.options}
           correctIndex={shuffledQuiz?.correctIndex}
           content={step.content}
+          pathId={chosenPath || null}
         />
       </main>
 
