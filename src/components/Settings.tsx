@@ -60,6 +60,38 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
 
+  // 2FA state
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaLoading, setMfaLoading] = useState(true);
+  const [showMfaEnroll, setShowMfaEnroll] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.mfa.listFactors();
+      if (data) {
+        const verified = data.totp.filter(f => f.status === "verified");
+        setMfaEnabled(verified.length > 0);
+        if (verified.length > 0) setMfaFactorId(verified[0].id);
+      }
+      setMfaLoading(false);
+    })();
+  }, []);
+
+  const handleDisableMfa = async () => {
+    if (!mfaFactorId) return;
+    setPwLoading(true);
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaFactorId });
+    setPwLoading(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setMfaEnabled(false);
+      setMfaFactorId(null);
+      toast({ title: "2FA disabled" });
+    }
+  };
+
   // Load display name on first render
   if (!nameLoaded && userId) {
     setNameLoaded(true);
