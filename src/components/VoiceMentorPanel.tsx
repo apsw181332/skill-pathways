@@ -1,11 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Pause, X, FileText, Volume2, Loader2 } from "lucide-react";
+import { X, FileText, Volume2, Loader2, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Locale } from "@/lib/i18n";
-import { useTranslation } from "@/lib/i18n";
 
 interface VoiceMentorPanelProps {
   isOpen: boolean;
@@ -29,7 +28,6 @@ const VoiceMentorPanel = ({
   isOpen, onClose, skillTopic = "Life Skills", lessonContext = "",
   lessonId, userId, locale = "en",
 }: VoiceMentorPanelProps) => {
-  const { t } = useTranslation(locale);
   const { toast } = useToast();
 
   const [mentorState, setMentorState] = useState<MentorState>("idle");
@@ -40,8 +38,6 @@ const VoiceMentorPanel = ({
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [showTranscript, setShowTranscript] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [micPermission, setMicPermission] = useState<"granted" | "denied" | "prompt">("prompt");
-  const [showMicPrompt, setShowMicPrompt] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -49,10 +45,26 @@ const VoiceMentorPanel = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
-  const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const ttsQueueRef = useRef<string[]>([]);
+  const isPlayingRef = useRef(false);
+  const exchangesRef = useRef<Exchange[]>([]);
+  const bargeInActiveRef = useRef(false);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
 
-  // Waveform drawing
+  // Keep exchangesRef in sync
+  useEffect(() => { exchangesRef.current = exchanges; }, [exchanges]);
+
+  const getRecognitionLang = () => {
+    const map: Record<string, string> = {
+      en: "en-US", fr: "fr-FR", es: "es-ES", "zh-CN": "zh-CN", "zh-TW": "zh-TW",
+      de: "de-DE", ja: "ja-JP", ko: "ko-KR", pt: "pt-BR", ar: "ar-SA",
+    };
+    return map[locale] || "en-US";
+  };
+
+  // ──── Waveform ────
   const drawWaveform = useCallback(() => {
     const canvas = canvasRef.current;
     const analyser = analyserRef.current;
@@ -60,46 +72,55 @@ const VoiceMentorPanel = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    analyser.getByteFrequencyData(dataArray);
+    const bufLen = analyser.frequencyBinCount;
+    const data = new Uint8Array(bufLen);
+    analyser.getByteFrequencyData(data);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const barWidth = (canvas.width / 40);
-    const barGap = 2;
+    const bars = 48;
+    const totalW = canvas.width;
+    const barW = totalW / bars - 2;
+    const centerY = canvas.height / 2;
 
-    for (let i = 0; i < 40; i++) {
-      const dataIdx = Math.floor(i * bufferLength / 40);
-      const barHeight = (dataArray[dataIdx] / 255) * canvas.height * 0.8;
-      const x = i * (barWidth + barGap);
-      const hue = 200 + (i * 3);
-      ctx.fillStyle = `hsla(${hue}, 80%, 60%, 0.8)`;
-      ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+    for (let i = 0; i < bars; i++) {
+      const idx = Math.floor(i * bufLen / bars);
+      const val = data[idx] / 255;
+      const h = Math.max(2, val * canvas.height * 0.85);
+      const x = i * (barW + 2);
+      const hue = mentorState === "speaking" ? 145 + i * 2 : mentorState === "listening" ? 210 + i * 2 : 220;
+      const alpha = 0.4 + val * 0.6;
+      ctx.fillStyle = `hsla(${hue}, 75%, 55%, ${alpha})`;
+      ctx.beginPath();
+      ctx.roundRect(x, centerY - h / 2, barW, h, barW / 2);
+      ctx.fill();
     }
     animFrameRef.current = requestAnimationFrame(drawWaveform);
-  }, []);
+  }, [mentorState]);
 
-  // Idle waveform
   const drawIdleWaveform = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const time = Date.now() / 1000;
+    const t = Date.now() / 1000;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const barWidth = canvas.width / 40;
-    const barGap = 2;
-    for (let i = 0; i < 40; i++) {
-      const h = 4 + Math.sin(time * 2 + i * 0.3) * 3;
-      const x = i * (barWidth + barGap);
-      ctx.fillStyle = `hsla(210, 60%, 50%, 0.4)`;
-      ctx.fillRect(x, canvas.height / 2 - h / 2, barWidth, h);
+    const bars = 48;
+    const barW = canvas.width / bars - 2;
+    const cy = canvas.height / 2;
+    for (let i = 0; i < bars; i++) {
+      const h = 3 + Math.sin(t * 1.5 + i * 0.25) * 2.5;
+      const x = i * (barW + 2);
+      ctx.fillStyle = `hsla(220, 50%, 45%, 0.3)`;
+      ctx.beginPath();
+      ctx.roundRect(x, cy - h / 2, barW, h, barW / 2);
+      ctx.fill();
     }
     animFrameRef.current = requestAnimationFrame(drawIdleWaveform);
   }, []);
 
   useEffect(() => {
     if (!isOpen) return;
+    cancelAnimationFrame(animFrameRef.current);
     if (mentorState === "listening" || mentorState === "speaking") {
       drawWaveform();
     } else {
@@ -108,103 +129,188 @@ const VoiceMentorPanel = ({
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [isOpen, mentorState, drawWaveform, drawIdleWaveform]);
 
-  // Start mic
+  // ──── Mic setup ────
   const startMic = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      setMicPermission("granted");
-
       if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
       const analyser = audioCtxRef.current.createAnalyser();
       analyser.fftSize = 256;
-      const source = audioCtxRef.current.createMediaStreamSource(stream);
-      source.connect(analyser);
+      const src = audioCtxRef.current.createMediaStreamSource(stream);
+      src.connect(analyser);
       analyserRef.current = analyser;
-
       return true;
     } catch {
-      setMicPermission("denied");
       toast({ title: "Microphone access denied", description: "Please enable microphone in your browser settings.", variant: "destructive" });
       return false;
     }
   }, [toast]);
 
-  // Speech recognition
-  const startListening = useCallback(async () => {
-    if (micPermission === "prompt") {
-      setShowMicPrompt(true);
-      return;
+  // ──── Barge-in: monitor mic while AI speaks ────
+  const checkBargeIn = useCallback(() => {
+    if (!analyserRef.current || mentorState !== "speaking") return;
+    const data = new Uint8Array(analyserRef.current.frequencyBinCount);
+    analyserRef.current.getByteFrequencyData(data);
+    const avg = data.reduce((a, b) => a + b, 0) / data.length;
+    if (avg > 30) {
+      // User started talking — stop AI audio and listen
+      bargeInActiveRef.current = true;
+      stopAllAudio();
+      startListeningInternal();
+    }
+  }, [mentorState]);
+
+  useEffect(() => {
+    if (mentorState !== "speaking") return;
+    const interval = setInterval(checkBargeIn, 150);
+    return () => clearInterval(interval);
+  }, [mentorState, checkBargeIn]);
+
+  // ──── TTS via ElevenLabs edge function ────
+  const speakWithElevenLabs = useCallback(async (text: string) => {
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ text, voiceId: "EXAVITQu4vr4xnSDxMaL" }),
+        }
+      );
+      if (!resp.ok) throw new Error("TTS failed");
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      return url;
+    } catch (e) {
+      console.error("ElevenLabs TTS error:", e);
+      return null;
+    }
+  }, []);
+
+  const playAudioQueue = useCallback(async () => {
+    if (isPlayingRef.current || ttsQueueRef.current.length === 0) return;
+    isPlayingRef.current = true;
+
+    while (ttsQueueRef.current.length > 0) {
+      if (bargeInActiveRef.current) break;
+      const text = ttsQueueRef.current.shift()!;
+      const audioUrl = await speakWithElevenLabs(text);
+      if (!audioUrl || bargeInActiveRef.current) break;
+
+      await new Promise<void>((resolve) => {
+        const audio = new Audio(audioUrl);
+        currentAudioRef.current = audio;
+
+        // Connect to analyser for waveform vis
+        if (audioCtxRef.current && analyserRef.current) {
+          try {
+            const src = audioCtxRef.current.createMediaElementSource(audio);
+            src.connect(analyserRef.current);
+            src.connect(audioCtxRef.current.destination);
+            sourceNodeRef.current = src;
+          } catch {
+            // already connected
+          }
+        }
+
+        audio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          currentAudioRef.current = null;
+          sourceNodeRef.current = null;
+          resolve();
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(audioUrl);
+          currentAudioRef.current = null;
+          sourceNodeRef.current = null;
+          resolve();
+        };
+        audio.play().catch(() => resolve());
+      });
     }
 
-    const micOk = await startMic();
-    if (!micOk) return;
+    isPlayingRef.current = false;
+    if (!bargeInActiveRef.current) {
+      // After AI finishes speaking, auto-listen again
+      setMentorState("idle");
+      setTimeout(() => startListeningInternal(), 300);
+    }
+  }, [speakWithElevenLabs]);
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast({ title: "Speech recognition not supported", description: "Please use Chrome or Edge.", variant: "destructive" });
-      return;
+  const stopAllAudio = useCallback(() => {
+    ttsQueueRef.current = [];
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
+    sourceNodeRef.current = null;
+    isPlayingRef.current = false;
+    abortRef.current?.abort();
+  }, []);
+
+  // ──── Speech Recognition ────
+  const startListeningInternal = useCallback(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang = locale === "zh-CN" ? "zh-CN" : locale === "zh-TW" ? "zh-TW" :
-      locale === "ja" ? "ja-JP" : locale === "ko" ? "ko-KR" :
-      locale === "fr" ? "fr-FR" : locale === "es" ? "es-ES" :
-      locale === "de" ? "de-DE" : locale === "pt" ? "pt-BR" :
-      locale === "ar" ? "ar-SA" : "en-US";
+    recognition.lang = getRecognitionLang();
+
+    let finalText = "";
 
     recognition.onresult = (event: any) => {
       let interim = "";
-      let final = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          final += event.results[i][0].transcript;
+          finalText += event.results[i][0].transcript;
         } else {
           interim += event.results[i][0].transcript;
         }
       }
-      if (final) setUserTranscript(prev => prev + final);
+      setUserTranscript(finalText);
       setInterimTranscript(interim);
     };
 
     recognition.onend = () => {
-      setMentorState("idle");
-      // Auto-send if we have text
-      setUserTranscript(prev => {
-        const text = prev.trim();
-        if (text) {
-          setTimeout(() => sendQuestion(text), 500);
-        }
-        return prev;
-      });
+      const text = finalText.trim();
+      if (text) {
+        bargeInActiveRef.current = false;
+        sendQuestion(text);
+      } else {
+        // No speech detected — restart listening
+        setMentorState("listening");
+        setTimeout(() => startListeningInternal(), 200);
+      }
     };
 
     recognition.onerror = (e: any) => {
-      if (e.error !== "no-speech") {
-        console.error("Speech error:", e.error);
+      if (e.error === "no-speech" || e.error === "aborted") {
+        // Restart
+        setTimeout(() => startListeningInternal(), 300);
+        return;
       }
+      console.error("Speech error:", e.error);
       setMentorState("idle");
     };
 
     recognitionRef.current = recognition;
     setUserTranscript("");
     setInterimTranscript("");
-    setMentorResponse("");
-    setHighlightIndex(-1);
     setMentorState("listening");
     recognition.start();
-  }, [micPermission, startMic, locale, toast]);
+  }, [locale]);
 
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-  }, []);
-
-  // Send question to AI
+  // ──── Send question to AI ────
   const sendQuestion = useCallback(async (text: string) => {
     if (!text.trim()) return;
     setMentorState("thinking");
@@ -212,9 +318,11 @@ const VoiceMentorPanel = ({
     setHighlightIndex(-1);
 
     const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const newExchanges = [...exchanges, { speaker: "user" as const, text, time: now }];
+    const currentExchanges = exchangesRef.current;
+    const newExchanges = [...currentExchanges, { speaker: "user" as const, text, time: now }];
 
     abortRef.current = new AbortController();
+    bargeInActiveRef.current = false;
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -233,20 +341,15 @@ const VoiceMentorPanel = ({
             question: text,
             skill_topic: skillTopic,
             lesson_context: lessonContext,
-            conversation_history: exchanges.slice(-6).map(e => ({
-              speaker: e.speaker, text: e.text,
-            })),
+            conversation_history: currentExchanges.slice(-6).map(e => ({ speaker: e.speaker, text: e.text })),
             language: locale,
           }),
           signal: abortRef.current.signal,
         }
       );
 
-      if (!resp.ok || !resp.body) {
-        throw new Error("Failed to get response");
-      }
+      if (!resp.ok || !resp.body) throw new Error("Failed to get response");
 
-      // Stream SSE
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -258,12 +361,13 @@ const VoiceMentorPanel = ({
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (bargeInActiveRef.current) break;
         buffer += decoder.decode(value, { stream: true });
 
-        let newlineIdx: number;
-        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIdx);
-          buffer = buffer.slice(newlineIdx + 1);
+        let nlIdx: number;
+        while ((nlIdx = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, nlIdx);
+          buffer = buffer.slice(nlIdx + 1);
           if (line.endsWith("\r")) line = line.slice(0, -1);
           if (!line.startsWith("data: ")) continue;
           const jsonStr = line.slice(6).trim();
@@ -276,32 +380,31 @@ const VoiceMentorPanel = ({
               sentenceBuffer += content;
               setMentorResponse(fullResponse);
 
-              // Sentence boundary - speak it
               if (/[.!?。！？]\s?$/.test(sentenceBuffer.trim()) && sentenceBuffer.trim().length > 10) {
-                speakSentence(sentenceBuffer.trim());
+                ttsQueueRef.current.push(sentenceBuffer.trim());
                 sentenceBuffer = "";
+                playAudioQueue();
               }
             }
-          } catch { /* partial json */ }
+          } catch {}
         }
       }
 
-      // Speak remaining buffer
-      if (sentenceBuffer.trim()) {
-        speakSentence(sentenceBuffer.trim());
+      if (sentenceBuffer.trim() && !bargeInActiveRef.current) {
+        ttsQueueRef.current.push(sentenceBuffer.trim());
+        playAudioQueue();
       }
 
-      // Add mentor exchange
-      const mentorExchange: Exchange = { speaker: "mentor", text: fullResponse, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+      const mentorExchange: Exchange = {
+        speaker: "mentor", text: fullResponse,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
       const finalExchanges = [...newExchanges, mentorExchange];
       setExchanges(finalExchanges);
 
-      // Save to DB
       if (userId && sessionId) {
         await supabase.from("voice_exchanges" as any).insert({
-          session_id: sessionId,
-          user_text: text,
-          mentor_text: fullResponse,
+          session_id: sessionId, user_text: text, mentor_text: fullResponse,
           exchange_index: Math.floor(finalExchanges.length / 2),
         });
         await supabase.from("voice_sessions" as any).update({
@@ -309,82 +412,49 @@ const VoiceMentorPanel = ({
         }).eq("id", sessionId);
       }
 
-      // Word highlight animation
+      // Word highlight
       const words = fullResponse.split(/\s+/);
-      const wordDuration = Math.max(80, 2000 / words.length);
-      words.forEach((_, i) => {
-        setTimeout(() => setHighlightIndex(i), i * wordDuration);
-      });
-      setTimeout(() => {
-        setHighlightIndex(-1);
-        setMentorState("idle");
-      }, words.length * wordDuration + 500);
+      const wd = Math.max(80, 2000 / words.length);
+      words.forEach((_, i) => setTimeout(() => setHighlightIndex(i), i * wd));
+      setTimeout(() => setHighlightIndex(-1), words.length * wd + 500);
 
     } catch (e: any) {
       if (e.name !== "AbortError") {
         console.error("Mentor error:", e);
-        toast({ title: "Error", description: "Could not get a response. Please try again.", variant: "destructive" });
+        toast({ title: "Error", description: "Could not get a response.", variant: "destructive" });
       }
       setMentorState("idle");
     }
-  }, [exchanges, skillTopic, lessonContext, locale, userId, sessionId, toast]);
+  }, [skillTopic, lessonContext, locale, userId, sessionId, toast, playAudioQueue]);
 
-  // TTS with browser SpeechSynthesis
-  const speakSentence = useCallback((text: string) => {
-    if (!("speechSynthesis" in window)) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    // Try to match locale
-    const voices = window.speechSynthesis.getVoices();
-    const langMap: Record<string, string> = {
-      en: "en", fr: "fr", es: "es", "zh-CN": "zh-CN", "zh-TW": "zh-TW",
-      de: "de", ja: "ja", ko: "ko", pt: "pt", ar: "ar",
-    };
-    const targetLang = langMap[locale] || "en";
-    const voice = voices.find(v => v.lang.startsWith(targetLang)) || voices[0];
-    if (voice) utterance.voice = voice;
-    synthRef.current = utterance;
-
-    // Connect to analyser for waveform
-    utterance.onstart = () => {
-      // Create oscillator-based visualization for TTS output
-      if (audioCtxRef.current && analyserRef.current) {
-        const osc = audioCtxRef.current.createOscillator();
-        const gain = audioCtxRef.current.createGain();
-        gain.gain.value = 0.01;
-        osc.connect(gain);
-        gain.connect(analyserRef.current);
-        osc.start();
-        utterance.onend = () => { osc.stop(); };
+  // ──── Auto-start on open ────
+  useEffect(() => {
+    if (!isOpen) return;
+    const init = async () => {
+      const ok = await startMic();
+      if (ok) {
+        setTimeout(() => startListeningInternal(), 500);
       }
     };
-
-    window.speechSynthesis.speak(utterance);
-  }, [locale]);
+    init();
+  }, [isOpen]);
 
   // Create session on open
   useEffect(() => {
     if (isOpen && userId && !sessionId) {
       supabase.from("voice_sessions" as any).insert({
-        user_id: userId,
-        skill_topic: skillTopic,
-        lesson_id: lessonId || null,
+        user_id: userId, skill_topic: skillTopic, lesson_id: lessonId || null,
       }).select("id").single().then(({ data }) => {
         if (data) setSessionId((data as any).id);
       });
     }
   }, [isOpen, userId, skillTopic, lessonId, sessionId]);
 
-  // Cleanup on close
+  // Cleanup
   const handleClose = useCallback(() => {
-    stopListening();
-    window.speechSynthesis?.cancel();
-    abortRef.current?.abort();
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
+    if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} recognitionRef.current = null; }
+    stopAllAudio();
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
     setMentorState("idle");
     setUserTranscript("");
     setInterimTranscript("");
@@ -393,20 +463,21 @@ const VoiceMentorPanel = ({
     setSessionId(null);
     setShowTranscript(false);
     onClose();
-  }, [stopListening, onClose]);
-
-  const handleMicPromptAccept = useCallback(async () => {
-    setShowMicPrompt(false);
-    const ok = await startMic();
-    if (ok) {
-      setMicPermission("granted");
-      startListening();
-    }
-  }, [startMic, startListening]);
+  }, [stopAllAudio, onClose]);
 
   if (!isOpen) return null;
 
-  const responseWords = mentorResponse.split(/\s+/);
+  const responseWords = mentorResponse.split(/\s+/).filter(Boolean);
+
+  const stateColor = mentorState === "listening" ? "from-blue-500/20 to-cyan-500/10"
+    : mentorState === "speaking" ? "from-emerald-500/20 to-green-500/10"
+    : mentorState === "thinking" ? "from-amber-500/20 to-yellow-500/10"
+    : "from-primary/10 to-primary/5";
+
+  const avatarGlow = mentorState === "speaking" ? "shadow-[0_0_30px_rgba(34,197,94,0.4)]"
+    : mentorState === "listening" ? "shadow-[0_0_30px_rgba(59,130,246,0.4)]"
+    : mentorState === "thinking" ? "shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+    : "shadow-lg";
 
   return (
     <AnimatePresence>
@@ -416,153 +487,122 @@ const VoiceMentorPanel = ({
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       >
-        {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={handleClose} />
 
-        {/* Panel */}
         <motion.div
-          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          initial={{ scale: 0.9, opacity: 0, y: 30 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 20 }}
+          exit={{ scale: 0.9, opacity: 0, y: 30 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative z-10 w-full max-w-lg bg-card rounded-2xl shadow-2xl border border-border overflow-hidden max-h-[90vh] flex flex-col"
+          className="relative z-10 w-full max-w-md bg-card rounded-3xl shadow-2xl border border-border overflow-hidden max-h-[85vh] flex flex-col"
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-primary/10 to-primary/5">
+          <div className={`px-5 py-4 bg-gradient-to-r ${stateColor} transition-colors duration-500`}>
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  🎙️ Skill Mentor
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium">LIVE</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-0.5">Topic: {skillTopic}</p>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <div>
+                  <h2 className="text-base font-bold text-foreground">Voice Mentor</h2>
+                  <p className="text-xs text-muted-foreground">{skillTopic}</p>
+                </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full">
-                <X className="w-5 h-5" />
+              <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full h-8 w-8">
+                <X className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
-          {/* Mentor Avatar & Waveform */}
-          <div className="px-6 py-5 flex flex-col items-center gap-3">
-            {/* Avatar */}
-            <div className="relative">
-              <motion.div
-                className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-4xl shadow-lg"
-                animate={
-                  mentorState === "speaking"
-                    ? { boxShadow: ["0 0 0 0 hsla(var(--primary), 0.4)", "0 0 0 20px hsla(var(--primary), 0)", "0 0 0 0 hsla(var(--primary), 0.4)"] }
-                    : mentorState === "thinking"
-                    ? { scale: [1, 1.05, 1] }
-                    : {}
-                }
-                transition={{ duration: mentorState === "speaking" ? 1.5 : 2, repeat: Infinity }}
-              >
-                🧑‍🏫
-              </motion.div>
-              {mentorState === "listening" && (
-                <motion.div
-                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center"
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 0.8, repeat: Infinity }}
-                >
-                  <Mic className="w-3 h-3 text-white" />
-                </motion.div>
-              )}
-            </div>
+          {/* Avatar + Waveform */}
+          <div className="px-5 py-6 flex flex-col items-center gap-4">
+            <motion.div
+              className={`w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-5xl ${avatarGlow} transition-shadow duration-500`}
+              animate={
+                mentorState === "speaking" ? { scale: [1, 1.05, 1] } :
+                mentorState === "thinking" ? { rotate: [0, 5, -5, 0] } : {}
+              }
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              🧑‍🏫
+            </motion.div>
+
             <div className="text-center">
               <p className="font-semibold text-foreground">Jordan</p>
-              <p className="text-xs text-muted-foreground">Your Life Skills Coach</p>
+              <div className="h-5 mt-1">
+                {mentorState === "listening" && (
+                  <motion.p className="text-xs text-blue-400 flex items-center justify-center gap-1" animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                    <Mic className="w-3 h-3" /> Listening — just speak...
+                  </motion.p>
+                )}
+                {mentorState === "thinking" && (
+                  <p className="text-xs text-amber-400 flex items-center justify-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Thinking...
+                  </p>
+                )}
+                {mentorState === "speaking" && (
+                  <p className="text-xs text-emerald-400 flex items-center justify-center gap-1">
+                    <Volume2 className="w-3 h-3" /> Speaking — interrupt anytime
+                  </p>
+                )}
+                {mentorState === "idle" && (
+                  <p className="text-xs text-muted-foreground">Ready to listen</p>
+                )}
+              </div>
             </div>
 
             {/* Waveform */}
-            <canvas
-              ref={canvasRef}
-              width={320}
-              height={40}
-              className="w-full max-w-[320px] h-10 rounded-lg"
-            />
-
-            {/* Status */}
-            <div className="h-5">
-              {mentorState === "listening" && (
-                <motion.p className="text-sm text-primary font-medium flex items-center gap-1" animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
-                  <Mic className="w-3 h-3" /> Listening...
-                </motion.p>
-              )}
-              {mentorState === "thinking" && (
-                <motion.p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Jordan is thinking...
-                </motion.p>
-              )}
-              {mentorState === "speaking" && (
-                <motion.p className="text-sm text-green-500 flex items-center gap-1">
-                  <Volume2 className="w-3 h-3" /> Jordan is speaking...
-                </motion.p>
-              )}
-            </div>
+            <canvas ref={canvasRef} width={380} height={50} className="w-full max-w-[380px] h-[50px] rounded-xl" />
           </div>
 
-          {/* Conversation Area */}
-          <div className="flex-1 overflow-y-auto px-6 pb-3 space-y-3 min-h-0 max-h-[30vh]">
-            {/* User transcript */}
+          {/* Conversation */}
+          <div className="flex-1 overflow-y-auto px-5 pb-3 space-y-3 min-h-0 max-h-[28vh]">
             {(userTranscript || interimTranscript) && (
-              <div className="bg-primary/10 rounded-xl p-3">
-                <p className="text-xs font-medium text-muted-foreground mb-1">🗣️ You said:</p>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-blue-500/10 rounded-2xl p-3 border border-blue-500/20">
+                <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-1">You</p>
                 <p className="text-sm text-foreground">
                   {userTranscript}
-                  {interimTranscript && <span className="italic text-muted-foreground">{interimTranscript}</span>}
+                  {interimTranscript && <span className="text-muted-foreground italic"> {interimTranscript}</span>}
                 </p>
-              </div>
+              </motion.div>
             )}
 
-            {/* Mentor response */}
             {mentorResponse && (
-              <div className="bg-secondary rounded-xl p-3">
-                <p className="text-xs font-medium text-muted-foreground mb-1">💬 Jordan:</p>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-emerald-500/10 rounded-2xl p-3 border border-emerald-500/20">
+                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">Jordan</p>
                 <p className="text-sm text-foreground leading-relaxed">
                   {responseWords.map((word, i) => (
-                    <span
-                      key={i}
-                      className={`transition-colors duration-150 ${
-                        i === highlightIndex ? "text-primary font-semibold" :
-                        i < highlightIndex ? "text-foreground" : "text-foreground/70"
-                      }`}
-                    >
-                      {word}{" "}
-                    </span>
+                    <span key={i} className={`transition-colors duration-150 ${
+                      i === highlightIndex ? "text-primary font-semibold" :
+                      i < highlightIndex ? "text-foreground" : "text-foreground/70"
+                    }`}>{word} </span>
                   ))}
                 </p>
-              </div>
+              </motion.div>
             )}
           </div>
 
-          {/* Footer Info */}
-          <div className="px-6 py-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-            <span>📍 {skillTopic} | 💬 {Math.floor(exchanges.length / 2)} exchanges</span>
-            <button onClick={() => setShowTranscript(!showTranscript)} className="flex items-center gap-1 hover:text-foreground transition-colors">
-              <FileText className="w-3 h-3" />
-              {showTranscript ? "Hide" : "View"} Transcript
-            </button>
+          {/* Footer */}
+          <div className="px-5 py-3 border-t border-border flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground">💬 {Math.floor(exchanges.length / 2)} exchanges</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowTranscript(!showTranscript)} className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
+                <FileText className="w-3 h-3" /> Transcript
+              </button>
+              <Button variant="destructive" size="sm" onClick={handleClose} className="rounded-full text-xs h-7 px-3">
+                End
+              </Button>
+            </div>
           </div>
 
           {/* Transcript Drawer */}
           <AnimatePresence>
             {showTranscript && (
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: "auto" }}
-                exit={{ height: 0 }}
-                className="overflow-hidden border-t border-border"
-              >
-                <div className="px-6 py-3 max-h-[200px] overflow-y-auto space-y-2 bg-muted/30">
-                  {exchanges.length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-4">No exchanges yet. Start talking!</p>
-                  )}
+              <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden border-t border-border">
+                <div className="px-5 py-3 max-h-[180px] overflow-y-auto space-y-2 bg-muted/20">
+                  {exchanges.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">No exchanges yet</p>}
                   {exchanges.map((ex, i) => (
                     <div key={i} className="text-xs">
                       <span className="text-muted-foreground">[{ex.time}]</span>{" "}
-                      <span className={ex.speaker === "user" ? "text-primary font-medium" : "text-green-500 font-medium"}>
+                      <span className={ex.speaker === "user" ? "text-blue-400" : "text-emerald-400"}>
                         {ex.speaker === "user" ? "You" : "Jordan"}:
                       </span>{" "}
                       <span className="text-foreground">{ex.text.slice(0, 200)}{ex.text.length > 200 ? "..." : ""}</span>
@@ -572,69 +612,7 @@ const VoiceMentorPanel = ({
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Controls */}
-          <div className="px-6 py-4 border-t border-border flex items-center justify-center gap-4">
-            <Button
-              onClick={mentorState === "listening" ? stopListening : startListening}
-              disabled={mentorState === "thinking" || mentorState === "speaking"}
-              className={`rounded-full w-14 h-14 ${
-                mentorState === "listening"
-                  ? "bg-red-500 hover:bg-red-600 text-white"
-                  : "bg-primary hover:bg-primary/90 text-primary-foreground"
-              }`}
-              size="icon"
-            >
-              {mentorState === "listening" ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => {
-                window.speechSynthesis?.cancel();
-                abortRef.current?.abort();
-                setMentorState("idle");
-              }}
-              disabled={mentorState === "idle"}
-              className="rounded-full"
-              size="icon"
-            >
-              <Pause className="w-5 h-5" />
-            </Button>
-
-            <Button
-              variant="destructive"
-              onClick={handleClose}
-              className="rounded-full px-4"
-            >
-              End Session
-            </Button>
-          </div>
         </motion.div>
-
-        {/* Mic Permission Prompt */}
-        <AnimatePresence>
-          {showMicPrompt && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="absolute z-20 bg-card rounded-2xl p-6 shadow-2xl border border-border max-w-sm mx-4"
-            >
-              <div className="text-center space-y-3">
-                <div className="text-4xl">🎤</div>
-                <h3 className="font-bold text-foreground">Microphone Access</h3>
-                <p className="text-sm text-muted-foreground">
-                  To talk with your mentor, we need access to your microphone. Your audio is never stored — only the transcribed text is saved if you choose.
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setShowMicPrompt(false)} className="flex-1">Cancel</Button>
-                  <Button onClick={handleMicPromptAccept} className="flex-1">Allow</Button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
     </AnimatePresence>
   );
