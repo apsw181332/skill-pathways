@@ -573,20 +573,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         </motion.div>
       )}
 
-      {/* Add friend by invite code */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-6">
-        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-          <UserPlus className="w-4 h-4 text-primary" /> {t("home.add_friend")}
-        </h3>
-        <div className="flex gap-2 mb-2">
-          <Input value={inviteCode} onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="Enter invite code..." className="flex-1 font-mono"
-            maxLength={8} onKeyDown={e => e.key === "Enter" && handleAddFriendByCode()} />
-          <Button size="sm" onClick={handleAddFriendByCode} disabled={addingFriend || inviteCode.length < 8}>
-            {addingFriend ? "..." : "Add"}
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground">{t("home.your_code")}: <span className="font-mono font-semibold text-foreground">{myInviteCode}</span></p>
-      </motion.div>
+      {/* Invite code moved to Friends page */}
 
       {/* Enrolled courses */}
       {enrolledCourses.length > 0 && (
