@@ -45,6 +45,10 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
   const [editingNickname, setEditingNickname] = useState<string | null>(null);
   const [nicknameInput, setNicknameInput] = useState("");
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const EMOJI_LIST = ["😀","😂","😍","🥳","😎","🤔","👍","👏","🎉","❤️","🔥","💎","⭐","🎯","💪","🙏","😅","🤣","😊","🥰","😤","😱","🤝","✨","🌟","💖","🫡","😏"];
 
   // Translate static UI strings
   const uiTexts = useMemo(() => [
