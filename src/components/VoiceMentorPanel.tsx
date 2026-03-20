@@ -429,6 +429,15 @@ const VoiceMentorPanel = ({
       }
     };
     init();
+
+    // Cleanup when panel closes
+    return () => {
+      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} recognitionRef.current = null; }
+      stopAllAudio();
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+      if (audioCtxRef.current) { try { audioCtxRef.current.close(); } catch {} audioCtxRef.current = null; }
+      analyserRef.current = null;
+    };
   }, [isOpen]);
 
   // Create session on open
