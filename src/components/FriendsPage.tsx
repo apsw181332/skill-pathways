@@ -208,12 +208,17 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
     setEditingMsgId(null); setEditText("");
   };
 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
   if (chatFriend) {
     const fProfile = friendProfiles[chatFriend];
     const friendName = getFriendDisplayName(chatFriend);
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-col h-[calc(100vh-140px)]">
+        {/* Fixed header */}
+        <div className="flex items-center gap-3 mb-2 shrink-0">
           <button onClick={() => setChatFriend(null)} className="text-muted-foreground hover:text-foreground"><ArrowLeft className="w-5 h-5" /></button>
           <AvatarBubble url={fProfile?.avatar_url} name={friendName} />
           <div className="flex-1 min-w-0">
@@ -224,13 +229,14 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
           <span className="text-xs text-muted-foreground">{fProfile?.xp || 0} XP</span>
         </div>
         {editingNickname === chatFriend && (
-          <div className="flex gap-2 mb-3 p-3 rounded-lg bg-secondary/50">
+          <div className="flex gap-2 mb-2 p-3 rounded-lg bg-secondary/50 shrink-0">
             <Input value={nicknameInput} onChange={e => setNicknameInput(e.target.value)} placeholder="Set a nickname..." className="flex-1" onKeyDown={e => e.key === "Enter" && saveNickname(chatFriend)} />
             <Button size="sm" onClick={() => saveNickname(chatFriend)}>Save</Button>
             <Button size="sm" variant="ghost" onClick={() => setEditingNickname(null)}>Cancel</Button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto space-y-3 min-h-[200px] max-h-[50vh]">
+        {/* Scrollable chat history */}
+        <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
           {chatMessages.length === 0 && (
             <div className="text-center text-muted-foreground py-12">
               <MessageCircle className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
@@ -274,12 +280,28 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
               </div>
             );
           })}
+          <div ref={chatEndRef} />
         </div>
-        <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
+        {/* Emoji picker */}
+        {showEmojiPicker && (
+          <div className="shrink-0 bg-secondary/80 rounded-xl p-2 mt-2 grid grid-cols-7 gap-1.5 max-h-32 overflow-y-auto">
+            {EMOJI_LIST.map(emoji => (
+              <button key={emoji} onClick={() => { setChatInput(prev => prev + emoji); setShowEmojiPicker(false); }}
+                className="text-xl hover:scale-125 transition-transform p-1 rounded hover:bg-primary/10">
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+        {/* Fixed input bar */}
+        <div className="flex items-center gap-2 mt-2 pt-3 border-t border-border shrink-0">
           <Button variant="outline" size="icon" className="shrink-0" onClick={() => setGiftAmount(prev => prev > 0 ? 0 : 5)}>
             <Gift className={`w-4 h-4 ${giftAmount > 0 ? "text-cyan-500" : "text-muted-foreground"}`} />
           </Button>
           {giftAmount > 0 && <Input type="number" min={1} value={giftAmount} onChange={e => setGiftAmount(Math.max(1, parseInt(e.target.value) || 0))} className="w-16 text-center" />}
+          <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowEmojiPicker(prev => !prev)}>
+            <Smile className={`w-4 h-4 ${showEmojiPicker ? "text-primary" : "text-muted-foreground"}`} />
+          </Button>
           <Input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={tUi[10]} className="flex-1" onKeyDown={e => e.key === "Enter" && handleSendMessage()} />
           <Button size="icon" onClick={handleSendMessage} disabled={!chatInput.trim() && giftAmount <= 0}><Send className="w-4 h-4" /></Button>
         </div>
