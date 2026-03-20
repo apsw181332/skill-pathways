@@ -606,7 +606,7 @@ const VoiceMentorPanel = ({
                     <div key={i} className="text-xs">
                       <span className="text-muted-foreground">[{ex.time}]</span>{" "}
                       <span className={ex.speaker === "user" ? "text-blue-400" : "text-emerald-400"}>
-                        {ex.speaker === "user" ? "You" : "Jordan"}:
+                        {ex.speaker === "user" ? "You" : "Pebble"}:
                       </span>{" "}
                       <span className="text-foreground">{ex.text.slice(0, 200)}{ex.text.length > 200 ? "..." : ""}</span>
                     </div>
