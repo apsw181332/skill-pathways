@@ -145,6 +145,11 @@ const Index = () => {
 
   const handleAuth = () => setState("onboarding");
   const handleSignOut = async () => { await signOut(); setState("landing"); };
+
+  // Show MFA verify screen if needed
+  if (isReady && user && needsMfaVerify) {
+    return <MFAVerify onVerified={clearMfaVerify} />;
+  }
   const handleStartLesson = (categoryId: string, lessonId: number, isReview: boolean = false) => {
     setIsTransitioning(true);
     setActiveLessonCategory(categoryId);
