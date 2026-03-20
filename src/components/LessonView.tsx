@@ -559,9 +559,26 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     }
   };
 
+  const canUseEcho = () => {
+    if (echoUsed || !step) return false;
+    const isQuiz = step.type === "quiz" && shuffledQuiz;
+    const isTypeIn = step.type === "type-in";
+    switch (chosenPath) {
+      case "chronos": return lastWrongQuizIndex !== null && !showFeedback;
+      case "syntax": return isQuiz && !showFeedback;
+      case "eloquence": return (isQuiz || isTypeIn) && !showFeedback;
+      case "treasury": return (isQuiz || isTypeIn) && !showFeedback;
+      case "vitality": return lives < 3;
+      case "fortitude": return !shieldActive;
+      case "surge": return isQuiz && !showFeedback;
+      case "unity": return isQuiz && !showFeedback;
+      case "cosmos": return isQuiz && !showFeedback;
+      default: return isQuiz && !showFeedback;
+    }
+  };
+
   const handleUseEcho = () => {
-    if (echoUsed || !step) return;
-    // Most powers work on quiz, but some (vitality, fortitude) work on any step
+    if (echoUsed || !step || !canUseEcho()) return;
     const isQuiz = step.type === "quiz" && shuffledQuiz;
 
     const power = ECHO_PATH_POWERS[chosenPath || ""] || ECHO_PATH_POWERS.default;
@@ -572,15 +589,12 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
     switch (chosenPath) {
       case "chronos": {
-        // Rewind to last wrong question
         if (lastWrongQuizIndex !== null) {
           setCurrentStep(lastWrongQuizIndex);
           setSelectedAnswer(null);
           setShowFeedback(false);
           setHiddenOptions([]);
           setFeedbackMascotMsg("⏳ Time rewound! Try that question again.");
-        } else {
-          setFeedbackMascotMsg("⏳ No wrong answers yet — time flows steady.");
         }
         return;
       }
