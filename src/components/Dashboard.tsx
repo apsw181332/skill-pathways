@@ -990,8 +990,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
             <motion.div key={badge.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 + i * 0.05 }}
               className={`lesson-card text-center py-4 ${!earned ? "opacity-40 grayscale" : ""}`}>
               <span className="text-3xl">{badge.emoji}</span>
-              <p className="font-medium text-foreground text-sm mt-2">{badge.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{badge.desc}</p>
+              <p className="font-medium text-foreground text-sm mt-2">{tBadgeTexts[i * 2] ?? badge.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{tBadgeTexts[i * 2 + 1] ?? badge.desc}</p>
               {earned && <span className="inline-block mt-2 text-xs text-primary font-medium">{t("missions.done")}</span>}
             </motion.div>
           );
