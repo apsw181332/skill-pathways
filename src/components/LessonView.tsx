@@ -312,7 +312,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
-        <Confetti active={showConfetti} />
+        <EndLessonEffect pathId={chosenPath || null} active={showEndEffect} />
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
           <Mascot message={msg} size="md" animation="celebrate" />
           <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">
