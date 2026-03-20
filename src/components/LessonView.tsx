@@ -363,26 +363,17 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
   if (showChest) {
     return (
       <TreasureChest
-        onComplete={(gems) => {
-          // Save gems in background, navigate immediately
+        onComplete={(gemsEarned) => {
+          // Save gems in background
           if (userId) {
             supabase.from("profiles").select("gems").eq("user_id", userId).single()
               .then(({ data: profile }) => {
                 if (profile) {
-                  supabase.from("profiles").update({ gems: (profile as any).gems + gems } as any).eq("user_id", userId);
+                  supabase.from("profiles").update({ gems: (profile as any).gems + gemsEarned } as any).eq("user_id", userId);
                 }
               });
           }
-          // Auto-advance to next lesson immediately
-          const course = COURSES.find(c => c.id === categoryId);
-          if (course && onNextLesson) {
-            const currentIndex = course.lessons.findIndex(l => l.id === lessonId);
-            const nextLesson = course.lessons[currentIndex + 1];
-            if (nextLesson) {
-              onNextLesson(categoryId, nextLesson.id);
-              return;
-            }
-          }
+          // Go back to dashboard after collecting gems
           onBack();
         }}
         onClose={onBack}

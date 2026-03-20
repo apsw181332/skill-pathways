@@ -140,8 +140,12 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
     onUpdate("theme_color", color);
   };
 
-  const handleLanguageChange = (lang: string) => {
-    onUpdate("language" as keyof UserSettings, lang as any);
+  const [languageLoading, setLanguageLoading] = useState(false);
+
+  const handleLanguageChange = async (lang: string) => {
+    setLanguageLoading(true);
+    await onUpdate("language" as keyof UserSettings, lang as any);
+    setTimeout(() => setLanguageLoading(false), 1500);
   };
 
   const toggleAccessibilityMode = (modeId: string) => {
