@@ -125,6 +125,11 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const getCourseName = (idx: number) => tCourseTexts[idx * 2] ?? COURSES[idx]?.label ?? "";
   const getCourseDesc = (idx: number) => tCourseTexts[idx * 2 + 1] ?? COURSES[idx]?.description ?? "";
   const greetingMsg = tDashMascot[0] ?? greetingMsgEn;
+
+  // Translate badge labels and descriptions
+  const badgeTexts = useMemo(() => BADGE_DEFINITIONS.flatMap(b => [b.label, b.desc]), []);
+  const { translated: tBadgeTexts } = useTranslatedContent(badgeTexts, locale, "badge names and descriptions");
+
   const [myInviteCode, setMyInviteCode] = useState(user.id.slice(0, 8).toUpperCase());
 
   const filteredCourses = COURSES.map((c, i) => ({ ...c, tLabel: getCourseName(i), tDesc: getCourseDesc(i) })).filter(c => {
