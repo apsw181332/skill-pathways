@@ -28,7 +28,7 @@ const VoiceMentorFAB = ({ skillTopic, lessonContext, lessonId, userId, locale = 
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
             className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center group"
-            aria-label="Talk to Mentor"
+            aria-label="Ask Pebble"
           >
             <Mic className="w-6 h-6" />
             {/* Pulsing glow */}
@@ -39,7 +39,7 @@ const VoiceMentorFAB = ({ skillTopic, lessonContext, lessonId, userId, locale = 
             />
             {/* Desktop label */}
             <span className="hidden md:block absolute right-full mr-3 whitespace-nowrap bg-card text-foreground text-sm font-medium px-3 py-1.5 rounded-lg shadow-md border border-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Talk to Mentor
+              Ask Pebble
             </span>
           </motion.button>
         )}

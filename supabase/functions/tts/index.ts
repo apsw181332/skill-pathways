@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { text, voiceId } = await req.json();
+    const { text, voiceId, speed } = await req.json();
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 
     if (!ELEVENLABS_API_KEY) {
@@ -27,8 +27,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use Sarah voice by default (friendly, clear)
-    const voice = voiceId || "EXAVITQu4vr4xnSDxMaL";
+    // Use Callum voice by default (young male)
+    const voice = voiceId || "N2lVS1w4EtoT3dr4eOWO";
+    const ttsSpeed = typeof speed === "number" ? Math.min(1.5, Math.max(0.5, speed)) : 1.0;
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_128`,
@@ -46,7 +47,7 @@ Deno.serve(async (req) => {
             similarity_boost: 0.75,
             style: 0.3,
             use_speaker_boost: true,
-            speed: 1.0,
+            speed: ttsSpeed,
           },
         }),
       }
