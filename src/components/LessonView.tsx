@@ -735,7 +735,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
       // Show end lesson path effect
       if (chosenPath) {
         setShowEndEffect(true);
-        setTimeout(() => setShowEndEffect(false), 3000);
+        setTimeout(() => setShowEndEffect(false), 8000);
       }
       setShowCompletion(true);
     }
