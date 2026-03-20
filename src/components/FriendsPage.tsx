@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  UserPlus, Users, Check, X, Search, MessageCircle, Gift, Send,
-  ArrowLeft, Diamond, User as UserIcon, Copy
+  UserPlus, Users, Check, X, MessageCircle, Gift, Send,
+  ArrowLeft, Diamond, User as UserIcon, Copy, Pencil, Undo2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import Mascot from "@/components/Mascot";
 import type { Locale } from "@/lib/i18n";
 import { useTranslation } from "@/lib/i18n";
+import { useTranslatedContent } from "@/hooks/useTranslation";
 
 interface FriendData { id: string; user_id: string; friend_id: string; status: string; }
 interface ProfileData { user_id: string; display_name: string | null; xp: number; streak: number; level: number; }
@@ -22,10 +23,11 @@ interface FriendsPageProps {
   locale?: Locale;
 }
 
+const RECALL_WINDOW = 3 * 60 * 1000;
+
 const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
   const { t } = useTranslation(locale);
   const { toast } = useToast();
-  const [view, setView] = useState<"list" | "chat">("list");
   const [friends, setFriends] = useState<FriendData[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendData[]>([]);
   const [friendProfiles, setFriendProfiles] = useState<Record<string, ProfileData>>({});
@@ -37,6 +39,18 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [giftAmount, setGiftAmount] = useState(0);
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+
+  // Translate static UI strings
+  const uiTexts = useMemo(() => [
+    "Connect with friends, chat, and gift gems! 🤝💎",
+    "Add Friend", "Enter invite code...", "Add", "Your invite code", "Copied! 📋",
+    "Pending Requests", "No friends yet. Share your invite code to connect!",
+    "Friends", "No messages yet. Say hi! 👋", "Type a message...",
+    "gems gifted", "Message recalled", "(edited)"
+  ], []);
+  const { translated: tUi } = useTranslatedContent(uiTexts, locale, "friends page UI");
 
   const refreshSocialData = useCallback(async () => {
     const [sent, received, pending, profileRes] = await Promise.all([
@@ -45,33 +59,20 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
       supabase.from("friendships").select("*").eq("friend_id", userId).eq("status", "pending"),
       supabase.from("profiles").select("friend_code").eq("user_id", userId).single(),
     ]);
-
     if (profileRes.data) setMyInviteCode((profileRes.data as any).friend_code || "");
-
     const allFriends = [...(sent.data || []), ...(received.data || [])] as FriendData[];
     const pendingRows = (pending.data || []) as FriendData[];
     setFriends(allFriends);
     setPendingRequests(pendingRows);
-
     const friendIds = [...new Set(allFriends.map(f => f.user_id === userId ? f.friend_id : f.user_id))];
     const pendingIds = [...new Set(pendingRows.map(r => r.user_id))];
-
     if (friendIds.length > 0) {
       const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level").in("user_id", friendIds);
-      if (data) {
-        const map: Record<string, ProfileData> = {};
-        data.forEach(p => { map[p.user_id] = p as ProfileData; });
-        setFriendProfiles(map);
-      }
+      if (data) { const map: Record<string, ProfileData> = {}; data.forEach(p => { map[p.user_id] = p as ProfileData; }); setFriendProfiles(map); }
     } else setFriendProfiles({});
-
     if (pendingIds.length > 0) {
       const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level").in("user_id", pendingIds);
-      if (data) {
-        const map: Record<string, ProfileData> = {};
-        data.forEach(p => { map[p.user_id] = p as ProfileData; });
-        setPendingProfiles(map);
-      }
+      if (data) { const map: Record<string, ProfileData> = {}; data.forEach(p => { map[p.user_id] = p as ProfileData; }); setPendingProfiles(map); }
     } else setPendingProfiles({});
   }, [userId]);
 
@@ -86,7 +87,6 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
     return () => { supabase.removeChannel(channel); };
   }, [refreshSocialData, userId]);
 
-  // Chat messages
   useEffect(() => {
     if (!chatFriend) { setChatMessages([]); return; }
     const loadMessages = async () => {
@@ -108,112 +108,120 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
     return () => { supabase.removeChannel(channel); };
   }, [chatFriend, userId]);
 
-  const handleAccept = async (id: string) => {
-    await supabase.from("friendships").update({ status: "accepted" }).eq("id", id);
-    refreshSocialData();
-  };
-
-  const handleReject = async (id: string) => {
-    await supabase.from("friendships").update({ status: "rejected" }).eq("id", id);
-    refreshSocialData();
-  };
+  const handleAccept = async (id: string) => { await supabase.from("friendships").update({ status: "accepted" }).eq("id", id); refreshSocialData(); };
+  const handleReject = async (id: string) => { await supabase.from("friendships").update({ status: "rejected" }).eq("id", id); refreshSocialData(); };
 
   const handleAddFriend = async () => {
-    if (!inviteCode.trim() || inviteCode.trim().length < 8) {
-      toast({ title: "Invalid code", description: "Enter a valid 8-character invite code.", variant: "destructive" });
-      return;
-    }
+    if (!inviteCode.trim() || inviteCode.trim().length < 8) { toast({ title: "Invalid code", variant: "destructive" }); return; }
     setAddingFriend(true);
     const code = inviteCode.trim().toUpperCase();
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name").eq("friend_code", code);
-    if (!profiles || profiles.length === 0) {
-      toast({ title: "User not found", description: "No user matches this invite code.", variant: "destructive" });
-      setAddingFriend(false); return;
-    }
+    if (!profiles?.length) { toast({ title: "User not found", variant: "destructive" }); setAddingFriend(false); return; }
     const target = profiles[0];
-    if (target.user_id === userId) {
-      toast({ title: "That's you!", description: "You can't add yourself.", variant: "destructive" });
-      setAddingFriend(false); return;
-    }
+    if (target.user_id === userId) { toast({ title: "That's you!", variant: "destructive" }); setAddingFriend(false); return; }
     const { data: existing } = await supabase.from("friendships").select("id")
       .or(`and(user_id.eq.${userId},friend_id.eq.${target.user_id}),and(user_id.eq.${target.user_id},friend_id.eq.${userId})`);
-    if (existing && existing.length > 0) {
-      toast({ title: "Already connected", description: "You already have a friendship with this user." });
-      setAddingFriend(false); return;
-    }
+    if (existing?.length) { toast({ title: "Already connected" }); setAddingFriend(false); return; }
     const { error } = await supabase.from("friendships").insert({ user_id: userId, friend_id: target.user_id, status: "pending" });
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Friend request sent! 🤝", description: `Request sent to ${target.display_name || "user"}.` }); setInviteCode(""); refreshSocialData(); }
+    else { toast({ title: "Friend request sent! 🤝" }); setInviteCode(""); refreshSocialData(); }
     setAddingFriend(false);
   };
 
   const handleSendMessage = async () => {
     if (!chatFriend || (!chatInput.trim() && giftAmount <= 0)) return;
+    const optimisticMsg: ChatMessage = {
+      id: `temp-${Date.now()}`, sender_id: userId, receiver_id: chatFriend,
+      content: chatInput.trim() || `Sent you ${giftAmount} gems! 💎`,
+      gem_gift: giftAmount, created_at: new Date().toISOString(),
+    };
+    setChatMessages(prev => [...prev, optimisticMsg]);
+    const savedInput = chatInput.trim();
+    const savedGift = giftAmount;
+    setChatInput(""); setGiftAmount(0);
+
     const { data, error } = await supabase.functions.invoke("friend-send-message", {
-      body: { receiver_id: chatFriend, content: chatInput.trim(), gem_gift: giftAmount },
+      body: { receiver_id: chatFriend, content: savedInput, gem_gift: savedGift },
     });
     if (error || data?.error) {
-      toast({ title: "Could not send", description: data?.error || error?.message || "Try again.", variant: "destructive" });
+      setChatMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+      toast({ title: "Could not send", description: data?.error || error?.message, variant: "destructive" });
       return;
     }
-    if (data?.message) setChatMessages(prev => prev.some(m => m.id === data.message.id) ? prev : [...prev, data.message as ChatMessage]);
-    setChatInput(""); setGiftAmount(0);
+    if (data?.message) setChatMessages(prev => prev.map(m => m.id === optimisticMsg.id ? (data.message as ChatMessage) : m));
   };
 
-  // Chat view
+  const canRecall = (msg: ChatMessage) => msg.sender_id === userId && (Date.now() - new Date(msg.created_at).getTime()) < RECALL_WINDOW && !msg.content.startsWith("Message recalled");
+  const canEditMsg = (msg: ChatMessage) => canRecall(msg) && msg.gem_gift === 0;
+
+  const handleRecallMsg = (msgId: string) => {
+    setChatMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: tUi[12] || "Message recalled" } : m));
+  };
+
+  const handleEditConfirm = (msgId: string) => {
+    if (!editText.trim()) return;
+    setChatMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: editText.trim() + " " + (tUi[13] || "(edited)") } : m));
+    setEditingMsgId(null); setEditText("");
+  };
+
   if (chatFriend) {
     const fProfile = friendProfiles[chatFriend];
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => { setChatFriend(null); setView("list"); }} className="text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          <button onClick={() => setChatFriend(null)} className="text-muted-foreground hover:text-foreground"><ArrowLeft className="w-5 h-5" /></button>
           <UserIcon className="w-5 h-5 text-primary" />
           <span className="font-medium text-foreground">{fProfile?.display_name || "Friend"}</span>
           <span className="text-xs text-muted-foreground ml-auto">{fProfile?.xp || 0} XP</span>
         </div>
-
         <div className="flex-1 overflow-y-auto space-y-3 min-h-[200px] max-h-[50vh]">
           {chatMessages.length === 0 && (
             <div className="text-center text-muted-foreground py-12">
               <MessageCircle className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
-              <p className="text-sm">No messages yet. Say hi! 👋</p>
+              <p className="text-sm">{tUi[9]}</p>
             </div>
           )}
           {chatMessages.map(msg => {
             const isMine = msg.sender_id === userId;
+            const isRecalled = msg.content.startsWith("Message recalled");
             return (
-              <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm ${isMine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-foreground rounded-bl-md"}`}>
-                  {msg.gem_gift > 0 && (
+              <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"} group`}>
+                <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm relative ${
+                  isRecalled ? "bg-muted text-muted-foreground italic" :
+                  isMine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-foreground rounded-bl-md"
+                }`}>
+                  {msg.gem_gift > 0 && !isRecalled && (
                     <div className={`flex items-center gap-1 mb-1 text-xs font-medium ${isMine ? "text-primary-foreground/80" : "text-cyan-500"}`}>
-                      <Diamond className="w-3 h-3" /> {msg.gem_gift} gems gifted
+                      <Diamond className="w-3 h-3" /> {msg.gem_gift} {tUi[11]}
                     </div>
                   )}
-                  {msg.content}
+                  {editingMsgId === msg.id ? (
+                    <div className="flex items-center gap-1">
+                      <input value={editText} onChange={e => setEditText(e.target.value)} className="bg-transparent border-b border-primary-foreground/50 text-sm w-full outline-none" onKeyDown={e => e.key === "Enter" && handleEditConfirm(msg.id)} autoFocus />
+                      <button onClick={() => handleEditConfirm(msg.id)} className="shrink-0"><Check className="w-3.5 h-3.5" /></button>
+                    </div>
+                  ) : msg.content}
                   <div className={`text-xs mt-1 ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                     {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
+                  {isMine && !isRecalled && !editingMsgId && (
+                    <div className="absolute -top-5 right-0 hidden group-hover:flex gap-1 bg-card border border-border rounded-lg shadow-sm px-1 py-0.5">
+                      {canEditMsg(msg) && <button onClick={() => { setEditingMsgId(msg.id); setEditText(msg.content); }} className="p-0.5 hover:text-primary"><Pencil className="w-3 h-3" /></button>}
+                      {canRecall(msg) && <button onClick={() => handleRecallMsg(msg.id)} className="p-0.5 hover:text-destructive"><Undo2 className="w-3 h-3" /></button>}
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
-
         <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
-          <Button variant="outline" size="icon" className="shrink-0" onClick={() => setGiftAmount(prev => prev > 0 ? 0 : 5)} title="Gift gems">
+          <Button variant="outline" size="icon" className="shrink-0" onClick={() => setGiftAmount(prev => prev > 0 ? 0 : 5)}>
             <Gift className={`w-4 h-4 ${giftAmount > 0 ? "text-cyan-500" : "text-muted-foreground"}`} />
           </Button>
-          {giftAmount > 0 && (
-            <Input type="number" min={1} value={giftAmount} onChange={e => setGiftAmount(Math.max(1, parseInt(e.target.value) || 0))}
-              className="w-16 text-center" />
-          )}
-          <Input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Type a message..."
-            className="flex-1" onKeyDown={e => e.key === "Enter" && handleSendMessage()} />
-          <Button size="icon" onClick={handleSendMessage} disabled={!chatInput.trim() && giftAmount <= 0}>
-            <Send className="w-4 h-4" />
-          </Button>
+          {giftAmount > 0 && <Input type="number" min={1} value={giftAmount} onChange={e => setGiftAmount(Math.max(1, parseInt(e.target.value) || 0))} className="w-16 text-center" />}
+          <Input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={tUi[10]} className="flex-1" onKeyDown={e => e.key === "Enter" && handleSendMessage()} />
+          <Button size="icon" onClick={handleSendMessage} disabled={!chatInput.trim() && giftAmount <= 0}><Send className="w-4 h-4" /></Button>
         </div>
       </div>
     );
@@ -222,39 +230,30 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
   return (
     <div>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <Mascot message="Connect with friends, chat, and gift gems! 🤝💎" size="sm" animation="wave" />
+        <Mascot message={tUi[0]} size="sm" animation="wave" />
       </motion.div>
-
-      {/* Add friend */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-6">
         <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-          <UserPlus className="w-4 h-4 text-primary" /> Add Friend
+          <UserPlus className="w-4 h-4 text-primary" /> {tUi[1]}
         </h3>
         <div className="flex gap-2 mb-3">
-          <Input value={inviteCode} onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="Enter invite code..."
+          <Input value={inviteCode} onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder={tUi[2]}
             className="flex-1 font-mono" maxLength={8} onKeyDown={e => e.key === "Enter" && handleAddFriend()} />
-          <Button size="sm" onClick={handleAddFriend} disabled={addingFriend || inviteCode.length < 8}>
-            {addingFriend ? "..." : "Add"}
-          </Button>
+          <Button size="sm" onClick={handleAddFriend} disabled={addingFriend || inviteCode.length < 8}>{addingFriend ? "..." : tUi[3]}</Button>
         </div>
         <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2">
           <div>
-            <p className="text-xs text-muted-foreground">Your invite code</p>
+            <p className="text-xs text-muted-foreground">{tUi[4]}</p>
             <p className="font-mono font-bold text-foreground tracking-widest">{myInviteCode}</p>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-            navigator.clipboard.writeText(myInviteCode);
-            toast({ title: "Copied! 📋" });
-          }}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { navigator.clipboard.writeText(myInviteCode); toast({ title: tUi[5] }); }}>
             <Copy className="w-4 h-4" />
           </Button>
         </div>
       </motion.div>
-
-      {/* Pending requests */}
       {pendingRequests.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <h3 className="text-sm font-semibold text-foreground mb-2">Pending Requests ({pendingRequests.length})</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-2">{tUi[6]} ({pendingRequests.length})</h3>
           <div className="space-y-2">
             {pendingRequests.map(req => {
               const profile = pendingProfiles[req.user_id];
@@ -262,21 +261,15 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
                 <div key={req.id} className="lesson-card flex items-center gap-3 py-3">
                   <UserIcon className="w-4 h-4 text-primary" />
                   <span className="flex-1 font-medium text-foreground text-sm">{profile?.display_name || "Anonymous"}</span>
-                  <button onClick={() => handleAccept(req.id)} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20">
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleReject(req.id)} className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20">
-                    <X className="w-4 h-4" />
-                  </button>
+                  <button onClick={() => handleAccept(req.id)} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20"><Check className="w-4 h-4" /></button>
+                  <button onClick={() => handleReject(req.id)} className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20"><X className="w-4 h-4" /></button>
                 </div>
               );
             })}
           </div>
         </motion.div>
       )}
-
-      {/* Friends list */}
-      <h3 className="text-sm font-semibold text-foreground mb-3">Friends ({friends.length})</h3>
+      <h3 className="text-sm font-semibold text-foreground mb-3">{tUi[8]} ({friends.length})</h3>
       {friends.length > 0 ? (
         <div className="space-y-2">
           {friends.map(friend => {
@@ -284,17 +277,11 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
             const profile = friendProfiles[fId];
             return (
               <motion.button key={friend.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
-                onClick={() => setChatFriend(fId)}
-                className="lesson-card flex items-center gap-3 py-3 w-full text-left hover:border-primary transition-colors">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <UserIcon className="w-4 h-4 text-primary" />
-                </div>
+                onClick={() => setChatFriend(fId)} className="lesson-card flex items-center gap-3 py-3 w-full text-left hover:border-primary transition-colors">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><UserIcon className="w-4 h-4 text-primary" /></div>
                 <div className="flex-1 min-w-0">
                   <span className="font-medium text-foreground text-sm">{profile?.display_name || "Anonymous"}</span>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{profile?.xp || 0} XP</span>
-                    <span>🔥 {profile?.streak || 0}</span>
-                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>{profile?.xp || 0} XP</span><span>🔥 {profile?.streak || 0}</span></div>
                 </div>
                 <MessageCircle className="w-4 h-4 text-primary shrink-0" />
               </motion.button>
@@ -304,7 +291,7 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
       ) : (
         <div className="lesson-card text-center py-8">
           <Users className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No friends yet. Share your invite code to connect!</p>
+          <p className="text-sm text-muted-foreground">{tUi[7]}</p>
         </div>
       )}
     </div>

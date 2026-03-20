@@ -140,8 +140,12 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
     onUpdate("theme_color", color);
   };
 
-  const handleLanguageChange = (lang: string) => {
-    onUpdate("language" as keyof UserSettings, lang as any);
+  const [languageLoading, setLanguageLoading] = useState(false);
+
+  const handleLanguageChange = async (lang: string) => {
+    setLanguageLoading(true);
+    await onUpdate("language" as keyof UserSettings, lang as any);
+    setTimeout(() => setLanguageLoading(false), 1500);
   };
 
   const toggleAccessibilityMode = (modeId: string) => {
@@ -152,6 +156,20 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
     applyAccessibilityModes(next);
     onUpdate("accessibility_modes" as keyof UserSettings, next as any);
   };
+
+  if (languageLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6">
+        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="text-5xl">🌐</motion.div>
+        <p className="text-lg font-semibold text-foreground">Changing language...</p>
+        <div className="flex gap-2">
+          {[0, 1, 2, 3].map(i => (
+            <motion.div key={i} className="w-3 h-3 rounded-full bg-primary" animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.15 }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -336,20 +354,6 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
               </div>
             </div>
             <Switch checked={settings.sound_enabled} onCheckedChange={(v) => onUpdate("sound_enabled", v)} />
-          </div>
-        </motion.div>
-
-        {/* TTS */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="lesson-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Languages className="w-5 h-5 text-primary" />
-              <div>
-                <h2 className="font-semibold text-foreground">{t("settings.tts")}</h2>
-                <p className="text-sm text-muted-foreground">{t("settings.tts_desc")}</p>
-              </div>
-            </div>
-            <Switch checked={settings.tts_enabled} onCheckedChange={(v) => onUpdate("tts_enabled", v)} />
           </div>
         </motion.div>
 
