@@ -61,9 +61,12 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
       supabase.from("friendships").select("*").eq("user_id", userId).eq("status", "accepted"),
       supabase.from("friendships").select("*").eq("friend_id", userId).eq("status", "accepted"),
       supabase.from("friendships").select("*").eq("friend_id", userId).eq("status", "pending"),
-      supabase.from("profiles").select("friend_code").eq("user_id", userId).single(),
+      supabase.from("profiles").select("friend_code, avatar_url").eq("user_id", userId).single(),
     ]);
-    if (profileRes.data) setMyInviteCode((profileRes.data as any).friend_code || "");
+    if (profileRes.data) {
+      setMyInviteCode((profileRes.data as any).friend_code || "");
+      setMyAvatarUrl((profileRes.data as any).avatar_url || null);
+    }
     const allFriends = [...(sent.data || []), ...(received.data || [])] as FriendData[];
     const pendingRows = (pending.data || []) as FriendData[];
     setFriends(allFriends);
@@ -71,13 +74,18 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
     const friendIds = [...new Set(allFriends.map(f => f.user_id === userId ? f.friend_id : f.user_id))];
     const pendingIds = [...new Set(pendingRows.map(r => r.user_id))];
     if (friendIds.length > 0) {
-      const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level").in("user_id", friendIds);
+      const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level, avatar_url").in("user_id", friendIds);
       if (data) { const map: Record<string, ProfileData> = {}; data.forEach(p => { map[p.user_id] = p as ProfileData; }); setFriendProfiles(map); }
     } else setFriendProfiles({});
     if (pendingIds.length > 0) {
-      const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level").in("user_id", pendingIds);
+      const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level, avatar_url").in("user_id", pendingIds);
       if (data) { const map: Record<string, ProfileData> = {}; data.forEach(p => { map[p.user_id] = p as ProfileData; }); setPendingProfiles(map); }
     } else setPendingProfiles({});
+    // Load nicknames from localStorage
+    try {
+      const saved = localStorage.getItem(`nicknames-${userId}`);
+      if (saved) setNicknames(JSON.parse(saved));
+    } catch {}
   }, [userId]);
 
   useEffect(() => {
