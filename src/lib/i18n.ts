@@ -8,6 +8,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.learn": "Learn",
     "nav.missions": "Missions",
     "nav.shop": "Shop",
+    "nav.friends": "Friends",
     "nav.profile": "Profile",
     "settings.title": "Settings",
     "settings.language": "Language",
