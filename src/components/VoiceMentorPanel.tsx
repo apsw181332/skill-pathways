@@ -147,13 +147,6 @@ const VoiceMentorPanel = ({
     }
   }, [toast]);
 
-  // ──── Manual interrupt button ────
-  const handleInterrupt = useCallback(() => {
-    if (mentorState !== "speaking") return;
-    bargeInActiveRef.current = true;
-    stopAllAudio();
-    startListeningInternal();
-  }, [mentorState, stopAllAudio]);
 
   // ──── TTS via ElevenLabs edge function ────
   // Use "Callum" voice (young male) — ID: N2lVS1w4EtoT3dr4eOWO
