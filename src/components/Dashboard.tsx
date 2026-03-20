@@ -106,6 +106,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const [giftAmount, setGiftAmount] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [gemOverlay, setGemOverlay] = useState<{ active: boolean; amount: number }>({ active: false, amount: 0 });
+  const [unreadFriendCount, setUnreadFriendCount] = useState(0);
   const { toast } = useToast();
 
   const levelInfo = getXpProgress(xp);
