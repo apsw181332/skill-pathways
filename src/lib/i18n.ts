@@ -236,6 +236,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.learn": "Aprender",
     "nav.missions": "Misiones",
     "nav.shop": "Tienda",
+    "nav.friends": "Amigos",
     "nav.profile": "Perfil",
     "settings.title": "Configuración",
     "settings.language": "Idioma",
