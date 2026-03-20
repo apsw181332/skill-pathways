@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, User, Lock, Check, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, User, Lock, Check, Loader2, Trash2, Mic, History } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
