@@ -251,8 +251,18 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [refreshSocialData, user.id]);
+    // Listen for incoming messages for notification badge
+    const msgChannel = supabase.channel(`friend-msg-notify-${user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "friend_messages" }, (payload) => {
+        const msg = payload.new as ChatMessage;
+        if (msg.receiver_id === user.id && activeTab !== "friends") {
+          setUnreadFriendCount(prev => prev + 1);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); supabase.removeChannel(msgChannel); };
+  }, [refreshSocialData, user.id, activeTab]);
 
   // Missions and titles are now loaded from achievements in fetchAll above
 
