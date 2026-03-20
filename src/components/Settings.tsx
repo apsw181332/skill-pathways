@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Languages, User, Lock, Check, Loader2, Trash2, AlertTriangle, Shield, ShieldOff } from "lucide-react";
+import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, User, Lock, Check, Loader2, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { type UserSettings, THEME_COLORS, applyThemeColor } from "@/hooks/useSet
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { ACCESSIBILITY_MODES, applyAccessibilityModes } from "@/lib/accessibility";
 import { useTranslatedContent } from "@/hooks/useTranslation";
-import MFAEnroll from "@/components/MFAEnroll";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -41,7 +40,6 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
   const { t } = useTranslation(locale);
   const { toast } = useToast();
 
-  // Translate accessibility mode labels and descriptions
   const accessibilityTexts = useMemo(() =>
     ACCESSIBILITY_MODES.flatMap(m => [m.label, m.description]),
   []);
@@ -49,50 +47,14 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
   const getAccessLabel = (i: number) => tAccessibility[i * 2] ?? ACCESSIBILITY_MODES[i].label;
   const getAccessDesc = (i: number) => tAccessibility[i * 2 + 1] ?? ACCESSIBILITY_MODES[i].description;
 
-  // Display name state
   const [displayName, setDisplayName] = useState("");
   const [nameLoading, setNameLoading] = useState(false);
   const [nameLoaded, setNameLoaded] = useState(false);
 
-  // Password state
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
 
-  // 2FA state
-  const [mfaEnabled, setMfaEnabled] = useState(false);
-  const [mfaLoading, setMfaLoading] = useState(true);
-  const [showMfaEnroll, setShowMfaEnroll] = useState(false);
-  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.mfa.listFactors();
-      if (data) {
-        const verified = data.totp.filter(f => f.status === "verified");
-        setMfaEnabled(verified.length > 0);
-        if (verified.length > 0) setMfaFactorId(verified[0].id);
-      }
-      setMfaLoading(false);
-    })();
-  }, []);
-
-  const handleDisableMfa = async () => {
-    if (!mfaFactorId) return;
-    setPwLoading(true);
-    const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaFactorId });
-    setPwLoading(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      setMfaEnabled(false);
-      setMfaFactorId(null);
-      toast({ title: "2FA disabled" });
-    }
-  };
-
-  // Load display name on first render
   if (!nameLoaded && userId) {
     setNameLoaded(true);
     supabase.from("profiles").select("display_name").eq("user_id", userId).single().then(({ data }) => {
@@ -129,7 +91,6 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Password updated successfully!" });
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     }
@@ -192,13 +153,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
             <h2 className="font-semibold text-foreground">{t("settings.display_name")}</h2>
           </div>
           <div className="flex gap-2">
-            <Input
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your display name"
-              maxLength={50}
-              className="flex-1"
-            />
+            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your display name" maxLength={50} className="flex-1" />
             <Button onClick={handleNameSave} disabled={nameLoading || !displayName.trim()} size="sm">
               {nameLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             </Button>
@@ -212,19 +167,8 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
             <h2 className="font-semibold text-foreground">{t("settings.change_password")}</h2>
           </div>
           <div className="space-y-3">
-            <Input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="New password (min 8 chars)"
-              minLength={8}
-            />
-            <Input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-            />
+            <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password (min 8 chars)" minLength={8} />
+            <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm new password" />
             <Button onClick={handlePasswordChange} disabled={pwLoading || !newPassword || !confirmPassword} className="w-full">
               {pwLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {t("settings.update_password")}
@@ -232,37 +176,6 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           </div>
         </motion.div>
 
-        {/* Two-Factor Authentication — always enabled, not toggleable */}
-        {showMfaEnroll ? (
-          <MFAEnroll
-            onEnrolled={() => { setShowMfaEnroll(false); setMfaEnabled(true); }}
-            onSkip={() => setShowMfaEnroll(false)}
-          />
-        ) : (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }} className="lesson-card">
-            <div className="flex items-center gap-3 mb-4">
-              <Shield className="w-5 h-5 text-primary" />
-              <h2 className="font-semibold text-foreground">Two-Factor Authentication</h2>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              {mfaEnabled
-                ? "2FA is enabled. Your account is protected with an authenticator app."
-                : "2FA is required for all accounts. Set up your authenticator app to secure your account."}
-            </p>
-            {mfaLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-            ) : mfaEnabled ? (
-              <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-primary/10 border border-primary/20">
-                <Shield className="w-5 h-5 text-primary" />
-                <span className="text-sm font-medium text-primary">2FA Active — Your account is protected</span>
-              </div>
-            ) : (
-              <Button onClick={() => setShowMfaEnroll(true)} className="w-full gap-2">
-                <Shield className="w-4 h-4" /> Set Up 2FA (Required)
-              </Button>
-            )}
-          </motion.div>
-        )}
         {/* Language */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
@@ -272,15 +185,12 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           <p className="text-sm text-muted-foreground mb-4">{t("settings.language_desc")}</p>
           <div className="grid grid-cols-2 gap-2">
             {LANGUAGES.map(lang => (
-              <button
-                key={lang.code}
-                onClick={() => handleLanguageChange(lang.code)}
+              <button key={lang.code} onClick={() => handleLanguageChange(lang.code)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all ${
                   (settings as any).language === lang.code
                     ? "bg-primary/10 text-primary ring-2 ring-primary font-semibold"
                     : "bg-secondary text-foreground hover:bg-secondary/80"
-                }`}
-              >
+                }`}>
                 <span className="text-lg">{lang.flag}</span>
                 <span>{lang.label}</span>
               </button>
@@ -288,7 +198,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           </div>
         </motion.div>
 
-        {/* Accessibility — 18 modes */}
+        {/* Accessibility */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
             <Eye className="w-5 h-5 text-primary" />
@@ -299,16 +209,11 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
             {ACCESSIBILITY_MODES.map((mode, idx) => {
               const isActive = ((settings as any).accessibility_modes || []).includes(mode.id);
               return (
-                <div
-                  key={mode.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => toggleAccessibilityMode(mode.id)}
+                <div key={mode.id} role="button" tabIndex={0} onClick={() => toggleAccessibilityMode(mode.id)}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleAccessibilityMode(mode.id); } }}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left cursor-pointer ${
                     isActive ? "bg-primary/10 ring-2 ring-primary" : "bg-secondary hover:bg-secondary/80"
-                  }`}
-                >
+                  }`}>
                   <span className="text-xl shrink-0">{mode.icon}</span>
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-foreground text-sm">{getAccessLabel(idx)}</span>
@@ -330,13 +235,10 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           <p className="text-sm text-muted-foreground mb-4">{t("settings.theme_desc")}</p>
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
             {Object.entries(THEME_COLORS).map(([key, theme]) => (
-              <button
-                key={key}
-                onClick={() => handleColorChange(key)}
+              <button key={key} onClick={() => handleColorChange(key)}
                 className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${
                   settings.theme_color === key ? "bg-secondary ring-2 ring-primary" : "hover:bg-secondary/50"
-                }`}
-              >
+                }`}>
                 <div className="w-8 h-8 rounded-full border-2 border-border shadow-sm" style={{ backgroundColor: `hsl(${theme.primary})` }} />
                 <span className="text-xs text-muted-foreground">{theme.label.split(" ")[0]}</span>
               </button>
@@ -391,42 +293,22 @@ function DeleteAccountButton({ userId }: { userId?: string }) {
       await supabase.auth.signOut();
       window.location.reload();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to delete account.", variant: "destructive" });
-      setStep("confirm");
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+      setStep("idle");
     }
   };
 
   if (step === "idle") {
-    return (
-      <Button variant="destructive" onClick={() => setStep("confirm")} className="w-full gap-2">
-        <Trash2 className="w-4 h-4" /> Delete my account
-      </Button>
-    );
+    return <Button variant="destructive" onClick={() => setStep("confirm")} className="w-full">Delete My Account</Button>;
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-        <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
-        <p className="text-sm text-destructive font-medium">Type DELETE to confirm</p>
-      </div>
-      <Input
-        value={confirmText}
-        onChange={e => setConfirmText(e.target.value)}
-        placeholder="Type DELETE"
-        className="font-mono"
-      />
+      <p className="text-sm text-destructive font-medium">Type DELETE to confirm:</p>
+      <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="Type DELETE" className="border-destructive" />
       <div className="flex gap-2">
-        <Button variant="ghost" onClick={() => { setStep("idle"); setConfirmText(""); }} className="flex-1">
-          Cancel
-        </Button>
-        <Button
-          variant="destructive"
-          onClick={handleDelete}
-          disabled={confirmText !== "DELETE" || step === "deleting"}
-          className="flex-1 gap-2"
-        >
-          {step === "deleting" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+        <Button variant="ghost" onClick={() => setStep("idle")} className="flex-1">Cancel</Button>
+        <Button variant="destructive" onClick={handleDelete} disabled={confirmText !== "DELETE" || step === "deleting"} className="flex-1">
           {step === "deleting" ? "Deleting..." : "Confirm Delete"}
         </Button>
       </div>
