@@ -24,9 +24,20 @@ const AISuggestion = ({ userId, enrolledCourses, onEnroll }: AISuggestionProps) 
 
     const timer = setTimeout(async () => {
       try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        const accessToken = session?.access_token;
+        if (!accessToken) return;
+
         const { data, error } = await supabase.functions.invoke("recommend-paths", {
           body: { type: "suggestion" },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
+
         if (!error && data?.suggestion) {
           setSuggestion(data.suggestion);
           setVisible(true);
