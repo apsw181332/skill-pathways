@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, FileText, Volume2, Loader2, Mic } from "lucide-react";
+import { X, FileText, Volume2, Loader2, Mic, Hand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -147,25 +147,6 @@ const VoiceMentorPanel = ({
     }
   }, [toast]);
 
-  // ──── Barge-in: monitor mic while AI speaks ────
-  const checkBargeIn = useCallback(() => {
-    if (!analyserRef.current || mentorState !== "speaking") return;
-    const data = new Uint8Array(analyserRef.current.frequencyBinCount);
-    analyserRef.current.getByteFrequencyData(data);
-    const avg = data.reduce((a, b) => a + b, 0) / data.length;
-    if (avg > 30) {
-      // User started talking — stop AI audio and listen
-      bargeInActiveRef.current = true;
-      stopAllAudio();
-      startListeningInternal();
-    }
-  }, [mentorState]);
-
-  useEffect(() => {
-    if (mentorState !== "speaking") return;
-    const interval = setInterval(checkBargeIn, 150);
-    return () => clearInterval(interval);
-  }, [mentorState, checkBargeIn]);
 
   // ──── TTS via ElevenLabs edge function ────
   // Use "Callum" voice (young male) — ID: N2lVS1w4EtoT3dr4eOWO
@@ -182,7 +163,7 @@ const VoiceMentorPanel = ({
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ text, voiceId: "N2lVS1w4EtoT3dr4eOWO", speed }),
+          body: JSON.stringify({ text, voiceId: "e79twtVS2278lVZZQiAD", speed }),
         }
       );
       if (!resp.ok) throw new Error("TTS failed");
@@ -313,7 +294,15 @@ const VoiceMentorPanel = ({
     recognition.start();
   }, [locale]);
 
-  // ──── Send question to AI ────
+  // ──── Manual interrupt button ────
+  const handleInterrupt = useCallback(() => {
+    if (mentorState !== "speaking") return;
+    bargeInActiveRef.current = true;
+    stopAllAudio();
+    startListeningInternal();
+  }, [mentorState, stopAllAudio]);
+
+
   const sendQuestion = useCallback(async (text: string) => {
     if (!text.trim()) return;
     setMentorState("thinking");
@@ -518,14 +507,14 @@ const VoiceMentorPanel = ({
           {/* Avatar + Waveform */}
           <div className="px-5 py-6 flex flex-col items-center gap-4">
             <motion.div
-              className={`w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-5xl ${avatarGlow} transition-shadow duration-500`}
+              className={`w-24 h-24 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-5xl ${avatarGlow} transition-shadow duration-500`}
               animate={
                 mentorState === "speaking" ? { scale: [1, 1.08, 1] } :
                 mentorState === "thinking" ? { rotate: [0, 8, -8, 0] } : {}
               }
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              🐾
+              🐧
             </motion.div>
 
             <div className="text-center">
@@ -543,7 +532,7 @@ const VoiceMentorPanel = ({
                 )}
                 {mentorState === "speaking" && (
                   <p className="text-xs text-emerald-400 flex items-center justify-center gap-1">
-                    <Volume2 className="w-3 h-3" /> Pebble is speaking — interrupt anytime
+                    <Volume2 className="w-3 h-3" /> Pebble is speaking...
                   </p>
                 )}
                 {mentorState === "idle" && (
@@ -570,7 +559,7 @@ const VoiceMentorPanel = ({
 
             {mentorResponse && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-emerald-500/10 rounded-2xl p-3 border border-emerald-500/20">
-                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">🐾 Pebble</p>
+                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">🐧 Pebble</p>
                 <p className="text-sm text-foreground leading-relaxed">
                   {responseWords.map((word, i) => (
                     <span key={i} className={`transition-colors duration-150 ${
@@ -587,6 +576,16 @@ const VoiceMentorPanel = ({
           <div className="px-5 py-3 border-t border-border flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground">💬 {Math.floor(exchanges.length / 2)} exchanges</span>
             <div className="flex items-center gap-2">
+              {mentorState === "speaking" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleInterrupt}
+                  className="rounded-full text-xs h-7 px-3 border-amber-500/50 text-amber-500 hover:bg-amber-500/10 animate-pulse"
+                >
+                  <Hand className="w-3 h-3 mr-1" /> Interrupt
+                </Button>
+              )}
               <button onClick={() => setShowTranscript(!showTranscript)} className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
                 <FileText className="w-3 h-3" /> Transcript
               </button>
