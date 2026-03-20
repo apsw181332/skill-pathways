@@ -261,6 +261,15 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           </div>
         </motion.div>
 
+        {/* Voice Mentor (Pebble) Settings */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.11 }} className="lesson-card">
+          <div className="flex items-center gap-3 mb-4">
+            <Mic className="w-5 h-5 text-primary" />
+            <h2 className="font-semibold text-foreground">Voice Mentor (Pebble)</h2>
+          </div>
+          <PebbleVoiceSettings />
+        </motion.div>
+
         {/* Delete Account */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }} className="lesson-card border-destructive/30">
           <div className="flex items-center gap-3 mb-4">
