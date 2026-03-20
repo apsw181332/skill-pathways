@@ -510,37 +510,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
 
   const renderHome = () => (
     <>
-      {/* Stamina bar */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 border-primary/30">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">⚡</span>
-            <span className="font-semibold text-foreground">Stamina</span>
-          </div>
-          <span className="text-sm font-medium text-foreground">
-            {isPro ? "∞" : `${stamina}/${MAX_STAMINA}`}
-          </span>
-        </div>
-        {!isPro && (
-          <div className="w-full h-3 rounded-full bg-secondary overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-              initial={{ width: 0 }}
-              animate={{ width: `${(stamina / MAX_STAMINA) * 100}%` }}
-              transition={{ duration: 0.6 }}
-            />
-          </div>
-        )}
-        {isPro && (
-          <div className="flex items-center gap-1 text-xs text-primary font-medium">
-            <Crown className="w-3.5 h-3.5" /> Pro — Unlimited Stamina
-          </div>
-        )}
-        {!isPro && stamina < MAX_STAMINA && (
-          <p className="text-xs text-muted-foreground mt-1">+{STAMINA_REGEN_PER_HOUR} per hour • {STAMINA_PER_LESSON} per lesson</p>
-        )}
-      </motion.div>
-
       {/* Pro upgrade banner */}
       {!isPro && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-4 border-accent/50 bg-gradient-to-r from-accent/5 to-primary/5">
