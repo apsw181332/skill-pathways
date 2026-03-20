@@ -1020,7 +1020,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
         </div>
       </div>
       <VoiceMentorFAB
-        skillTopic={COURSES.find(c => c.id === categoryId)?.title || categoryId}
+        skillTopic={COURSES.find(c => c.id === categoryId)?.label || categoryId}
         lessonContext={steps.filter(s => s.type === "info").map(s => s.content).join(" ").slice(0, 500)}
         lessonId={`${categoryId}-${lessonId}`}
         userId={userId}
