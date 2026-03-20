@@ -147,25 +147,13 @@ const VoiceMentorPanel = ({
     }
   }, [toast]);
 
-  // ──── Barge-in: monitor mic while AI speaks ────
-  const checkBargeIn = useCallback(() => {
-    if (!analyserRef.current || mentorState !== "speaking") return;
-    const data = new Uint8Array(analyserRef.current.frequencyBinCount);
-    analyserRef.current.getByteFrequencyData(data);
-    const avg = data.reduce((a, b) => a + b, 0) / data.length;
-    if (avg > 30) {
-      // User started talking — stop AI audio and listen
-      bargeInActiveRef.current = true;
-      stopAllAudio();
-      startListeningInternal();
-    }
-  }, [mentorState]);
-
-  useEffect(() => {
+  // ──── Manual interrupt button ────
+  const handleInterrupt = useCallback(() => {
     if (mentorState !== "speaking") return;
-    const interval = setInterval(checkBargeIn, 150);
-    return () => clearInterval(interval);
-  }, [mentorState, checkBargeIn]);
+    bargeInActiveRef.current = true;
+    stopAllAudio();
+    startListeningInternal();
+  }, [mentorState, stopAllAudio]);
 
   // ──── TTS via ElevenLabs edge function ────
   // Use "Callum" voice (young male) — ID: N2lVS1w4EtoT3dr4eOWO
