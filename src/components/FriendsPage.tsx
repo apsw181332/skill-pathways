@@ -14,7 +14,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
 
 interface FriendData { id: string; user_id: string; friend_id: string; status: string; }
-interface ProfileData { user_id: string; display_name: string | null; xp: number; streak: number; level: number; }
+interface ProfileData { user_id: string; display_name: string | null; xp: number; streak: number; level: number; avatar_url?: string | null; }
 interface ChatMessage { id: string; sender_id: string; receiver_id: string; content: string; gem_gift: number; created_at: string; }
 
 interface FriendsPageProps {
