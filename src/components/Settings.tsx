@@ -214,6 +214,36 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           </div>
         </motion.div>
 
+        {/* Two-Factor Authentication */}
+        {showMfaEnroll ? (
+          <MFAEnroll
+            onEnrolled={() => { setShowMfaEnroll(false); setMfaEnabled(true); }}
+            onSkip={() => setShowMfaEnroll(false)}
+          />
+        ) : (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }} className="lesson-card">
+            <div className="flex items-center gap-3 mb-4">
+              <Shield className="w-5 h-5 text-primary" />
+              <h2 className="font-semibold text-foreground">Two-Factor Authentication</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              {mfaEnabled
+                ? "2FA is enabled. Your account is protected with an authenticator app."
+                : "Add an extra layer of security by requiring a code from your authenticator app when signing in."}
+            </p>
+            {mfaLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            ) : mfaEnabled ? (
+              <Button variant="destructive" onClick={handleDisableMfa} className="w-full gap-2">
+                <ShieldOff className="w-4 h-4" /> Disable 2FA
+              </Button>
+            ) : (
+              <Button onClick={() => setShowMfaEnroll(true)} className="w-full gap-2">
+                <Shield className="w-4 h-4" /> Enable 2FA
+              </Button>
+            )}
+          </motion.div>
+        )}
         {/* Language */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
