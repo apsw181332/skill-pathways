@@ -176,6 +176,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
         lessonContent: step.content,
         mascotMsg: step.mascotMsg,
         learningStyle: config?.learningStyle || "balanced",
+        locale,
       },
     }).then(({ data }) => {
       if (data?.adapted) {
