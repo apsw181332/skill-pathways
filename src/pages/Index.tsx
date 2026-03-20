@@ -20,12 +20,13 @@ import AISuggestion from "@/components/AISuggestion";
 import { getCountryCoords } from "@/lib/countries";
 import { generateLearningCode } from "@/lib/learningCode";
 import PageTransition from "@/components/PageTransition";
+import MFAVerify from "@/components/MFAVerify";
 import type { Locale } from "@/lib/i18n";
 
 type AppState = "landing" | "auth" | "onboarding" | "path-selection" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
 
 const Index = () => {
-  const { user, isReady, signUp, signIn, signOut, resetPassword } = useAuth();
+  const { user, isReady, needsMfaVerify, signUp, signIn, signOut, resetPassword, clearMfaVerify } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
   const { settings, loading: settingsLoading, updateSetting, enrollCourse, unenrollCourse } = useSettings(user?.id);
   const [state, setState] = useState<AppState>("landing");
