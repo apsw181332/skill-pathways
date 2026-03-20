@@ -936,6 +936,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.learn": "تعلم",
     "nav.missions": "المهام",
     "nav.shop": "المتجر",
+    "nav.friends": "الأصدقاء",
     "nav.profile": "الملف الشخصي",
     "settings.title": "الإعدادات",
     "settings.language": "اللغة",
