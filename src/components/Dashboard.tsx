@@ -1038,6 +1038,12 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
               <Diamond className="w-3.5 h-3.5 text-cyan-500" />
               <span className="font-medium xp-counter text-foreground">{gems}</span>
             </div>
+            {!isPro && (
+              <div className="flex items-center gap-1 text-xs" title={`${stamina}/${MAX_STAMINA} stamina`}>
+                <span className="text-amber-500">⚡</span>
+                <span className="font-medium xp-counter text-foreground">{stamina}</span>
+              </div>
+            )}
             <div className="flex items-center gap-1 text-xs">
               <Star className="w-3.5 h-3.5 text-accent" />
               <span className="font-medium xp-counter text-foreground">{xp}</span>
