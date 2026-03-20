@@ -1071,7 +1071,7 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         {[
           { id: "home" as const, icon: Home, label: t("nav.home") },
           { id: "learn" as const, icon: BookOpen, label: t("nav.learn") },
-          { id: "friends" as const, icon: Users, label: "Friends" },
+          { id: "friends" as const, icon: Users, label: t("nav.friends") || "Friends" },
           { id: "missions" as const, icon: Target, label: t("nav.missions") },
           { id: "shop" as const, icon: ShoppingBag, label: t("nav.shop") },
           { id: "profile" as const, icon: UserIcon, label: t("nav.profile") },
