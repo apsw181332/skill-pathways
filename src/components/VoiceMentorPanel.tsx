@@ -506,14 +506,14 @@ const VoiceMentorPanel = ({
           {/* Avatar + Waveform */}
           <div className="px-5 py-6 flex flex-col items-center gap-4">
             <motion.div
-              className={`w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-5xl ${avatarGlow} transition-shadow duration-500`}
+              className={`w-24 h-24 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-5xl ${avatarGlow} transition-shadow duration-500`}
               animate={
                 mentorState === "speaking" ? { scale: [1, 1.08, 1] } :
                 mentorState === "thinking" ? { rotate: [0, 8, -8, 0] } : {}
               }
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              🐾
+              🐧
             </motion.div>
 
             <div className="text-center">
