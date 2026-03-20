@@ -357,20 +357,6 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           </div>
         </motion.div>
 
-        {/* TTS */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="lesson-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Languages className="w-5 h-5 text-primary" />
-              <div>
-                <h2 className="font-semibold text-foreground">{t("settings.tts")}</h2>
-                <p className="text-sm text-muted-foreground">{t("settings.tts_desc")}</p>
-              </div>
-            </div>
-            <Switch checked={settings.tts_enabled} onCheckedChange={(v) => onUpdate("tts_enabled", v)} />
-          </div>
-        </motion.div>
-
         {/* Delete Account */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }} className="lesson-card border-destructive/30">
           <div className="flex items-center gap-3 mb-4">
