@@ -25,7 +25,6 @@ interface ChatBotProps {
 const ChatBot = ({ skillTopic, lessonContext, lessonId, userId, locale = "en" }: ChatBotProps) => {
   const [open, setOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
     { role: "assistant", content: "Hey there! I'm Pebble 🐧 Ask me anything about courses, lessons, or how to use Pathways!", id: genId(), sentAt: Date.now() },
   ]);
