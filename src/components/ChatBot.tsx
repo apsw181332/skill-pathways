@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Loader2, Pencil, Undo2, Check } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Pencil, Undo2, Check, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import mascotImg from "@/assets/mascot-penguin.png";
+import VoiceMentorPanel from "./VoiceMentorPanel";
+import type { Locale } from "@/lib/i18n";
 
 type Msg = { role: "user" | "assistant"; content: string; id: string; sentAt: number; edited?: boolean; recalled?: boolean };
 
