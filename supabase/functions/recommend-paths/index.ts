@@ -32,14 +32,19 @@ Deno.serve(async (req) => {
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await client.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    // Manual JWT decode to avoid getClaims issues in Edge Functions
+    let userId: string;
+    try {
+      const payloadB64 = token.split(".")[1];
+      const payload = JSON.parse(atob(payloadB64));
+      userId = payload.sub;
+      if (!userId) throw new Error("No sub in token");
+    } catch {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub as string;
 
     const [profileRes, progressRes] = await Promise.all([
       client.from("profiles").select("interests, enrolled_courses, learning_style").eq("user_id", userId).single(),
