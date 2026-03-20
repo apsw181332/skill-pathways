@@ -170,7 +170,7 @@ const VoiceMentorPanel = ({
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ text, voiceId: "N2lVS1w4EtoT3dr4eOWO", speed }),
+          body: JSON.stringify({ text, voiceId: "e79twtVS2278lVZZQiAD", speed }),
         }
       );
       if (!resp.ok) throw new Error("TTS failed");
