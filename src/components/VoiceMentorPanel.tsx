@@ -538,12 +538,12 @@ const VoiceMentorPanel = ({
                 )}
                 {mentorState === "thinking" && (
                   <p className="text-xs text-amber-400 flex items-center justify-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Thinking...
+                    <Loader2 className="w-3 h-3 animate-spin" /> Pebble is thinking...
                   </p>
                 )}
                 {mentorState === "speaking" && (
                   <p className="text-xs text-emerald-400 flex items-center justify-center gap-1">
-                    <Volume2 className="w-3 h-3" /> Speaking — interrupt anytime
+                    <Volume2 className="w-3 h-3" /> Pebble is speaking — interrupt anytime
                   </p>
                 )}
                 {mentorState === "idle" && (
