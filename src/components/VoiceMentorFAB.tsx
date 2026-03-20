@@ -39,7 +39,7 @@ const VoiceMentorFAB = ({ skillTopic, lessonContext, lessonId, userId, locale = 
             />
             {/* Desktop label */}
             <span className="hidden md:block absolute right-full mr-3 whitespace-nowrap bg-card text-foreground text-sm font-medium px-3 py-1.5 rounded-lg shadow-md border border-border opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Talk to Mentor
+              Ask Pebble
             </span>
           </motion.button>
         )}
