@@ -168,8 +168,11 @@ const VoiceMentorPanel = ({
   }, [mentorState, checkBargeIn]);
 
   // ──── TTS via ElevenLabs edge function ────
+  // Use "Callum" voice (young male) — ID: N2lVS1w4EtoT3dr4eOWO
   const speakWithElevenLabs = useCallback(async (text: string) => {
     try {
+      // Read speed from localStorage settings
+      const speed = parseFloat(localStorage.getItem("pebble_tts_speed") || "1.0");
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tts`,
         {
@@ -179,7 +182,7 @@ const VoiceMentorPanel = ({
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ text, voiceId: "EXAVITQu4vr4xnSDxMaL" }),
+          body: JSON.stringify({ text, voiceId: "N2lVS1w4EtoT3dr4eOWO", speed }),
         }
       );
       if (!resp.ok) throw new Error("TTS failed");
