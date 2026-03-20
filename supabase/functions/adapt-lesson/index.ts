@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { learningCode, lessonTitle, lessonContent, mascotMsg, learningStyle } = await req.json();
+    const { learningCode, lessonTitle, lessonContent, mascotMsg, learningStyle, locale } = await req.json();
 
     if (!learningCode || !lessonContent) {
       return new Response(JSON.stringify({ adapted: lessonContent, adaptedMascotMsg: mascotMsg }), {
