@@ -278,6 +278,8 @@ const VoiceMentorPanel = ({
       currentAudioRef.current.pause();
       currentAudioRef.current = null;
     }
+    // Stop browser TTS too
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     sourceNodeRef.current = null;
     isPlayingRef.current = false;
     abortRef.current?.abort();
