@@ -148,8 +148,45 @@ const VoiceMentorPanel = ({
   }, [toast]);
 
 
-  // ──── TTS via ElevenLabs edge function ────
-  const speakWithElevenLabs = useCallback(async (text: string) => {
+  // ──── Browser SpeechSynthesis fallback ────
+  const speakWithBrowser = useCallback((text: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (!window.speechSynthesis) { resolve(null); return; }
+      const utterance = new SpeechSynthesisUtterance(text);
+      const speed = parseFloat(localStorage.getItem("pebble_tts_speed") || "1.0");
+      utterance.rate = speed;
+      utterance.pitch = 1.3; // Higher pitch for child-like voice
+      utterance.lang = getRecognitionLang();
+      // Pick a voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.lang.startsWith(locale) && v.name.toLowerCase().includes("female"))
+        || voices.find(v => v.lang.startsWith(locale))
+        || voices[0];
+      if (preferred) utterance.voice = preferred;
+      utterance.onend = () => resolve("__browser_tts_done__");
+      utterance.onerror = () => resolve(null);
+
+      // Connect to analyser for waveform during browser TTS
+      if (audioCtxRef.current && analyserRef.current) {
+        try {
+          const oscillator = audioCtxRef.current.createOscillator();
+          const gain = audioCtxRef.current.createGain();
+          gain.gain.value = 0; // silent - just for visual
+          oscillator.connect(gain);
+          gain.connect(analyserRef.current);
+          oscillator.start();
+          utterance.onend = () => { oscillator.stop(); resolve("__browser_tts_done__"); };
+          utterance.onerror = () => { try { oscillator.stop(); } catch {} resolve(null); };
+        } catch {}
+      }
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    });
+  }, [locale]);
+
+  // ──── TTS via ElevenLabs edge function with browser fallback ────
+  const speakWithElevenLabs = useCallback(async (text: string): Promise<string | null> => {
     try {
       const speed = parseFloat(localStorage.getItem("pebble_tts_speed") || "1.0");
       const { data: sessionData } = await supabase.auth.getSession();
@@ -163,26 +200,24 @@ const VoiceMentorPanel = ({
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ text, voiceId: "e79twtVS2278lVZZQiAD", speed }),
+          body: JSON.stringify({ text, voiceId: "N2lVS1w4EtoT3dr4eOWO", speed }),
         }
       );
       if (!resp.ok) {
-        const errText = await resp.text();
-        console.error("TTS error response:", resp.status, errText);
-        throw new Error("TTS failed");
+        console.warn("ElevenLabs TTS failed, falling back to browser voice");
+        return speakWithBrowser(text);
       }
       const blob = await resp.blob();
       if (blob.size === 0) {
-        console.error("TTS returned empty audio blob");
-        throw new Error("Empty audio");
+        return speakWithBrowser(text);
       }
       const url = URL.createObjectURL(blob);
       return url;
     } catch (e) {
-      console.error("ElevenLabs TTS error:", e);
-      return null;
+      console.warn("ElevenLabs TTS error, using browser fallback:", e);
+      return speakWithBrowser(text);
     }
-  }, []);
+  }, [speakWithBrowser]);
 
   const playAudioQueue = useCallback(async () => {
     if (isPlayingRef.current || ttsQueueRef.current.length === 0) return;
