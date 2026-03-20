@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { learningCode, lessonTitle, lessonContent, mascotMsg, learningStyle } = await req.json();
+    const { learningCode, lessonTitle, lessonContent, mascotMsg, learningStyle, locale } = await req.json();
 
     if (!learningCode || !lessonContent) {
       return new Response(JSON.stringify({ adapted: lessonContent, adaptedMascotMsg: mascotMsg }), {
@@ -28,7 +28,13 @@ serve(async (req) => {
       `${criteria[i]}: ${levels[parseInt(d)] || "moderate"}`
     ).join(", ");
 
+    const languageInstruction = locale && locale !== "en"
+      ? `CRITICAL: You MUST write your ENTIRE response in the language with locale code "${locale}". Do NOT use English at all. Every word of the adapted content and mascot message must be in that language.`
+      : "Write in English.";
+
     const prompt = `You are an adaptive learning assistant for a life-skills app used by teens and young adults.
+
+${languageInstruction}
 
 Learner profile: ${profile}
 Primary learning style: ${learningStyle || "balanced"}
@@ -48,7 +54,8 @@ STRICT RULES — follow every single one:
 8. If accessibility needs are significant, use the simplest possible words
 9. Keep the SAME factual information — just make it easier to understand
 10. The mascot message should be encouraging, short (1 sentence), and reference the specific topic
-11. Return JSON with "adapted" (adapted content string) and "adaptedMascotMsg" (adapted mascot message string)`;
+11. Return JSON with "adapted" (adapted content string) and "adaptedMascotMsg" (adapted mascot message string)
+12. REMEMBER: The ENTIRE output text must be in the language specified above. Not English.`;
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
