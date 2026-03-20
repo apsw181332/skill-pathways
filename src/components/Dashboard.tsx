@@ -1066,9 +1066,11 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           const Icon = tab.icon;
           const claimableCount = tab.id === "missions"
             ? MISSIONS.filter((mission) => !claimedMissions.includes(mission.id) && mission.requirement(missionStats)).length
+            : tab.id === "friends"
+            ? unreadFriendCount
             : 0;
           return (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSelectedCategory(null); }}
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSelectedCategory(null); if (tab.id === "friends") setUnreadFriendCount(0); }}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 transition-colors relative ${activeTab === tab.id ? "text-primary" : "text-muted-foreground"}`}>
               <Icon className="w-5 h-5" />
               {claimableCount > 0 && (
