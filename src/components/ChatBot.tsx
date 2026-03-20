@@ -126,17 +126,38 @@ const ChatBot = ({ skillTopic, lessonContext, lessonId, userId, locale = "en" }:
 
   return (
     <>
+      {/* FAB buttons - Chat + Call side by side */}
       <AnimatePresence>
-        {!open && (
-          <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-            onClick={() => setOpen(true)}
-            className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-primary shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
-            aria-label="Chat with Pebble">
-            <img src={mascotImg} alt="Pebble" className="w-9 h-9 object-contain" />
-          </motion.button>
+        {!open && !voiceOpen && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+            className="fixed bottom-6 right-4 z-50 flex items-center gap-2"
+          >
+            <motion.button
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setVoiceOpen(true)}
+              className="w-12 h-12 rounded-full bg-emerald-600 shadow-lg flex items-center justify-center hover:bg-emerald-700 transition-colors"
+              aria-label="Call Pebble"
+            >
+              <Phone className="w-5 h-5 text-white" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setOpen(true)}
+              className="w-14 h-14 rounded-full bg-primary shadow-lg flex items-center justify-center"
+              aria-label="Chat with Pebble"
+            >
+              <img src={mascotImg} alt="Pebble" className="w-9 h-9 object-contain" />
+            </motion.button>
+          </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Text Chat Panel */}
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -190,6 +211,17 @@ const ChatBot = ({ skillTopic, lessonContext, lessonId, userId, locale = "en" }:
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Voice Mentor Panel */}
+      <VoiceMentorPanel
+        isOpen={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        skillTopic={skillTopic}
+        lessonContext={lessonContext}
+        lessonId={lessonId}
+        userId={userId}
+        locale={locale}
+      />
     </>
   );
 };
