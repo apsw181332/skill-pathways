@@ -232,7 +232,7 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           </div>
         </motion.div>
 
-        {/* Two-Factor Authentication */}
+        {/* Two-Factor Authentication — always enabled, not toggleable */}
         {showMfaEnroll ? (
           <MFAEnroll
             onEnrolled={() => { setShowMfaEnroll(false); setMfaEnabled(true); }}
@@ -247,17 +247,18 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
             <p className="text-sm text-muted-foreground mb-4">
               {mfaEnabled
                 ? "2FA is enabled. Your account is protected with an authenticator app."
-                : "Add an extra layer of security by requiring a code from your authenticator app when signing in."}
+                : "2FA is required for all accounts. Set up your authenticator app to secure your account."}
             </p>
             {mfaLoading ? (
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             ) : mfaEnabled ? (
-              <Button variant="destructive" onClick={handleDisableMfa} className="w-full gap-2">
-                <ShieldOff className="w-4 h-4" /> Disable 2FA
-              </Button>
+              <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-primary/10 border border-primary/20">
+                <Shield className="w-5 h-5 text-primary" />
+                <span className="text-sm font-medium text-primary">2FA Active — Your account is protected</span>
+              </div>
             ) : (
               <Button onClick={() => setShowMfaEnroll(true)} className="w-full gap-2">
-                <Shield className="w-4 h-4" /> Enable 2FA
+                <Shield className="w-4 h-4" /> Set Up 2FA (Required)
               </Button>
             )}
           </motion.div>

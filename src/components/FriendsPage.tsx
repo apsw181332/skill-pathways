@@ -14,7 +14,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
 
 interface FriendData { id: string; user_id: string; friend_id: string; status: string; }
-interface ProfileData { user_id: string; display_name: string | null; xp: number; streak: number; level: number; }
+interface ProfileData { user_id: string; display_name: string | null; xp: number; streak: number; level: number; avatar_url?: string | null; }
 interface ChatMessage { id: string; sender_id: string; receiver_id: string; content: string; gem_gift: number; created_at: string; }
 
 interface FriendsPageProps {
@@ -41,6 +41,10 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
   const [giftAmount, setGiftAmount] = useState(0);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [nicknames, setNicknames] = useState<Record<string, string>>({});
+  const [editingNickname, setEditingNickname] = useState<string | null>(null);
+  const [nicknameInput, setNicknameInput] = useState("");
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
 
   // Translate static UI strings
   const uiTexts = useMemo(() => [
@@ -57,9 +61,12 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
       supabase.from("friendships").select("*").eq("user_id", userId).eq("status", "accepted"),
       supabase.from("friendships").select("*").eq("friend_id", userId).eq("status", "accepted"),
       supabase.from("friendships").select("*").eq("friend_id", userId).eq("status", "pending"),
-      supabase.from("profiles").select("friend_code").eq("user_id", userId).single(),
+      supabase.from("profiles").select("friend_code, avatar_url").eq("user_id", userId).single(),
     ]);
-    if (profileRes.data) setMyInviteCode((profileRes.data as any).friend_code || "");
+    if (profileRes.data) {
+      setMyInviteCode((profileRes.data as any).friend_code || "");
+      setMyAvatarUrl((profileRes.data as any).avatar_url || null);
+    }
     const allFriends = [...(sent.data || []), ...(received.data || [])] as FriendData[];
     const pendingRows = (pending.data || []) as FriendData[];
     setFriends(allFriends);
@@ -67,13 +74,18 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
     const friendIds = [...new Set(allFriends.map(f => f.user_id === userId ? f.friend_id : f.user_id))];
     const pendingIds = [...new Set(pendingRows.map(r => r.user_id))];
     if (friendIds.length > 0) {
-      const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level").in("user_id", friendIds);
+      const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level, avatar_url").in("user_id", friendIds);
       if (data) { const map: Record<string, ProfileData> = {}; data.forEach(p => { map[p.user_id] = p as ProfileData; }); setFriendProfiles(map); }
     } else setFriendProfiles({});
     if (pendingIds.length > 0) {
-      const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level").in("user_id", pendingIds);
+      const { data } = await supabase.from("profiles").select("user_id, display_name, xp, streak, level, avatar_url").in("user_id", pendingIds);
       if (data) { const map: Record<string, ProfileData> = {}; data.forEach(p => { map[p.user_id] = p as ProfileData; }); setPendingProfiles(map); }
     } else setPendingProfiles({});
+    // Load nicknames from localStorage
+    try {
+      const saved = localStorage.getItem(`nicknames-${userId}`);
+      if (saved) setNicknames(JSON.parse(saved));
+    } catch {}
   }, [userId]);
 
   useEffect(() => {
@@ -121,12 +133,40 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
     if (target.user_id === userId) { toast({ title: "That's you!", variant: "destructive" }); setAddingFriend(false); return; }
     const { data: existing } = await supabase.from("friendships").select("id")
       .or(`and(user_id.eq.${userId},friend_id.eq.${target.user_id}),and(user_id.eq.${target.user_id},friend_id.eq.${userId})`);
-    if (existing?.length) { toast({ title: "Already connected" }); setAddingFriend(false); return; }
+    if (existing?.length) { toast({ title: "Already connected or request pending" }); setAddingFriend(false); return; }
+    // Send a pending friend request — the target must accept it
     const { error } = await supabase.from("friendships").insert({ user_id: userId, friend_id: target.user_id, status: "pending" });
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Friend request sent! 🤝" }); setInviteCode(""); refreshSocialData(); }
+    else { toast({ title: `Friend request sent to ${target.display_name || "user"}! They need to accept it. 🤝` }); setInviteCode(""); refreshSocialData(); }
     setAddingFriend(false);
   };
+
+  const getFriendDisplayName = (friendUserId: string) => {
+    if (nicknames[friendUserId]) return nicknames[friendUserId];
+    return friendProfiles[friendUserId]?.display_name || "Friend";
+  };
+
+  const saveNickname = (friendUserId: string) => {
+    const trimmed = nicknameInput.trim();
+    const updated = { ...nicknames };
+    if (trimmed) updated[friendUserId] = trimmed;
+    else delete updated[friendUserId];
+    setNicknames(updated);
+    localStorage.setItem(`nicknames-${userId}`, JSON.stringify(updated));
+    setEditingNickname(null);
+    setNicknameInput("");
+    toast({ title: trimmed ? "Nickname saved!" : "Nickname removed" });
+  };
+
+  const AvatarBubble = ({ url, name, size = "w-8 h-8" }: { url?: string | null; name: string; size?: string }) => (
+    <div className={`${size} rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden`}>
+      {url ? (
+        <img src={url} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-xs font-bold text-primary">{(name || "?")[0].toUpperCase()}</span>
+      )}
+    </div>
+  );
 
   const handleSendMessage = async () => {
     if (!chatFriend || (!chatInput.trim() && giftAmount <= 0)) return;
@@ -166,14 +206,26 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
 
   if (chatFriend) {
     const fProfile = friendProfiles[chatFriend];
+    const friendName = getFriendDisplayName(chatFriend);
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => setChatFriend(null)} className="text-muted-foreground hover:text-foreground"><ArrowLeft className="w-5 h-5" /></button>
-          <UserIcon className="w-5 h-5 text-primary" />
-          <span className="font-medium text-foreground">{fProfile?.display_name || "Friend"}</span>
-          <span className="text-xs text-muted-foreground ml-auto">{fProfile?.xp || 0} XP</span>
+          <AvatarBubble url={fProfile?.avatar_url} name={friendName} />
+          <div className="flex-1 min-w-0">
+            <span className="font-medium text-foreground block truncate">{friendName}</span>
+            {nicknames[chatFriend] && <span className="text-xs text-muted-foreground">({fProfile?.display_name})</span>}
+          </div>
+          <button onClick={() => { setEditingNickname(chatFriend); setNicknameInput(nicknames[chatFriend] || ""); }} className="p-1.5 rounded-lg hover:bg-secondary"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
+          <span className="text-xs text-muted-foreground">{fProfile?.xp || 0} XP</span>
         </div>
+        {editingNickname === chatFriend && (
+          <div className="flex gap-2 mb-3 p-3 rounded-lg bg-secondary/50">
+            <Input value={nicknameInput} onChange={e => setNicknameInput(e.target.value)} placeholder="Set a nickname..." className="flex-1" onKeyDown={e => e.key === "Enter" && saveNickname(chatFriend)} />
+            <Button size="sm" onClick={() => saveNickname(chatFriend)}>Save</Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditingNickname(null)}>Cancel</Button>
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto space-y-3 min-h-[200px] max-h-[50vh]">
           {chatMessages.length === 0 && (
             <div className="text-center text-muted-foreground py-12">
@@ -184,8 +236,11 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
           {chatMessages.map(msg => {
             const isMine = msg.sender_id === userId;
             const isRecalled = msg.content.startsWith("Message recalled");
+            const senderAvatar = isMine ? myAvatarUrl : fProfile?.avatar_url;
+            const senderName = isMine ? "You" : friendName;
             return (
-              <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"} group`}>
+              <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"} gap-2 group`}>
+                {!isMine && <AvatarBubble url={senderAvatar} name={senderName} size="w-6 h-6" />}
                 <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm relative ${
                   isRecalled ? "bg-muted text-muted-foreground italic" :
                   isMine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-secondary text-foreground rounded-bl-md"
@@ -211,6 +266,7 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
                     </div>
                   )}
                 </div>
+                {isMine && <AvatarBubble url={senderAvatar} name={senderName} size="w-6 h-6" />}
               </div>
             );
           })}
@@ -275,12 +331,14 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
           {friends.map(friend => {
             const fId = friend.user_id === userId ? friend.friend_id : friend.user_id;
             const profile = friendProfiles[fId];
+            const displayName = getFriendDisplayName(fId);
             return (
               <motion.button key={friend.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
                 onClick={() => setChatFriend(fId)} className="lesson-card flex items-center gap-3 py-3 w-full text-left hover:border-primary transition-colors">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><UserIcon className="w-4 h-4 text-primary" /></div>
+                <AvatarBubble url={profile?.avatar_url} name={displayName} />
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium text-foreground text-sm">{profile?.display_name || "Anonymous"}</span>
+                  <span className="font-medium text-foreground text-sm">{displayName}</span>
+                  {nicknames[fId] && <span className="text-xs text-muted-foreground ml-1">({profile?.display_name})</span>}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>{profile?.xp || 0} XP</span><span>🔥 {profile?.streak || 0}</span></div>
                 </div>
                 <MessageCircle className="w-4 h-4 text-primary shrink-0" />
