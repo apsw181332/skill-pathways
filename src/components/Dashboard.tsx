@@ -1099,6 +1099,11 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           );
         })}
       </div>
+      <VoiceMentorFAB
+        skillTopic={activeTab === "learn" ? "Life Skills" : undefined}
+        userId={user.id}
+        locale={locale}
+      />
     </div>
   );
 };
