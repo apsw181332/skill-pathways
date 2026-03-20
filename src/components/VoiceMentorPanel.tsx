@@ -227,7 +227,11 @@ const VoiceMentorPanel = ({
       if (bargeInActiveRef.current) break;
       const text = ttsQueueRef.current.shift()!;
       const audioUrl = await speakWithElevenLabs(text);
-      if (!audioUrl || bargeInActiveRef.current) break;
+      if (bargeInActiveRef.current) break;
+      if (!audioUrl) continue;
+
+      // Browser TTS was already played inline
+      if (audioUrl === "__browser_tts_done__") continue;
 
       await new Promise<void>((resolve) => {
         const audio = new Audio(audioUrl);
@@ -263,7 +267,6 @@ const VoiceMentorPanel = ({
 
     isPlayingRef.current = false;
     if (!bargeInActiveRef.current) {
-      // After AI finishes speaking, auto-listen again
       setMentorState("idle");
       setTimeout(() => startListeningInternal(), 300);
     }
