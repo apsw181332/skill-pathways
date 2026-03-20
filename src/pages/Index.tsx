@@ -195,7 +195,7 @@ const Index = () => {
                 return true;
               }}
             />
-            <ChatBot />
+            <ChatBot userId={user!.id} locale={currentLocale} />
             <AISuggestion userId={user!.id} enrolledCourses={settings.enrolled_courses} onEnroll={enrollCourse} />
           </>
         );
