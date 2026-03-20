@@ -505,7 +505,7 @@ const VoiceMentorPanel = ({
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                 <div>
-                  <h2 className="text-base font-bold text-foreground">Voice Mentor</h2>
+                  <h2 className="text-base font-bold text-foreground">Ask Pebble</h2>
                   <p className="text-xs text-muted-foreground">{skillTopic}</p>
                 </div>
               </div>
@@ -518,18 +518,18 @@ const VoiceMentorPanel = ({
           {/* Avatar + Waveform */}
           <div className="px-5 py-6 flex flex-col items-center gap-4">
             <motion.div
-              className={`w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-5xl ${avatarGlow} transition-shadow duration-500`}
+              className={`w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-5xl ${avatarGlow} transition-shadow duration-500`}
               animate={
-                mentorState === "speaking" ? { scale: [1, 1.05, 1] } :
-                mentorState === "thinking" ? { rotate: [0, 5, -5, 0] } : {}
+                mentorState === "speaking" ? { scale: [1, 1.08, 1] } :
+                mentorState === "thinking" ? { rotate: [0, 8, -8, 0] } : {}
               }
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              🧑‍🏫
+              🐾
             </motion.div>
 
             <div className="text-center">
-              <p className="font-semibold text-foreground">Jordan</p>
+              <p className="font-semibold text-foreground">Pebble</p>
               <div className="h-5 mt-1">
                 {mentorState === "listening" && (
                   <motion.p className="text-xs text-blue-400 flex items-center justify-center gap-1" animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
