@@ -558,7 +558,7 @@ const VoiceMentorPanel = ({
 
             {mentorResponse && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-emerald-500/10 rounded-2xl p-3 border border-emerald-500/20">
-                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">🐾 Pebble</p>
+                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">🐧 Pebble</p>
                 <p className="text-sm text-foreground leading-relaxed">
                   {responseWords.map((word, i) => (
                     <span key={i} className={`transition-colors duration-150 ${
