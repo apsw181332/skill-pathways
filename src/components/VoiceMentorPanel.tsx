@@ -294,7 +294,15 @@ const VoiceMentorPanel = ({
     recognition.start();
   }, [locale]);
 
-  // ──── Send question to AI ────
+  // ──── Manual interrupt button ────
+  const handleInterrupt = useCallback(() => {
+    if (mentorState !== "speaking") return;
+    bargeInActiveRef.current = true;
+    stopAllAudio();
+    startListeningInternal();
+  }, [mentorState, stopAllAudio]);
+
+
   const sendQuestion = useCallback(async (text: string) => {
     if (!text.trim()) return;
     setMentorState("thinking");
