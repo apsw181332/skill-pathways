@@ -762,6 +762,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.learn": "학습",
     "nav.missions": "미션",
     "nav.shop": "상점",
+    "nav.friends": "친구",
     "nav.profile": "프로필",
     "settings.title": "설정",
     "settings.language": "언어",
