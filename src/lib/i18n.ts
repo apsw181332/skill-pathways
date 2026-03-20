@@ -464,6 +464,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.learn": "學習",
     "nav.missions": "任務",
     "nav.shop": "商店",
+    "nav.friends": "好友",
     "nav.profile": "個人",
     "settings.title": "設定",
     "settings.language": "語言",
