@@ -16,6 +16,7 @@ import { useTranslation, type Locale } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
 import { adaptLearningCode, getReadingPaceIntervention } from "@/lib/learningCode";
 import { NINE_PATHS } from "@/lib/paths";
+import VoiceMentorFAB from "@/components/VoiceMentorFAB";
 
 interface LessonViewProps {
   onBack: () => void;
