@@ -360,7 +360,6 @@ function PebbleVoiceSettings() {
   );
 }
 
-export default Settings;
 
 function DeleteAccountButton({ userId }: { userId?: string }) {
   const [step, setStep] = useState<"idle" | "confirm" | "deleting">("idle");
