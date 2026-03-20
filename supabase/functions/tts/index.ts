@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     }
 
     // Use Callum voice by default (young male)
-    const voice = voiceId || "N2lVS1w4EtoT3dr4eOWO";
+    const voice = voiceId || "e79twtVS2278lVZZQiAD";
     const ttsSpeed = typeof speed === "number" ? Math.min(1.5, Math.max(0.5, speed)) : 1.0;
 
     const response = await fetch(

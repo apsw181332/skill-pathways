@@ -575,6 +575,16 @@ const VoiceMentorPanel = ({
           <div className="px-5 py-3 border-t border-border flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground">💬 {Math.floor(exchanges.length / 2)} exchanges</span>
             <div className="flex items-center gap-2">
+              {mentorState === "speaking" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleInterrupt}
+                  className="rounded-full text-xs h-7 px-3 border-amber-500/50 text-amber-500 hover:bg-amber-500/10 animate-pulse"
+                >
+                  <Hand className="w-3 h-3 mr-1" /> Interrupt
+                </Button>
+              )}
               <button onClick={() => setShowTranscript(!showTranscript)} className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
                 <FileText className="w-3 h-3" /> Transcript
               </button>
