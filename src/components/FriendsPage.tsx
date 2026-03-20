@@ -331,12 +331,14 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
           {friends.map(friend => {
             const fId = friend.user_id === userId ? friend.friend_id : friend.user_id;
             const profile = friendProfiles[fId];
+            const displayName = getFriendDisplayName(fId);
             return (
               <motion.button key={friend.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
                 onClick={() => setChatFriend(fId)} className="lesson-card flex items-center gap-3 py-3 w-full text-left hover:border-primary transition-colors">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><UserIcon className="w-4 h-4 text-primary" /></div>
+                <AvatarBubble url={profile?.avatar_url} name={displayName} />
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium text-foreground text-sm">{profile?.display_name || "Anonymous"}</span>
+                  <span className="font-medium text-foreground text-sm">{displayName}</span>
+                  {nicknames[fId] && <span className="text-xs text-muted-foreground ml-1">({profile?.display_name})</span>}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>{profile?.xp || 0} XP</span><span>🔥 {profile?.streak || 0}</span></div>
                 </div>
                 <MessageCircle className="w-4 h-4 text-primary shrink-0" />

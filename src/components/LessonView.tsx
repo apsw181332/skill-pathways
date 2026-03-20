@@ -865,12 +865,11 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
                     <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
                     {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
                   </div>
-                  {!isReview && chosenPath && !showFeedback && (
+                  {!isReview && chosenPath && !showFeedback && !echoUsed && canUseEcho() && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      disabled={echoUsed}
                       onClick={handleUseEcho}
                       className="shrink-0 gap-2"
                     >

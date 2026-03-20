@@ -1,10 +1,22 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Mascot from "@/components/Mascot";
 import type { PathDef } from "@/lib/paths";
 import { getRecommendedPaths } from "@/lib/paths";
+
+const ECHO_PATH_POWERS: Record<string, { title: string; description: string }> = {
+  chronos:   { title: "Rewind",    description: "Reverse time to retry your last wrong question." },
+  syntax:    { title: "Hack",      description: "Hack the system to erase one wrong answer." },
+  eloquence: { title: "Whisper",   description: "Hear a whisper revealing the explanation early." },
+  treasury:  { title: "Jackpot",   description: "Double XP reward for this question." },
+  vitality:  { title: "Heal",      description: "Restore one lost life." },
+  fortitude: { title: "Shield",    description: "Block the next wrong answer from costing a life." },
+  surge:     { title: "Overcharge", description: "Surge through — auto-answer correctly." },
+  unity:     { title: "Bond",      description: "Narrow it down to just 2 options." },
+  cosmos:    { title: "Vision",    description: "Briefly reveal the correct answer for 2 seconds." },
+};
 
 interface PathSelectionProps {
   interests: string[];
@@ -14,6 +26,8 @@ interface PathSelectionProps {
 const PathSelection = ({ interests, onSelect }: PathSelectionProps) => {
   const [selected, setSelected] = useState<string | null>(null);
   const paths = getRecommendedPaths(interests);
+
+  const selectedPower = selected ? ECHO_PATH_POWERS[selected] : null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
@@ -40,7 +54,7 @@ const PathSelection = ({ interests, onSelect }: PathSelectionProps) => {
           No spoilers — just trust your instinct.
         </p>
 
-        <div className="space-y-4 mb-8">
+        <div className="space-y-4 mb-6">
           {paths.map((path, i) => (
             <motion.button
               key={path.id}
@@ -66,6 +80,27 @@ const PathSelection = ({ interests, onSelect }: PathSelectionProps) => {
             </motion.button>
           ))}
         </div>
+
+        {/* Show Echo of Path power when a path is selected */}
+        <AnimatePresence>
+          {selectedPower && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-6 overflow-hidden"
+            >
+              <div className="lesson-card border-primary/30 bg-primary/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold text-primary text-sm">Echo of Path — {selectedPower.title}</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">{selectedPower.description}</p>
+                <p className="text-xs text-muted-foreground/70 mt-2">Use once per lesson as your special power.</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <Button
           onClick={() => selected && onSelect(selected)}
