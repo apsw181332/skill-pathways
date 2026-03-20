@@ -149,11 +149,11 @@ const VoiceMentorPanel = ({
 
 
   // ──── TTS via ElevenLabs edge function ────
-  // Use "Callum" voice (young male) — ID: N2lVS1w4EtoT3dr4eOWO
   const speakWithElevenLabs = useCallback(async (text: string) => {
     try {
-      // Read speed from localStorage settings
       const speed = parseFloat(localStorage.getItem("pebble_tts_speed") || "1.0");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tts`,
         {
@@ -161,13 +161,21 @@ const VoiceMentorPanel = ({
           headers: {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({ text, voiceId: "e79twtVS2278lVZZQiAD", speed }),
         }
       );
-      if (!resp.ok) throw new Error("TTS failed");
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error("TTS error response:", resp.status, errText);
+        throw new Error("TTS failed");
+      }
       const blob = await resp.blob();
+      if (blob.size === 0) {
+        console.error("TTS returned empty audio blob");
+        throw new Error("Empty audio");
+      }
       const url = URL.createObjectURL(blob);
       return url;
     } catch (e) {
@@ -429,6 +437,15 @@ const VoiceMentorPanel = ({
       }
     };
     init();
+
+    // Cleanup when panel closes
+    return () => {
+      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} recognitionRef.current = null; }
+      stopAllAudio();
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+      if (audioCtxRef.current) { try { audioCtxRef.current.close(); } catch {} audioCtxRef.current = null; }
+      analyserRef.current = null;
+    };
   }, [isOpen]);
 
   // Create session on open
@@ -447,6 +464,8 @@ const VoiceMentorPanel = ({
     if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} recognitionRef.current = null; }
     stopAllAudio();
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    if (audioCtxRef.current) { try { audioCtxRef.current.close(); } catch {} audioCtxRef.current = null; }
+    analyserRef.current = null;
     setMentorState("idle");
     setUserTranscript("");
     setInterimTranscript("");
