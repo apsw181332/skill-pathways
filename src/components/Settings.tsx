@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Languages, User, Lock, Check, Loader2, Trash2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, Languages, User, Lock, Check, Loader2, Trash2, AlertTriangle, Shield, ShieldOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { type UserSettings, THEME_COLORS, applyThemeColor } from "@/hooks/useSet
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { ACCESSIBILITY_MODES, applyAccessibilityModes } from "@/lib/accessibility";
 import { useTranslatedContent } from "@/hooks/useTranslation";
+import MFAEnroll from "@/components/MFAEnroll";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -58,6 +59,38 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
+
+  // 2FA state
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaLoading, setMfaLoading] = useState(true);
+  const [showMfaEnroll, setShowMfaEnroll] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.mfa.listFactors();
+      if (data) {
+        const verified = data.totp.filter(f => f.status === "verified");
+        setMfaEnabled(verified.length > 0);
+        if (verified.length > 0) setMfaFactorId(verified[0].id);
+      }
+      setMfaLoading(false);
+    })();
+  }, []);
+
+  const handleDisableMfa = async () => {
+    if (!mfaFactorId) return;
+    setPwLoading(true);
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaFactorId });
+    setPwLoading(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setMfaEnabled(false);
+      setMfaFactorId(null);
+      toast({ title: "2FA disabled" });
+    }
+  };
 
   // Load display name on first render
   if (!nameLoaded && userId) {
@@ -181,6 +214,36 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           </div>
         </motion.div>
 
+        {/* Two-Factor Authentication */}
+        {showMfaEnroll ? (
+          <MFAEnroll
+            onEnrolled={() => { setShowMfaEnroll(false); setMfaEnabled(true); }}
+            onSkip={() => setShowMfaEnroll(false)}
+          />
+        ) : (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }} className="lesson-card">
+            <div className="flex items-center gap-3 mb-4">
+              <Shield className="w-5 h-5 text-primary" />
+              <h2 className="font-semibold text-foreground">Two-Factor Authentication</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              {mfaEnabled
+                ? "2FA is enabled. Your account is protected with an authenticator app."
+                : "Add an extra layer of security by requiring a code from your authenticator app when signing in."}
+            </p>
+            {mfaLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            ) : mfaEnabled ? (
+              <Button variant="destructive" onClick={handleDisableMfa} className="w-full gap-2">
+                <ShieldOff className="w-4 h-4" /> Disable 2FA
+              </Button>
+            ) : (
+              <Button onClick={() => setShowMfaEnroll(true)} className="w-full gap-2">
+                <Shield className="w-4 h-4" /> Enable 2FA
+              </Button>
+            )}
+          </motion.div>
+        )}
         {/* Language */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="lesson-card">
           <div className="flex items-center gap-3 mb-4">
