@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
+import VoiceMentorFAB from "@/components/VoiceMentorFAB";
 
 const BADGE_DEFINITIONS = [
   { id: "first-lesson", label: "First Steps", emoji: "🐣", desc: "Complete your first lesson" },
@@ -1099,6 +1100,11 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           );
         })}
       </div>
+      <VoiceMentorFAB
+        skillTopic={activeTab === "learn" ? "Life Skills" : undefined}
+        userId={user.id}
+        locale={locale}
+      />
     </div>
   );
 };

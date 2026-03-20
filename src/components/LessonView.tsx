@@ -16,6 +16,7 @@ import { useTranslation, type Locale } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
 import { adaptLearningCode, getReadingPaceIntervention } from "@/lib/learningCode";
 import { NINE_PATHS } from "@/lib/paths";
+import VoiceMentorFAB from "@/components/VoiceMentorFAB";
 
 interface LessonViewProps {
   onBack: () => void;
@@ -1018,6 +1019,13 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
           </Button>
         </div>
       </div>
+      <VoiceMentorFAB
+        skillTopic={COURSES.find(c => c.id === categoryId)?.label || categoryId}
+        lessonContext={steps.filter(s => s.type === "info").map(s => s.content).join(" ").slice(0, 500)}
+        lessonId={`${categoryId}-${lessonId}`}
+        userId={userId}
+        locale={locale}
+      />
     </div>
   );
 };
