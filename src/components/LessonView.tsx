@@ -833,7 +833,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
           <motion.div key={currentStep} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
             <div className="flex items-start justify-between gap-3 mb-6">
               <h2 className="text-2xl font-semibold text-foreground">{tStep?.title ?? step.title}</h2>
-              {!isReview && chosenPath && step.type !== "quiz" && !echoUsed && ["vitality", "fortitude", "chronos"].includes(chosenPath) && (
+              {!isReview && chosenPath && step.type !== "quiz" && !echoUsed && canUseEcho() && ["vitality", "fortitude", "chronos"].includes(chosenPath) && (
                 <Button type="button" variant="outline" size="sm" onClick={handleUseEcho} className="shrink-0 gap-2">
                   <Sparkles className="w-4 h-4" /> Echo
                 </Button>
