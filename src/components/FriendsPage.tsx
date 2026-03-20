@@ -133,12 +133,40 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
     if (target.user_id === userId) { toast({ title: "That's you!", variant: "destructive" }); setAddingFriend(false); return; }
     const { data: existing } = await supabase.from("friendships").select("id")
       .or(`and(user_id.eq.${userId},friend_id.eq.${target.user_id}),and(user_id.eq.${target.user_id},friend_id.eq.${userId})`);
-    if (existing?.length) { toast({ title: "Already connected" }); setAddingFriend(false); return; }
+    if (existing?.length) { toast({ title: "Already connected or request pending" }); setAddingFriend(false); return; }
+    // Send a pending friend request — the target must accept it
     const { error } = await supabase.from("friendships").insert({ user_id: userId, friend_id: target.user_id, status: "pending" });
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Friend request sent! 🤝" }); setInviteCode(""); refreshSocialData(); }
+    else { toast({ title: `Friend request sent to ${target.display_name || "user"}! They need to accept it. 🤝` }); setInviteCode(""); refreshSocialData(); }
     setAddingFriend(false);
   };
+
+  const getFriendDisplayName = (friendUserId: string) => {
+    if (nicknames[friendUserId]) return nicknames[friendUserId];
+    return friendProfiles[friendUserId]?.display_name || "Friend";
+  };
+
+  const saveNickname = (friendUserId: string) => {
+    const trimmed = nicknameInput.trim();
+    const updated = { ...nicknames };
+    if (trimmed) updated[friendUserId] = trimmed;
+    else delete updated[friendUserId];
+    setNicknames(updated);
+    localStorage.setItem(`nicknames-${userId}`, JSON.stringify(updated));
+    setEditingNickname(null);
+    setNicknameInput("");
+    toast({ title: trimmed ? "Nickname saved!" : "Nickname removed" });
+  };
+
+  const AvatarBubble = ({ url, name, size = "w-8 h-8" }: { url?: string | null; name: string; size?: string }) => (
+    <div className={`${size} rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden`}>
+      {url ? (
+        <img src={url} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-xs font-bold text-primary">{(name || "?")[0].toUpperCase()}</span>
+      )}
+    </div>
+  );
 
   const handleSendMessage = async () => {
     if (!chatFriend || (!chatInput.trim() && giftAmount <= 0)) return;
