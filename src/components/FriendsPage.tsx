@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   UserPlus, Users, Check, X, MessageCircle, Gift, Send,
-  ArrowLeft, Diamond, User as UserIcon, Copy, Pencil, Undo2
+  ArrowLeft, Diamond, User as UserIcon, Copy, Pencil, Undo2, Smile
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
