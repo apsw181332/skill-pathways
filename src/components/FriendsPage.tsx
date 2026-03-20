@@ -41,6 +41,10 @@ const FriendsPage = ({ userId, gems, locale = "en" }: FriendsPageProps) => {
   const [giftAmount, setGiftAmount] = useState(0);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [nicknames, setNicknames] = useState<Record<string, string>>({});
+  const [editingNickname, setEditingNickname] = useState<string | null>(null);
+  const [nicknameInput, setNicknameInput] = useState("");
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
 
   // Translate static UI strings
   const uiTexts = useMemo(() => [
