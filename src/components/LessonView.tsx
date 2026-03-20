@@ -576,7 +576,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     setEchoUsed(true);
     setShowEchoEffect(true);
     setTimeout(() => setShowEchoEffect(false), 1000);
-    if (soundEnabled) playSuccessSound();
+    if (soundEnabled) playEchoSound(chosenPath || "");
 
     switch (chosenPath) {
       case "chronos": {
