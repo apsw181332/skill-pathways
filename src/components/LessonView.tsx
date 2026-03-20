@@ -1019,6 +1019,13 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
           </Button>
         </div>
       </div>
+      <VoiceMentorFAB
+        skillTopic={course?.title || categoryId}
+        lessonContext={steps.filter(s => s.type === "content").map(s => s.content).join(" ").slice(0, 500)}
+        lessonId={`${categoryId}-${lessonId}`}
+        userId={userId}
+        locale={locale}
+      />
     </div>
   );
 };
