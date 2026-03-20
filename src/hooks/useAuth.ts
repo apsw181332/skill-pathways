@@ -5,6 +5,7 @@ import type { User } from "@supabase/supabase-js";
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [needsMfaVerify, setNeedsMfaVerify] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -22,6 +23,16 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const checkMfaRequired = async (): Promise<boolean> => {
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error) return false;
+    // If user has enrolled MFA factors but current level is aal1, they need to verify
+    if (data.currentLevel === "aal1" && data.nextLevel === "aal2") {
+      return true;
+    }
+    return false;
+  };
+
   const signUp = async (email: string, password: string, displayName?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -32,7 +43,6 @@ export function useAuth() {
       },
     });
     if (error) throw error;
-    // Supabase returns a user with no identities when the email is already registered
     if (data.user && data.user.identities && data.user.identities.length === 0) {
       throw new Error("This email is already used for an account. Please sign in instead.");
     }
@@ -42,12 +52,21 @@ export function useAuth() {
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    
+    // Check if MFA verification is needed
+    const mfaRequired = await checkMfaRequired();
+    if (mfaRequired) {
+      setNeedsMfaVerify(true);
+      return { ...data, mfaRequired: true };
+    }
+    
     return data;
   };
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    setNeedsMfaVerify(false);
   };
 
   const resetPassword = async (email: string) => {
@@ -57,5 +76,7 @@ export function useAuth() {
     if (error) throw error;
   };
 
-  return { user, isReady, signUp, signIn, signOut, resetPassword };
+  const clearMfaVerify = () => setNeedsMfaVerify(false);
+
+  return { user, isReady, needsMfaVerify, signUp, signIn, signOut, resetPassword, checkMfaRequired, clearMfaVerify };
 }
