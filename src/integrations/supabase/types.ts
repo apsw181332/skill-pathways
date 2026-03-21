@@ -353,36 +353,6 @@ export type Database = {
         }
         Relationships: []
       }
-      verification_codes: {
-        Row: {
-          code: string
-          created_at: string | null
-          email: string
-          expires_at: string
-          id: string
-          used: boolean | null
-          user_id: string
-        }
-        Insert: {
-          code: string
-          created_at?: string | null
-          email: string
-          expires_at?: string
-          id?: string
-          used?: boolean | null
-          user_id: string
-        }
-        Update: {
-          code?: string
-          created_at?: string | null
-          email?: string
-          expires_at?: string
-          id?: string
-          used?: boolean | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       voice_exchanges: {
         Row: {
           created_at: string
