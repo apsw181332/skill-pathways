@@ -20,13 +20,12 @@ import AISuggestion from "@/components/AISuggestion";
 import { getCountryCoords } from "@/lib/countries";
 import { generateLearningCode } from "@/lib/learningCode";
 import PageTransition from "@/components/PageTransition";
-import MFAVerify from "@/components/MFAVerify";
 import type { Locale } from "@/lib/i18n";
 
 type AppState = "landing" | "auth" | "onboarding" | "path-selection" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
 
 const Index = () => {
-  const { user, isReady, needsMfaVerify, signUp, signIn, signOut, resetPassword, clearMfaVerify } = useAuth();
+  const { user, isReady, signUp, signIn, signOut, resetPassword } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
   const { settings, loading: settingsLoading, updateSetting, enrollCourse, unenrollCourse } = useSettings(user?.id);
   const [state, setState] = useState<AppState>("landing");
@@ -94,7 +93,6 @@ const Index = () => {
       );
       const coords = userConfig.country ? getCountryCoords(userConfig.country) : null;
 
-      // Auto-enroll matching courses based on selected interests (up to 3)
       const interestToCourse: Record<string, string> = {
         financial: "financial", home: "home", cooking: "cooking",
         social: "social", career: "career", health: "health",
@@ -123,7 +121,6 @@ const Index = () => {
         await updateSetting("accessibility_modes", userConfig.accessibilityModes);
       }
     }
-    // Go to path selection instead of tutorial
     setState("path-selection");
   };
 
@@ -146,10 +143,6 @@ const Index = () => {
   const handleAuth = () => setState("onboarding");
   const handleSignOut = async () => { await signOut(); setState("landing"); };
 
-  // Show MFA verify screen if needed
-  if (isReady && user && needsMfaVerify) {
-    return <MFAVerify onVerified={clearMfaVerify} />;
-  }
   const handleStartLesson = (categoryId: string, lessonId: number, isReview: boolean = false) => {
     setIsTransitioning(true);
     setActiveLessonCategory(categoryId);

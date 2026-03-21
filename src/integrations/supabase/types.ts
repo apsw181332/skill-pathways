@@ -353,6 +353,71 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_exchanges: {
+        Row: {
+          created_at: string
+          exchange_index: number | null
+          id: string
+          mentor_text: string
+          session_id: string
+          user_text: string
+        }
+        Insert: {
+          created_at?: string
+          exchange_index?: number | null
+          id?: string
+          mentor_text: string
+          session_id: string
+          user_text: string
+        }
+        Update: {
+          created_at?: string
+          exchange_index?: number | null
+          id?: string
+          mentor_text?: string
+          session_id?: string
+          user_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_exchanges_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "voice_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_sessions: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          exchange_count: number | null
+          id: string
+          lesson_id: string | null
+          skill_topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          exchange_count?: number | null
+          id?: string
+          lesson_id?: string | null
+          skill_topic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          exchange_count?: number | null
+          id?: string
+          lesson_id?: string | null
+          skill_topic?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

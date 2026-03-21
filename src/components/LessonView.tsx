@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, CheckCircle2, XCircle, ArrowRight, Clock, Target, Zap, Heart, Diamond, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Mascot from "@/components/Mascot";
-import Confetti from "@/components/Confetti";
+
 import XpPopup from "@/components/XpPopup";
 import TreasureChest from "@/components/TreasureChest";
 import ReadAloudButton from "@/components/ReadAloudButton";
@@ -16,6 +16,7 @@ import { useTranslation, type Locale } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
 import { adaptLearningCode, getReadingPaceIntervention } from "@/lib/learningCode";
 import { NINE_PATHS } from "@/lib/paths";
+import VoiceMentorFAB from "@/components/VoiceMentorFAB";
 
 interface LessonViewProps {
   onBack: () => void;
@@ -312,7 +313,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
-        <Confetti active={showConfetti} />
+        <EndLessonEffect pathId={chosenPath || null} active={showEndEffect} />
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center">
           <Mascot message={msg} size="md" animation="celebrate" />
           <h2 className="text-2xl font-bold text-foreground mt-6 mb-2">
@@ -559,9 +560,26 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
     }
   };
 
+  const canUseEcho = () => {
+    if (echoUsed || !step) return false;
+    const isQuiz = step.type === "quiz" && shuffledQuiz;
+    const isTypeIn = step.type === "type-in";
+    switch (chosenPath) {
+      case "chronos": return lastWrongQuizIndex !== null && !showFeedback;
+      case "syntax": return isQuiz && !showFeedback;
+      case "eloquence": return (isQuiz || isTypeIn) && !showFeedback;
+      case "treasury": return (isQuiz || isTypeIn) && !showFeedback;
+      case "vitality": return lives < 3;
+      case "fortitude": return !shieldActive;
+      case "surge": return isQuiz && !showFeedback;
+      case "unity": return isQuiz && !showFeedback;
+      case "cosmos": return isQuiz && !showFeedback;
+      default: return isQuiz && !showFeedback;
+    }
+  };
+
   const handleUseEcho = () => {
-    if (echoUsed || !step) return;
-    // Most powers work on quiz, but some (vitality, fortitude) work on any step
+    if (echoUsed || !step || !canUseEcho()) return;
     const isQuiz = step.type === "quiz" && shuffledQuiz;
 
     const power = ECHO_PATH_POWERS[chosenPath || ""] || ECHO_PATH_POWERS.default;
@@ -572,15 +590,12 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
     switch (chosenPath) {
       case "chronos": {
-        // Rewind to last wrong question
         if (lastWrongQuizIndex !== null) {
           setCurrentStep(lastWrongQuizIndex);
           setSelectedAnswer(null);
           setShowFeedback(false);
           setHiddenOptions([]);
           setFeedbackMascotMsg("⏳ Time rewound! Try that question again.");
-        } else {
-          setFeedbackMascotMsg("⏳ No wrong answers yet — time flows steady.");
         }
         return;
       }
@@ -763,7 +778,6 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Confetti active={showConfetti} />
       <XpPopup amount={xpAmount} show={showXp} />
       <CorrectEffect pathId={chosenPath || null} active={showCorrectEffect} />
       <EchoEffect pathId={chosenPath || null} active={showEchoEffect} />
@@ -820,7 +834,7 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
           <motion.div key={currentStep} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
             <div className="flex items-start justify-between gap-3 mb-6">
               <h2 className="text-2xl font-semibold text-foreground">{tStep?.title ?? step.title}</h2>
-              {!isReview && chosenPath && step.type !== "quiz" && !echoUsed && ["vitality", "fortitude", "chronos"].includes(chosenPath) && (
+              {!isReview && chosenPath && step.type !== "quiz" && !echoUsed && canUseEcho() && ["vitality", "fortitude", "chronos"].includes(chosenPath) && (
                 <Button type="button" variant="outline" size="sm" onClick={handleUseEcho} className="shrink-0 gap-2">
                   <Sparkles className="w-4 h-4" /> Echo
                 </Button>
@@ -852,12 +866,11 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
                     <p className="text-foreground text-lg flex-1">{tStep?.question ?? step.question}</p>
                     {(tStep?.question ?? step.question) && <ReadAloudButton text={tStep?.question ?? step.question ?? ""} size="sm" className="shrink-0 mt-1" />}
                   </div>
-                  {!isReview && chosenPath && !showFeedback && (
+                  {!isReview && chosenPath && !showFeedback && !echoUsed && canUseEcho() && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      disabled={echoUsed}
                       onClick={handleUseEcho}
                       className="shrink-0 gap-2"
                     >
@@ -1006,6 +1019,13 @@ const LessonView = ({ onBack, onNextLesson, userId, categoryId, lessonId, soundE
           </Button>
         </div>
       </div>
+      <VoiceMentorFAB
+        skillTopic={COURSES.find(c => c.id === categoryId)?.label || categoryId}
+        lessonContext={steps.filter(s => s.type === "info").map(s => s.content).join(" ").slice(0, 500)}
+        lessonId={`${categoryId}-${lessonId}`}
+        userId={userId}
+        locale={locale}
+      />
     </div>
   );
 };

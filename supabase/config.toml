@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.adapt-lesson]
 verify_jwt = false
+
+[functions.voice-mentor-query]
+verify_jwt = false
