@@ -20,14 +20,13 @@ import AISuggestion from "@/components/AISuggestion";
 import { getCountryCoords } from "@/lib/countries";
 import { generateLearningCode } from "@/lib/learningCode";
 import PageTransition from "@/components/PageTransition";
-import EmailVerify from "@/components/EmailVerify";
-import DisplayNamePrompt from "@/components/DisplayNamePrompt";
+import MFAVerify from "@/components/MFAVerify";
 import type { Locale } from "@/lib/i18n";
 
-type AppState = "landing" | "auth" | "email-verify" | "display-name" | "onboarding" | "path-selection" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
+type AppState = "landing" | "auth" | "onboarding" | "path-selection" | "tutorial" | "dashboard" | "lesson" | "settings" | "path-complete";
 
 const Index = () => {
-  const { user, isReady, signUp, signIn, signOut, resetPassword } = useAuth();
+  const { user, isReady, needsMfaVerify, signUp, signIn, signOut, resetPassword, clearMfaVerify } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
   const { settings, loading: settingsLoading, updateSetting, enrollCourse, unenrollCourse } = useSettings(user?.id);
   const [state, setState] = useState<AppState>("landing");
@@ -40,8 +39,6 @@ const Index = () => {
   const [extraLives, setExtraLives] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [chosenPath, setChosenPath] = useState<string | null>(null);
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [displayNameSet, setDisplayNameSet] = useState<boolean | null>(null);
 
   const currentLocale = (settings.language || "en") as Locale;
 
@@ -51,49 +48,6 @@ const Index = () => {
       applyAccessibilityModes(settings.accessibility_modes || []);
     }
   }, [settings.theme_color, settings.accessibility_modes, settingsLoading]);
-
-  // Check if user needs display name (Google signup)
-  useEffect(() => {
-    if (!user) { setDisplayNameSet(null); return; }
-    const check = async () => {
-      const { data } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).single();
-      setDisplayNameSet(!!(data?.display_name && data.display_name.trim().length > 0));
-    };
-    check();
-  }, [user?.id]);
-
-  // Check subscription status on login
-  useEffect(() => {
-    if (!user) return;
-    const checkSub = async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (!token) return;
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-subscription`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        });
-      } catch {}
-    };
-    checkSub();
-    const interval = setInterval(checkSub, 60000);
-    return () => clearInterval(interval);
-  }, [user?.id]);
-
-  // Handle checkout success/cancel URL params
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("checkout") === "success") {
-      window.history.replaceState({}, "", "/");
-    } else if (params.get("checkout") === "cancel") {
-      window.history.replaceState({}, "", "/");
-    }
-  }, []);
 
   // Fetch gems and chosen_path
   useEffect(() => {
@@ -119,12 +73,6 @@ const Index = () => {
   const effectiveState = (() => {
     if (!isReady || settingsLoading) return "landing";
     if (user) {
-      // 2FA check
-      if (!emailVerified && state !== "email-verify") return "email-verify";
-      // Display name check (for Google signups)
-      if (displayNameSet === false && state !== "display-name") return "display-name";
-      if (displayNameSet === null) return "landing"; // still loading
-
       if (state === "lesson") return "lesson";
       if (state === "path-complete") return "path-complete";
       if (state === "settings") return "settings";
@@ -140,37 +88,50 @@ const Index = () => {
     setConfig(userConfig);
     if (user) {
       const learningCode = generateLearningCode(
-        userConfig.learningStyle, userConfig.interests, userConfig.accessibilityModes || []
+        userConfig.learningStyle,
+        userConfig.interests,
+        userConfig.accessibilityModes || []
       );
       const coords = userConfig.country ? getCountryCoords(userConfig.country) : null;
+
+      // Auto-enroll matching courses based on selected interests (up to 3)
       const interestToCourse: Record<string, string> = {
         financial: "financial", home: "home", cooking: "cooking",
         social: "social", career: "career", health: "health",
         legal: "legal", tech: "tech",
       };
-      const autoEnroll = userConfig.interests.map(i => interestToCourse[i]).filter(Boolean).slice(0, 3);
+      const autoEnroll = userConfig.interests
+        .map(i => interestToCourse[i])
+        .filter(Boolean)
+        .slice(0, 3);
 
       await supabase.from("profiles").update({
         interests: userConfig.interests, learning_style: userConfig.learningStyle,
         accessibility: userConfig.accessibility, onboarding_completed: true,
         accessibility_modes: userConfig.accessibilityModes || [],
-        country: userConfig.country || null, learning_code: learningCode,
+        country: userConfig.country || null,
+        learning_code: learningCode,
         enrolled_courses: autoEnroll,
         ...(coords ? { latitude: coords.lat, longitude: coords.lng } : {}),
       } as any).eq("user_id", user.id);
       await updateSetting("onboarding_completed", true);
-      for (const courseId of autoEnroll) await enrollCourse(courseId);
+      for (const courseId of autoEnroll) {
+        await enrollCourse(courseId);
+      }
       if (userConfig.accessibilityModes?.length) {
         applyAccessibilityModes(userConfig.accessibilityModes);
         await updateSetting("accessibility_modes", userConfig.accessibilityModes);
       }
     }
+    // Go to path selection instead of tutorial
     setState("path-selection");
   };
 
   const handlePathSelected = async (pathId: string) => {
     setChosenPath(pathId);
-    if (user) await supabase.from("profiles").update({ chosen_path: pathId } as any).eq("user_id", user.id);
+    if (user) {
+      await supabase.from("profiles").update({ chosen_path: pathId } as any).eq("user_id", user.id);
+    }
     setState("tutorial");
   };
 
@@ -182,30 +143,34 @@ const Index = () => {
     setState("dashboard");
   };
 
-  const handleAuth = () => {
-    setEmailVerified(false);
-    setState("email-verify");
-  };
-  const handleSignOut = async () => {
-    setEmailVerified(false);
-    setDisplayNameSet(null);
-    await signOut();
-    setState("landing");
-  };
+  const handleAuth = () => setState("onboarding");
+  const handleSignOut = async () => { await signOut(); setState("landing"); };
 
+  // Show MFA verify screen if needed
+  if (isReady && user && needsMfaVerify) {
+    return <MFAVerify onVerified={clearMfaVerify} />;
+  }
   const handleStartLesson = (categoryId: string, lessonId: number, isReview: boolean = false) => {
     setIsTransitioning(true);
     setActiveLessonCategory(categoryId);
     setActiveLessonId(lessonId);
     setActiveLessonReview(isReview);
-    setTimeout(() => { setState("lesson"); setTimeout(() => setIsTransitioning(false), 400); }, 300);
+    setTimeout(() => {
+      setState("lesson");
+      setTimeout(() => setIsTransitioning(false), 400);
+    }, 300);
   };
 
-  const handleUseExtraLife = () => { if (extraLives > 0) setExtraLives(prev => prev - 1); };
+  const handleUseExtraLife = () => {
+    if (extraLives > 0) setExtraLives(prev => prev - 1);
+  };
 
   const handleStateChange = (newState: AppState) => {
     setIsTransitioning(true);
-    setTimeout(() => { setState(newState); setTimeout(() => setIsTransitioning(false), 400); }, 300);
+    setTimeout(() => {
+      setState(newState);
+      setTimeout(() => setIsTransitioning(false), 400);
+    }, 300);
   };
 
   if (isReady && user && !adminLoading && isAdmin) return <AdminDashboard onSignOut={handleSignOut} />;
@@ -214,8 +179,6 @@ const Index = () => {
     switch (effectiveState) {
       case "landing": return <Landing onGetStarted={() => setState("auth")} />;
       case "auth": return <AuthPage onAuth={handleAuth} signUp={signUp} signIn={signIn} resetPassword={resetPassword} />;
-      case "email-verify": return <EmailVerify onVerified={() => setEmailVerified(true)} userEmail={user?.email} />;
-      case "display-name": return user ? <DisplayNamePrompt userId={user.id} onComplete={() => setDisplayNameSet(true)} /> : null;
       case "onboarding": return <Onboarding onComplete={handleOnboardingComplete} />;
       case "path-selection": return <PathSelection interests={config.interests} onSelect={handlePathSelected} />;
       case "tutorial": return <Tutorial onComplete={handleTutorialComplete} />;
@@ -226,7 +189,8 @@ const Index = () => {
             <Dashboard config={config} onStartLesson={handleStartLesson} user={user!} onSignOut={handleSignOut}
               onOpenSettings={() => handleStateChange("settings")} enrolledCourses={settings.enrolled_courses}
               onEnroll={enrollCourse} onUnenroll={unenrollCourse}
-              gems={gems} extraLives={extraLives} locale={currentLocale} chosenPath={chosenPath}
+              gems={gems} extraLives={extraLives} locale={currentLocale}
+              chosenPath={chosenPath}
               onPurchase={async (itemId, cost) => {
                 if (gems < cost) return false;
                 if (itemId.startsWith("title-")) return false;
@@ -238,14 +202,17 @@ const Index = () => {
                 return true;
               }}
             />
-            <ChatBot userId={user!.id} locale={currentLocale} />
+            <ChatBot />
             <AISuggestion userId={user!.id} enrolledCourses={settings.enrolled_courses} onEnroll={enrollCourse} />
           </>
         );
       case "path-complete":
         return completedCourse ? (
-          <PathComplete course={completedCourse} totalXp={0}
-            onContinue={() => { setCompletedCourse(null); handleStateChange("dashboard"); }} />
+          <PathComplete
+            course={completedCourse}
+            totalXp={0}
+            onContinue={() => { setCompletedCourse(null); handleStateChange("dashboard"); }}
+          />
         ) : null;
       case "lesson":
         return (
@@ -255,7 +222,10 @@ const Index = () => {
               const course = COURSES.find(c => c.id === activeLessonCategory);
               if (course) {
                 const { data: progress } = await supabase.from("user_progress")
-                  .select("lesson_id").eq("user_id", user.id).eq("category_id", activeLessonCategory).eq("completed", true);
+                  .select("lesson_id")
+                  .eq("user_id", user.id)
+                  .eq("category_id", activeLessonCategory)
+                  .eq("completed", true);
                 const completedCount = progress?.length || 0;
                 if (completedCount >= course.lessons.length && settings.enrolled_courses.includes(activeLessonCategory)) {
                   await unenrollCourse(activeLessonCategory);
@@ -274,7 +244,10 @@ const Index = () => {
                 const course = COURSES.find(c => c.id === catId);
                 if (course) {
                   const { data: progress } = await supabase.from("user_progress")
-                    .select("lesson_id").eq("user_id", user.id).eq("category_id", catId).eq("completed", true);
+                    .select("lesson_id")
+                    .eq("user_id", user.id)
+                    .eq("category_id", catId)
+                    .eq("completed", true);
                   const completedCount = progress?.length || 0;
                   if (completedCount >= course.lessons.length && settings.enrolled_courses.includes(catId)) {
                     setIsTransitioning(true);

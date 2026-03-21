@@ -25,7 +25,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation, type Locale } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslation";
-import VoiceMentorFAB from "@/components/VoiceMentorFAB";
 
 const BADGE_DEFINITIONS = [
   { id: "first-lesson", label: "First Steps", emoji: "🐣", desc: "Complete your first lesson" },
@@ -42,7 +41,12 @@ function getGreeting(streak: number): string {
   const hour = new Date().getHours();
   const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   if (streak === 0) {
-    return `${timeGreeting}! Ready to start learning something new? 🚀`;
+    const msgs = [
+      `${timeGreeting}! Ready to start learning something new? 🚀`,
+      `${timeGreeting}! Let's build some awesome skills today! 🌟`,
+      `${timeGreeting}! Your learning journey begins — let's go! 💪`,
+    ];
+    return msgs[Math.floor(Date.now() / 60000) % msgs.length];
   }
   if (streak >= 7) return `${timeGreeting}! ${streak}-day streak — you're absolutely unstoppable! 🔥⚡`;
   if (streak >= 3) return `${timeGreeting}! ${streak} days in a row — keep that streak alive! 🔥`;
@@ -102,7 +106,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const [giftAmount, setGiftAmount] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [gemOverlay, setGemOverlay] = useState<{ active: boolean; amount: number }>({ active: false, amount: 0 });
-  const [unreadFriendCount, setUnreadFriendCount] = useState(0);
   const { toast } = useToast();
 
   const levelInfo = getXpProgress(xp);
@@ -121,11 +124,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
   const getCourseName = (idx: number) => tCourseTexts[idx * 2] ?? COURSES[idx]?.label ?? "";
   const getCourseDesc = (idx: number) => tCourseTexts[idx * 2 + 1] ?? COURSES[idx]?.description ?? "";
   const greetingMsg = tDashMascot[0] ?? greetingMsgEn;
-
-  // Translate badge labels and descriptions
-  const badgeTexts = useMemo(() => BADGE_DEFINITIONS.flatMap(b => [b.label, b.desc]), []);
-  const { translated: tBadgeTexts } = useTranslatedContent(badgeTexts, locale, "badge names and descriptions");
-
   const [myInviteCode, setMyInviteCode] = useState(user.id.slice(0, 8).toUpperCase());
 
   const filteredCourses = COURSES.map((c, i) => ({ ...c, tLabel: getCourseName(i), tDesc: getCourseDesc(i) })).filter(c => {
@@ -252,18 +250,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
       })
       .subscribe();
 
-    // Listen for incoming messages for notification badge
-    const msgChannel = supabase.channel(`friend-msg-notify-${user.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "friend_messages" }, (payload) => {
-        const msg = payload.new as ChatMessage;
-        if (msg.receiver_id === user.id && activeTab !== "friends") {
-          setUnreadFriendCount(prev => prev + 1);
-        }
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); supabase.removeChannel(msgChannel); };
-  }, [refreshSocialData, user.id, activeTab]);
+    return () => { supabase.removeChannel(channel); };
+  }, [refreshSocialData, user.id]);
 
   // Missions and titles are now loaded from achievements in fetchAll above
 
@@ -585,7 +573,20 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
         </motion.div>
       )}
 
-      {/* Invite code moved to Friends page */}
+      {/* Add friend by invite code */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="lesson-card mb-6">
+        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+          <UserPlus className="w-4 h-4 text-primary" /> {t("home.add_friend")}
+        </h3>
+        <div className="flex gap-2 mb-2">
+          <Input value={inviteCode} onChange={e => setInviteCode(e.target.value.toUpperCase())} placeholder="Enter invite code..." className="flex-1 font-mono"
+            maxLength={8} onKeyDown={e => e.key === "Enter" && handleAddFriendByCode()} />
+          <Button size="sm" onClick={handleAddFriendByCode} disabled={addingFriend || inviteCode.length < 8}>
+            {addingFriend ? "..." : "Add"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{t("home.your_code")}: <span className="font-mono font-semibold text-foreground">{myInviteCode}</span></p>
+      </motion.div>
 
       {/* Enrolled courses */}
       {enrolledCourses.length > 0 && (
@@ -991,8 +992,8 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
             <motion.div key={badge.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 + i * 0.05 }}
               className={`lesson-card text-center py-4 ${!earned ? "opacity-40 grayscale" : ""}`}>
               <span className="text-3xl">{badge.emoji}</span>
-              <p className="font-medium text-foreground text-sm mt-2">{tBadgeTexts[i * 2] ?? badge.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{tBadgeTexts[i * 2 + 1] ?? badge.desc}</p>
+              <p className="font-medium text-foreground text-sm mt-2">{badge.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{badge.desc}</p>
               {earned && <span className="inline-block mt-2 text-xs text-primary font-medium">{t("missions.done")}</span>}
             </motion.div>
           );
@@ -1078,11 +1079,9 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           const Icon = tab.icon;
           const claimableCount = tab.id === "missions"
             ? MISSIONS.filter((mission) => !claimedMissions.includes(mission.id) && mission.requirement(missionStats)).length
-            : tab.id === "friends"
-            ? unreadFriendCount
             : 0;
           return (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSelectedCategory(null); if (tab.id === "friends") setUnreadFriendCount(0); }}
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSelectedCategory(null); }}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 transition-colors relative ${activeTab === tab.id ? "text-primary" : "text-muted-foreground"}`}>
               <Icon className="w-5 h-5" />
               {claimableCount > 0 && (
@@ -1095,11 +1094,6 @@ const Dashboard = ({ config, onStartLesson, user, onSignOut, onOpenSettings, enr
           );
         })}
       </div>
-      <VoiceMentorFAB
-        skillTopic={activeTab === "learn" ? "Life Skills" : undefined}
-        userId={user.id}
-        locale={locale}
-      />
     </div>
   );
 };
