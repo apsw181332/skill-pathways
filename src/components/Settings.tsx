@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, User, Lock, Check, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Palette, Volume2, VolumeX, Globe, Eye, User, Lock, Check, Loader2, Trash2, Mic, History } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -260,6 +261,15 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
           </div>
         </motion.div>
 
+        {/* Voice Mentor (Pebble) Settings */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.11 }} className="lesson-card">
+          <div className="flex items-center gap-3 mb-4">
+            <Mic className="w-5 h-5 text-primary" />
+            <h2 className="font-semibold text-foreground">Voice Mentor (Pebble)</h2>
+          </div>
+          <PebbleVoiceSettings />
+        </motion.div>
+
         {/* Delete Account */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }} className="lesson-card border-destructive/30">
           <div className="flex items-center gap-3 mb-4">
@@ -275,6 +285,81 @@ const Settings = ({ settings, onUpdate, onBack, locale = "en", userId }: Setting
     </div>
   );
 };
+
+function PebbleVoiceSettings() {
+  const [speed, setSpeed] = useState(() => parseFloat(localStorage.getItem("pebble_tts_speed") || "1.0"));
+  const [responseLength, setResponseLength] = useState(() => localStorage.getItem("pebble_response_length") || "medium");
+  const [saveTranscripts, setSaveTranscripts] = useState(() => localStorage.getItem("pebble_save_transcripts") !== "false");
+
+  const handleSpeedChange = (val: number[]) => {
+    const v = val[0];
+    setSpeed(v);
+    localStorage.setItem("pebble_tts_speed", v.toString());
+  };
+
+  const handleLengthChange = (len: string) => {
+    setResponseLength(len);
+    localStorage.setItem("pebble_response_length", len);
+  };
+
+  const handleTranscriptToggle = (val: boolean) => {
+    setSaveTranscripts(val);
+    localStorage.setItem("pebble_save_transcripts", val.toString());
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Speaking Speed */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-foreground">Speaking Speed</span>
+          <span className="text-xs text-muted-foreground font-mono">{speed.toFixed(1)}x</span>
+        </div>
+        <Slider value={[speed]} onValueChange={handleSpeedChange} min={0.5} max={1.5} step={0.1} className="w-full" />
+        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+          <span>Slower</span>
+          <span>Normal</span>
+          <span>Faster</span>
+        </div>
+      </div>
+
+      {/* Response Length */}
+      <div>
+        <span className="text-sm font-medium text-foreground block mb-2">Response Length</span>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { id: "short", label: "Short", desc: "1-2 sentences" },
+            { id: "medium", label: "Medium", desc: "2-4 sentences" },
+            { id: "long", label: "Detailed", desc: "4-6 sentences" },
+          ].map(opt => (
+            <button key={opt.id} onClick={() => handleLengthChange(opt.id)}
+              className={`px-3 py-2 rounded-xl text-sm transition-all ${
+                responseLength === opt.id
+                  ? "bg-primary/10 text-primary ring-2 ring-primary font-semibold"
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
+              }`}>
+              <span className="block">{opt.label}</span>
+              <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Save Transcripts */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <History className="w-4 h-4 text-muted-foreground" />
+          <div>
+            <span className="text-sm font-medium text-foreground">Save Transcripts</span>
+            <p className="text-xs text-muted-foreground">Keep voice session history</p>
+          </div>
+        </div>
+        <Switch checked={saveTranscripts} onCheckedChange={handleTranscriptToggle} />
+      </div>
+    </div>
+  );
+}
+
 
 function DeleteAccountButton({ userId }: { userId?: string }) {
   const [step, setStep] = useState<"idle" | "confirm" | "deleting">("idle");

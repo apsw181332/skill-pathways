@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, FileText, Volume2, Loader2, Mic } from "lucide-react";
+import { X, FileText, Volume2, Loader2, Mic, Hand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -147,29 +147,50 @@ const VoiceMentorPanel = ({
     }
   }, [toast]);
 
-  // ──── Barge-in: monitor mic while AI speaks ────
-  const checkBargeIn = useCallback(() => {
-    if (!analyserRef.current || mentorState !== "speaking") return;
-    const data = new Uint8Array(analyserRef.current.frequencyBinCount);
-    analyserRef.current.getByteFrequencyData(data);
-    const avg = data.reduce((a, b) => a + b, 0) / data.length;
-    if (avg > 30) {
-      // User started talking — stop AI audio and listen
-      bargeInActiveRef.current = true;
-      stopAllAudio();
-      startListeningInternal();
-    }
-  }, [mentorState]);
 
-  useEffect(() => {
-    if (mentorState !== "speaking") return;
-    const interval = setInterval(checkBargeIn, 150);
-    return () => clearInterval(interval);
-  }, [mentorState, checkBargeIn]);
+  // ──── Browser SpeechSynthesis fallback ────
+  const speakWithBrowser = useCallback((text: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (!window.speechSynthesis) { resolve(null); return; }
+      const utterance = new SpeechSynthesisUtterance(text);
+      const speed = parseFloat(localStorage.getItem("pebble_tts_speed") || "1.0");
+      utterance.rate = speed;
+      utterance.pitch = 1.3; // Higher pitch for child-like voice
+      utterance.lang = getRecognitionLang();
+      // Pick a voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.lang.startsWith(locale) && v.name.toLowerCase().includes("female"))
+        || voices.find(v => v.lang.startsWith(locale))
+        || voices[0];
+      if (preferred) utterance.voice = preferred;
+      utterance.onend = () => resolve("__browser_tts_done__");
+      utterance.onerror = () => resolve(null);
 
-  // ──── TTS via ElevenLabs edge function ────
-  const speakWithElevenLabs = useCallback(async (text: string) => {
+      // Connect to analyser for waveform during browser TTS
+      if (audioCtxRef.current && analyserRef.current) {
+        try {
+          const oscillator = audioCtxRef.current.createOscillator();
+          const gain = audioCtxRef.current.createGain();
+          gain.gain.value = 0; // silent - just for visual
+          oscillator.connect(gain);
+          gain.connect(analyserRef.current);
+          oscillator.start();
+          utterance.onend = () => { oscillator.stop(); resolve("__browser_tts_done__"); };
+          utterance.onerror = () => { try { oscillator.stop(); } catch {} resolve(null); };
+        } catch {}
+      }
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    });
+  }, [locale]);
+
+  // ──── TTS via ElevenLabs edge function with browser fallback ────
+  const speakWithElevenLabs = useCallback(async (text: string): Promise<string | null> => {
     try {
+      const speed = parseFloat(localStorage.getItem("pebble_tts_speed") || "1.0");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tts`,
         {
@@ -177,20 +198,26 @@ const VoiceMentorPanel = ({
           headers: {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ text, voiceId: "EXAVITQu4vr4xnSDxMaL" }),
+          body: JSON.stringify({ text, voiceId: "N2lVS1w4EtoT3dr4eOWO", speed }),
         }
       );
-      if (!resp.ok) throw new Error("TTS failed");
+      if (!resp.ok) {
+        console.warn("ElevenLabs TTS failed, falling back to browser voice");
+        return speakWithBrowser(text);
+      }
       const blob = await resp.blob();
+      if (blob.size === 0) {
+        return speakWithBrowser(text);
+      }
       const url = URL.createObjectURL(blob);
       return url;
     } catch (e) {
-      console.error("ElevenLabs TTS error:", e);
-      return null;
+      console.warn("ElevenLabs TTS error, using browser fallback:", e);
+      return speakWithBrowser(text);
     }
-  }, []);
+  }, [speakWithBrowser]);
 
   const playAudioQueue = useCallback(async () => {
     if (isPlayingRef.current || ttsQueueRef.current.length === 0) return;
@@ -200,7 +227,11 @@ const VoiceMentorPanel = ({
       if (bargeInActiveRef.current) break;
       const text = ttsQueueRef.current.shift()!;
       const audioUrl = await speakWithElevenLabs(text);
-      if (!audioUrl || bargeInActiveRef.current) break;
+      if (bargeInActiveRef.current) break;
+      if (!audioUrl) continue;
+
+      // Browser TTS was already played inline
+      if (audioUrl === "__browser_tts_done__") continue;
 
       await new Promise<void>((resolve) => {
         const audio = new Audio(audioUrl);
@@ -236,7 +267,6 @@ const VoiceMentorPanel = ({
 
     isPlayingRef.current = false;
     if (!bargeInActiveRef.current) {
-      // After AI finishes speaking, auto-listen again
       setMentorState("idle");
       setTimeout(() => startListeningInternal(), 300);
     }
@@ -248,6 +278,8 @@ const VoiceMentorPanel = ({
       currentAudioRef.current.pause();
       currentAudioRef.current = null;
     }
+    // Stop browser TTS too
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     sourceNodeRef.current = null;
     isPlayingRef.current = false;
     abortRef.current?.abort();
@@ -310,7 +342,15 @@ const VoiceMentorPanel = ({
     recognition.start();
   }, [locale]);
 
-  // ──── Send question to AI ────
+  // ──── Manual interrupt button ────
+  const handleInterrupt = useCallback(() => {
+    if (mentorState !== "speaking") return;
+    bargeInActiveRef.current = true;
+    stopAllAudio();
+    startListeningInternal();
+  }, [mentorState, stopAllAudio]);
+
+
   const sendQuestion = useCallback(async (text: string) => {
     if (!text.trim()) return;
     setMentorState("thinking");
@@ -437,6 +477,15 @@ const VoiceMentorPanel = ({
       }
     };
     init();
+
+    // Cleanup when panel closes
+    return () => {
+      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} recognitionRef.current = null; }
+      stopAllAudio();
+      if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+      if (audioCtxRef.current) { try { audioCtxRef.current.close(); } catch {} audioCtxRef.current = null; }
+      analyserRef.current = null;
+    };
   }, [isOpen]);
 
   // Create session on open
@@ -455,6 +504,8 @@ const VoiceMentorPanel = ({
     if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} recognitionRef.current = null; }
     stopAllAudio();
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    if (audioCtxRef.current) { try { audioCtxRef.current.close(); } catch {} audioCtxRef.current = null; }
+    analyserRef.current = null;
     setMentorState("idle");
     setUserTranscript("");
     setInterimTranscript("");
@@ -487,50 +538,90 @@ const VoiceMentorPanel = ({
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       >
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={handleClose} />
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={handleClose} />
 
         <motion.div
           initial={{ scale: 0.9, opacity: 0, y: 30 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 30 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative z-10 w-full max-w-md bg-card rounded-3xl shadow-2xl border border-border overflow-hidden max-h-[85vh] flex flex-col"
+          className="relative z-10 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
+          style={{ background: "radial-gradient(ellipse at center, hsl(var(--card)) 0%, hsl(0 0% 5%) 100%)" }}
         >
           {/* Header */}
-          <div className={`px-5 py-4 bg-gradient-to-r ${stateColor} transition-colors duration-500`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <div>
-                  <h2 className="text-base font-bold text-foreground">Voice Mentor</h2>
-                  <p className="text-xs text-muted-foreground">{skillTopic}</p>
-                </div>
+          <div className="px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <div>
+                <h2 className="text-sm font-bold text-foreground">Pebble Voice</h2>
+                <p className="text-[10px] text-muted-foreground">{skillTopic}</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full h-8 w-8">
-                <X className="w-4 h-4" />
-              </Button>
             </div>
+            <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full h-8 w-8 text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </Button>
           </div>
 
-          {/* Avatar + Waveform */}
-          <div className="px-5 py-6 flex flex-col items-center gap-4">
-            <motion.div
-              className={`w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-5xl ${avatarGlow} transition-shadow duration-500`}
-              animate={
-                mentorState === "speaking" ? { scale: [1, 1.05, 1] } :
-                mentorState === "thinking" ? { rotate: [0, 5, -5, 0] } : {}
-              }
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            >
-              🧑‍🏫
-            </motion.div>
+          {/* Glowing Orb Visual */}
+          <div className="px-5 py-8 flex flex-col items-center gap-5">
+            <div className="relative w-40 h-40 flex items-center justify-center">
+              {/* Outer glow rings */}
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: mentorState === "speaking"
+                    ? "radial-gradient(circle, rgba(34,197,94,0.15) 0%, transparent 70%)"
+                    : mentorState === "listening"
+                    ? "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)"
+                    : mentorState === "thinking"
+                    ? "radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)"
+                    : "radial-gradient(circle, rgba(100,100,255,0.08) 0%, transparent 70%)",
+                }}
+                animate={mentorState === "speaking" ? { scale: [1, 1.3, 1] } : mentorState === "listening" ? { scale: [1, 1.15, 1] } : {}}
+                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div
+                className="absolute rounded-full"
+                style={{
+                  width: "75%", height: "75%",
+                  border: `2px solid ${mentorState === "speaking" ? "rgba(34,197,94,0.3)" : mentorState === "listening" ? "rgba(59,130,246,0.3)" : "rgba(100,100,255,0.15)"}`,
+                  boxShadow: mentorState === "speaking"
+                    ? "0 0 40px rgba(34,197,94,0.2), inset 0 0 30px rgba(34,197,94,0.1)"
+                    : mentorState === "listening"
+                    ? "0 0 40px rgba(59,130,246,0.2), inset 0 0 30px rgba(59,130,246,0.1)"
+                    : "0 0 20px rgba(100,100,255,0.1)",
+                }}
+                animate={mentorState === "speaking" ? { scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] } : mentorState === "thinking" ? { rotate: [0, 360] } : {}}
+                transition={mentorState === "thinking" ? { duration: 3, repeat: Infinity, ease: "linear" } : { duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              />
+              {/* Inner orb with grid pattern */}
+              <motion.div
+                className="relative w-20 h-20 rounded-full flex items-center justify-center text-4xl overflow-hidden"
+                style={{
+                  background: mentorState === "speaking"
+                    ? "radial-gradient(circle, rgba(34,197,94,0.4) 0%, rgba(34,197,94,0.1) 60%, transparent 100%)"
+                    : mentorState === "listening"
+                    ? "radial-gradient(circle, rgba(59,130,246,0.4) 0%, rgba(59,130,246,0.1) 60%, transparent 100%)"
+                    : "radial-gradient(circle, rgba(100,100,255,0.2) 0%, rgba(100,100,255,0.05) 60%, transparent 100%)",
+                  boxShadow: mentorState === "speaking"
+                    ? "0 0 60px rgba(34,197,94,0.4), 0 0 120px rgba(34,197,94,0.1)"
+                    : mentorState === "listening"
+                    ? "0 0 60px rgba(59,130,246,0.4), 0 0 120px rgba(59,130,246,0.1)"
+                    : "0 0 30px rgba(100,100,255,0.15)",
+                }}
+                animate={mentorState === "speaking" ? { scale: [1, 1.12, 1] } : {}}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                🐧
+              </motion.div>
+            </div>
 
             <div className="text-center">
-              <p className="font-semibold text-foreground">Jordan</p>
+              <p className="font-semibold text-foreground text-sm">Pebble</p>
               <div className="h-5 mt-1">
                 {mentorState === "listening" && (
                   <motion.p className="text-xs text-blue-400 flex items-center justify-center gap-1" animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
-                    <Mic className="w-3 h-3" /> Listening — just speak...
+                    <Mic className="w-3 h-3" /> Listening...
                   </motion.p>
                 )}
                 {mentorState === "thinking" && (
@@ -540,21 +631,19 @@ const VoiceMentorPanel = ({
                 )}
                 {mentorState === "speaking" && (
                   <p className="text-xs text-emerald-400 flex items-center justify-center gap-1">
-                    <Volume2 className="w-3 h-3" /> Speaking — interrupt anytime
+                    <Volume2 className="w-3 h-3" /> Speaking...
                   </p>
                 )}
-                {mentorState === "idle" && (
-                  <p className="text-xs text-muted-foreground">Ready to listen</p>
-                )}
+                {mentorState === "idle" && <p className="text-xs text-muted-foreground">Ready</p>}
               </div>
             </div>
 
             {/* Waveform */}
-            <canvas ref={canvasRef} width={380} height={50} className="w-full max-w-[380px] h-[50px] rounded-xl" />
+            <canvas ref={canvasRef} width={380} height={40} className="w-full max-w-[380px] h-[40px] rounded-xl opacity-80" />
           </div>
 
-          {/* Conversation */}
-          <div className="flex-1 overflow-y-auto px-5 pb-3 space-y-3 min-h-0 max-h-[28vh]">
+          {/* Conversation area */}
+          <div className="flex-1 overflow-y-auto px-5 pb-3 space-y-3 min-h-0 max-h-[22vh]">
             {(userTranscript || interimTranscript) && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-blue-500/10 rounded-2xl p-3 border border-blue-500/20">
                 <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-1">You</p>
@@ -567,7 +656,7 @@ const VoiceMentorPanel = ({
 
             {mentorResponse && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-emerald-500/10 rounded-2xl p-3 border border-emerald-500/20">
-                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">Jordan</p>
+                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">🐧 Pebble</p>
                 <p className="text-sm text-foreground leading-relaxed">
                   {responseWords.map((word, i) => (
                     <span key={i} className={`transition-colors duration-150 ${
@@ -581,30 +670,32 @@ const VoiceMentorPanel = ({
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-3 border-t border-border flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground">💬 {Math.floor(exchanges.length / 2)} exchanges</span>
+          <div className="px-5 py-3 border-t border-border/30 flex items-center justify-between bg-black/20">
+            <span className="text-[10px] text-muted-foreground">💬 {Math.floor(exchanges.length / 2)}</span>
             <div className="flex items-center gap-2">
+              {mentorState === "speaking" && (
+                <Button variant="outline" size="sm" onClick={handleInterrupt}
+                  className="rounded-full text-xs h-7 px-3 border-amber-500/50 text-amber-500 hover:bg-amber-500/10 animate-pulse">
+                  <Hand className="w-3 h-3 mr-1" /> Interrupt
+                </Button>
+              )}
               <button onClick={() => setShowTranscript(!showTranscript)} className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
                 <FileText className="w-3 h-3" /> Transcript
               </button>
-              <Button variant="destructive" size="sm" onClick={handleClose} className="rounded-full text-xs h-7 px-3">
-                End
-              </Button>
+              <Button variant="destructive" size="sm" onClick={handleClose} className="rounded-full text-xs h-7 px-3">End</Button>
             </div>
           </div>
 
           {/* Transcript Drawer */}
           <AnimatePresence>
             {showTranscript && (
-              <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden border-t border-border">
-                <div className="px-5 py-3 max-h-[180px] overflow-y-auto space-y-2 bg-muted/20">
+              <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden border-t border-border/30">
+                <div className="px-5 py-3 max-h-[180px] overflow-y-auto space-y-2 bg-black/30">
                   {exchanges.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">No exchanges yet</p>}
                   {exchanges.map((ex, i) => (
                     <div key={i} className="text-xs">
                       <span className="text-muted-foreground">[{ex.time}]</span>{" "}
-                      <span className={ex.speaker === "user" ? "text-blue-400" : "text-emerald-400"}>
-                        {ex.speaker === "user" ? "You" : "Jordan"}:
-                      </span>{" "}
+                      <span className={ex.speaker === "user" ? "text-blue-400" : "text-emerald-400"}>{ex.speaker === "user" ? "You" : "Pebble"}:</span>{" "}
                       <span className="text-foreground">{ex.text.slice(0, 200)}{ex.text.length > 200 ? "..." : ""}</span>
                     </div>
                   ))}

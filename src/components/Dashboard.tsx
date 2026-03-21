@@ -42,12 +42,7 @@ function getGreeting(streak: number): string {
   const hour = new Date().getHours();
   const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   if (streak === 0) {
-    const msgs = [
-      `${timeGreeting}! Ready to start learning something new? 🚀`,
-      `${timeGreeting}! Let's build some awesome skills today! 🌟`,
-      `${timeGreeting}! Your learning journey begins — let's go! 💪`,
-    ];
-    return msgs[Math.floor(Date.now() / 60000) % msgs.length];
+    return `${timeGreeting}! Ready to start learning something new? 🚀`;
   }
   if (streak >= 7) return `${timeGreeting}! ${streak}-day streak — you're absolutely unstoppable! 🔥⚡`;
   if (streak >= 3) return `${timeGreeting}! ${streak} days in a row — keep that streak alive! 🔥`;
