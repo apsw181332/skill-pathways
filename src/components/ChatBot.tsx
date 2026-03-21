@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Loader2, Pencil, Undo2, Check, Phone } from "lucide-react";
+import { X, Send, Loader2, Pencil, Undo2, Check, Phone, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import mascotImg from "@/assets/mascot-penguin.png";
@@ -66,10 +66,7 @@ const ChatBot = ({ skillTopic, lessonContext, lessonId, userId, locale = "en" }:
     try {
       const resp = await fetch(CHAT_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
         body: JSON.stringify({ messages: apiMessages }),
       });
 
@@ -124,33 +121,27 @@ const ChatBot = ({ skillTopic, lessonContext, lessonId, userId, locale = "en" }:
     setLoading(false);
   };
 
+  const handleOpenVoice = useCallback(() => {
+    setOpen(false);
+    setVoiceOpen(true);
+  }, []);
+
+  const handleCloseVoice = useCallback(() => {
+    setVoiceOpen(false);
+  }, []);
+
   return (
     <>
-      {/* FAB buttons - Chat + Call side by side */}
+      {/* FAB */}
       <AnimatePresence>
         {!open && !voiceOpen && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            className="fixed bottom-6 right-4 z-50 flex items-center gap-2"
-          >
-            <motion.button
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setVoiceOpen(true)}
-              className="w-12 h-12 rounded-full bg-emerald-600 shadow-lg flex items-center justify-center hover:bg-emerald-700 transition-colors"
-              aria-label="Call Pebble"
-            >
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="fixed bottom-6 right-4 z-50 flex items-center gap-2">
+            <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }} onClick={() => setVoiceOpen(true)}
+              className="w-12 h-12 rounded-full bg-emerald-600 shadow-lg flex items-center justify-center hover:bg-emerald-700 transition-colors" aria-label="Call Pebble">
               <Phone className="w-5 h-5 text-white" />
             </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setOpen(true)}
-              className="w-14 h-14 rounded-full bg-primary shadow-lg flex items-center justify-center"
-              aria-label="Chat with Pebble"
-            >
+            <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }} onClick={() => setOpen(true)}
+              className="w-14 h-14 rounded-full bg-primary shadow-lg flex items-center justify-center" aria-label="Chat with Pebble">
               <img src={mascotImg} alt="Pebble" className="w-9 h-9 object-contain" />
             </motion.button>
           </motion.div>
@@ -168,6 +159,9 @@ const ChatBot = ({ skillTopic, lessonContext, lessonId, userId, locale = "en" }:
                 <h3 className="font-semibold text-foreground text-sm">Pebble</h3>
                 <p className="text-xs text-muted-foreground">Your learning buddy</p>
               </div>
+              <button onClick={handleOpenVoice} className="text-emerald-500 hover:text-emerald-400 mr-1" title="Call Pebble">
+                <Phone className="w-5 h-5" />
+              </button>
               <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
             </div>
 
@@ -197,15 +191,16 @@ const ChatBot = ({ skillTopic, lessonContext, lessonId, userId, locale = "en" }:
               ))}
               {loading && messages[messages.length - 1]?.role !== "assistant" && (
                 <div className="flex justify-start">
-                  <div className="bg-secondary rounded-2xl rounded-bl-sm px-3 py-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  </div>
+                  <div className="bg-secondary rounded-2xl rounded-bl-sm px-3 py-2"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
                 </div>
               )}
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex items-center gap-2 px-3 py-2 border-t border-border">
               <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask Pebble..." className="flex-1 text-sm h-9" disabled={loading} />
+              <Button type="button" size="sm" variant="ghost" onClick={handleOpenVoice} className="h-9 w-9 p-0 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10" title="Call">
+                <Phone className="w-4 h-4" />
+              </Button>
               <Button type="submit" size="sm" disabled={!input.trim() || loading} className="h-9 w-9 p-0"><Send className="w-4 h-4" /></Button>
             </form>
           </motion.div>
@@ -215,7 +210,7 @@ const ChatBot = ({ skillTopic, lessonContext, lessonId, userId, locale = "en" }:
       {/* Voice Mentor Panel */}
       <VoiceMentorPanel
         isOpen={voiceOpen}
-        onClose={() => setVoiceOpen(false)}
+        onClose={handleCloseVoice}
         skillTopic={skillTopic}
         lessonContext={lessonContext}
         lessonId={lessonId}
